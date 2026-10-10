@@ -20,46 +20,11 @@
 <meta property="og:video:height" content="1350">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://rmink.vercel.app/promo/og-en.jpg">
-<style>
-:root { --paper: #f4f2ec; --ink: #1d1d1b; --muted: #6b6a65; --accent: #2b5fd9; --line: #dcd8cd; --heart: #d0406a; }
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--paper); color: var(--ink);
-  font: 17px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
-main { max-width: 980px; margin: 0 auto; padding: 32px 16px 48px; display: grid; gap: 36px;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 420px); align-items: center; }
-.brand { font-weight: 800; font-size: 22px; letter-spacing: -.02em; color: var(--ink); text-decoration: none; }
-h1 { font-size: clamp(30px, 4.4vw, 46px); line-height: 1.1; letter-spacing: -.02em; margin: 14px 0 16px; }
-p.lead { color: var(--muted); font-size: 19px; margin: 0 0 26px; }
-.btns { display: flex; flex-wrap: wrap; gap: 12px; }
-.btn { display: inline-block; padding: 13px 22px; border-radius: 999px; font-weight: 700; text-decoration: none; }
-.primary { background: var(--accent); color: #fff; }
-.ghost { border: 1.5px solid var(--line); color: var(--ink); background: #fff; }
-.heart { color: var(--heart); }
-video { width: 100%; aspect-ratio: 4 / 5; border-radius: 18px; background: #000; display: block;
-  box-shadow: 0 24px 60px rgb(0 0 0 / .2); }
-.meta { margin-top: 26px; font-size: 14px; color: var(--muted); }
-.meta a { color: var(--muted); }
-@media (max-width: 760px) { main { grid-template-columns: 1fr; gap: 24px; padding-top: 20px; } .video { order: -1; } }
-</style>
+<script>location.replace("/?demo=en");</script>
+<style>body { margin: 0; background: #f4f2ec; color: #1d1d1b; font: 17px/1.5 system-ui, sans-serif; padding: 32px 16px; }</style>
 </head>
 <body>
-<main>
-  <div>
-    <a class="brand" href="/">rmink</a>
-    <h1>Your handwritten notes, as real reMarkable ink</h1>
-    <p class="lead">Drop a photo of notes, a sketch, a portrait or a PDF. rmink traces it into native pen strokes that you can erase, lasso, move and draw on, on your tablet.</p>
-    <div class="btns">
-      <a class="btn primary" href="/">Try it free</a>
-      <a class="btn ghost" href="https://github.com/thagvall/rmink">Source code</a>
-      <a class="btn ghost" href="https://buy.stripe.com/7sY4gy4b1aQo0iI0SB1sQ00">Support it with 100 kr <span class="heart">♥</span></a>
-    </div>
-    <p class="meta"><a href="/video/sv">På svenska</a> · rmink is an independent hobby project, not affiliated with reMarkable AS.</p>
-  </div>
-  <div class="video">
-    <video controls playsinline preload="metadata" poster="/promo/poster-en.jpg">
-      <source src="/promo/rmink-promo-en.mp4" type="video/mp4">
-    </video>
-  </div>
-</main>
+<!-- Link previews read the tags above; people go on to the app with the video open. -->
+<p><a href="/?demo=en">Your handwritten notes, as real reMarkable ink</a></p>
 </body>
 </html>

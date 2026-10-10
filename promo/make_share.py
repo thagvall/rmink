@@ -1,4 +1,7 @@
-"""Shareable video pages on the hosted site: /video (English) and /video/sv.
+"""Shareable video links on the hosted site: /video (English) and /video/sv.
+
+The pages carry the link-preview tags and send visitors on to the app with the
+demo video open (/?demo=en, /?demo=sv).
 
 Writes the link-preview images (1200 × 627, for LinkedIn and others), the
 posters and the pages into deploy/vercel/public/, and copies the rendered MP4s.
@@ -8,7 +11,6 @@ Usage: python promo/make_share.py   (after render.py LANG and render.py LANG --c
 
 import html
 import shutil
-
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -18,8 +20,6 @@ OUT = HERE / "out"
 PUBLIC = HERE.parent / "deploy" / "vercel" / "public"
 DEST = PUBLIC / "promo"
 SITE = "https://rmink.vercel.app"
-SUPPORT = "https://buy.stripe.com/7sY4gy4b1aQo0iI0SB1sQ00"
-SOURCE = "https://github.com/thagvall/rmink"
 SANS = "/System/Library/Fonts/HelveticaNeue.ttc"
 TEXT = {
     "en": ("Photos and handwriting\nbecome real, editable\nreMarkable ink", "Free · open source · no install",
@@ -70,26 +70,18 @@ def make(lang: str) -> Path:
 
 PAGE = {
     "en": {
-        "path": "/video", "file": "video.html", "other": ("/video/sv", "På svenska"),
+        "path": "/video", "file": "video.html",
         "title": "rmink: photos and handwriting as real reMarkable ink",
         "desc": "A 90-second demo: drop a photo, download the notebook, copy it to your "
                 "reMarkable, then erase, move and draw on it like your own pen strokes. Free and open source.",
         "h1": "Your handwritten notes, as real reMarkable ink",
-        "lead": "Drop a photo of notes, a sketch, a portrait or a PDF. rmink traces it into native pen "
-                "strokes that you can erase, lasso, move and draw on, on your tablet.",
-        "try": "Try it free", "code": "Source code", "support": "Support it with 100 kr ♥",
-        "note": "rmink is an independent hobby project, not affiliated with reMarkable AS.",
     },
     "sv": {
-        "path": "/video/sv", "file": "video-sv.html", "other": ("/video", "In English"),
+        "path": "/video/sv", "file": "video-sv.html",
         "title": "rmink: foton och handstil som riktigt reMarkable-bläck",
         "desc": "En 90 sekunder lång demo: släpp in ett foto, ladda ner anteckningsboken, lägg över den till "
                 "din reMarkable och sudda, flytta och rita som med din egen penna. Gratis och öppen källkod.",
         "h1": "Dina handskrivna anteckningar, som riktigt reMarkable-bläck",
-        "lead": "Släpp in ett foto av anteckningar, en skiss, ett porträtt eller en PDF. rmink spårar om det "
-                "till riktiga pennstreck som du kan sudda, lassa, flytta och rita vidare på i plattan.",
-        "try": "Prova gratis", "code": "Källkod", "support": "Stöd med 100 kr ♥",
-        "note": "rmink är ett fristående hobbyprojekt utan koppling till reMarkable AS.",
     },
 }  # fmt: skip
 
@@ -115,47 +107,12 @@ TEMPLATE = """<!doctype html>
 <meta property="og:video:height" content="1350">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="{site}/promo/og-{lang}.jpg">
-<style>
-:root {{ --paper: #f4f2ec; --ink: #1d1d1b; --muted: #6b6a65; --accent: #2b5fd9; --line: #dcd8cd; --heart: #d0406a; }}
-* {{ box-sizing: border-box; }}
-body {{ margin: 0; background: var(--paper); color: var(--ink);
-  font: 17px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }}
-main {{ max-width: 980px; margin: 0 auto; padding: 32px 16px 48px; display: grid; gap: 36px;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 420px); align-items: center; }}
-.brand {{ font-weight: 800; font-size: 22px; letter-spacing: -.02em; color: var(--ink); text-decoration: none; }}
-h1 {{ font-size: clamp(30px, 4.4vw, 46px); line-height: 1.1; letter-spacing: -.02em; margin: 14px 0 16px; }}
-p.lead {{ color: var(--muted); font-size: 19px; margin: 0 0 26px; }}
-.btns {{ display: flex; flex-wrap: wrap; gap: 12px; }}
-.btn {{ display: inline-block; padding: 13px 22px; border-radius: 999px; font-weight: 700; text-decoration: none; }}
-.primary {{ background: var(--accent); color: #fff; }}
-.ghost {{ border: 1.5px solid var(--line); color: var(--ink); background: #fff; }}
-.heart {{ color: var(--heart); }}
-video {{ width: 100%; aspect-ratio: 4 / 5; border-radius: 18px; background: #000; display: block;
-  box-shadow: 0 24px 60px rgb(0 0 0 / .2); }}
-.meta {{ margin-top: 26px; font-size: 14px; color: var(--muted); }}
-.meta a {{ color: var(--muted); }}
-@media (max-width: 760px) {{ main {{ grid-template-columns: 1fr; gap: 24px; padding-top: 20px; }} .video {{ order: -1; }} }}
-</style>
+<script>location.replace("/?demo={lang}");</script>
+<style>body {{ margin: 0; background: #f4f2ec; color: #1d1d1b; font: 17px/1.5 system-ui, sans-serif; padding: 32px 16px; }}</style>
 </head>
 <body>
-<main>
-  <div>
-    <a class="brand" href="/">rmink</a>
-    <h1>{h1}</h1>
-    <p class="lead">{lead}</p>
-    <div class="btns">
-      <a class="btn primary" href="/">{try_}</a>
-      <a class="btn ghost" href="{source}">{code}</a>
-      <a class="btn ghost" href="{support_url}">{support}</a>
-    </div>
-    <p class="meta"><a href="{other_path}">{other_label}</a> · {note}</p>
-  </div>
-  <div class="video">
-    <video controls playsinline preload="metadata" poster="/promo/poster-{lang}.jpg">
-      <source src="/promo/rmink-promo-{lang}.mp4" type="video/mp4">
-    </video>
-  </div>
-</main>
+<!-- Link previews read the tags above; people go on to the app with the video open. -->
+<p><a href="/?demo={lang}">{h1}</a></p>
 </body>
 </html>
 """
@@ -163,11 +120,7 @@ video {{ width: 100%; aspect-ratio: 4 / 5; border-radius: 18px; background: #000
 
 def page(lang: str) -> Path:
     t = {k: html.escape(v) if isinstance(v, str) else v for k, v in PAGE[lang].items()}
-    out = TEMPLATE.format(
-        lang=lang, site=SITE, path=t["path"], title=t["title"], desc=t["desc"], h1=t["h1"],
-        lead=t["lead"], try_=t["try"], code=t["code"], support=t["support"].replace("♥", '<span class="heart">♥</span>'),
-        source=SOURCE, support_url=SUPPORT, other_path=t["other"][0], other_label=t["other"][1], note=t["note"],
-    )  # fmt: skip
+    out = TEMPLATE.format(lang=lang, site=SITE, path=t["path"], title=t["title"], desc=t["desc"], h1=t["h1"])
     path = PUBLIC / t["file"]
     path.write_text(out)
     return path
