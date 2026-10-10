@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>rmink promo</title>
+<style>
+@font-face { font-family: "Caveat"; src: url("out/assets/Caveat.ttf"); font-weight: 400 700; }
+:root {
+  --paper: #f4f2ec; --ink: #1d1d1b; --muted: #6b6a65; --accent: #2b5fd9;
+  --heart: #d0406a; --line: #dcd8cd;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1080px; height: 1350px; overflow: hidden; }
+body {
+  position: relative; background: var(--paper); color: var(--ink);
+  font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.abs { position: absolute; left: 0; top: 0; will-change: transform, opacity; }
+.text {
+  width: 1080px; text-align: center; padding: 0 70px; line-height: 1.12;
+  font-weight: 750; letter-spacing: -0.02em; white-space: pre-line;
+}
+.hand { font-family: "Caveat", cursive; font-weight: 650; letter-spacing: 0; }
+
+#bg-dark { width: 1080px; height: 1350px; background: #121212; opacity: 0; }
+
+#photo {
+  width: 700px; height: 875px; border-radius: 14px; overflow: hidden;
+  box-shadow: 0 30px 60px rgb(0 0 0 / .25), 0 6px 14px rgb(0 0 0 / .18);
+  transform-origin: 50% 50%;
+}
+#photo img { width: 100%; height: 100%; display: block; object-fit: cover; }
+
+.tablet {
+  background: #262624; border-radius: 34px; padding: 30px;
+  box-shadow: 0 30px 60px rgb(0 0 0 / .28), inset 0 0 0 2px #3a3a37;
+  transform-origin: 50% 50%;
+}
+.tablet .screen { background: #fbfaf6; border-radius: 8px; overflow: hidden; position: relative; }
+.tablet svg { display: block; width: 100%; height: 100%; }
+
+#arrow { width: 160px; height: 80px; }
+
+#cap { display: flex; justify-content: center; align-items: center; gap: 22px; width: 1080px; }
+#cap .badge {
+  width: 74px; height: 74px; border-radius: 50%; background: var(--accent); color: #fff;
+  display: grid; place-items: center; font-size: 42px; font-weight: 800; flex: none;
+}
+#cap .label { font-size: 62px; font-weight: 760; letter-spacing: -0.02em; }
+
+#phone {
+  width: 486px; height: 1010px; border-radius: 64px; background: #161616; padding: 18px;
+  box-shadow: 0 40px 80px rgb(0 0 0 / .3), inset 0 0 0 2px #333;
+}
+#phone .screen { width: 450px; height: 974px; border-radius: 48px; overflow: hidden; position: relative; background: #f4f2ec; }
+#phone .state { position: absolute; left: 0; top: 0; width: 450px; }
+#phone .notch {
+  position: absolute; left: 50%; top: 14px; width: 120px; height: 34px; margin-left: -60px;
+  background: #161616; border-radius: 20px; z-index: 5;
+}
+.ripple {
+  position: absolute; width: 90px; height: 90px; margin: -45px 0 0 -45px; border-radius: 50%;
+  background: rgb(43 95 217 / .28); border: 4px solid rgb(43 95 217 / .7); z-index: 6;
+}
+#dragcard {
+  width: 150px; height: 188px; border-radius: 8px; overflow: hidden;
+  box-shadow: 0 14px 30px rgb(0 0 0 / .3);
+}
+#dragcard img { width: 100%; height: 100%; object-fit: cover; }
+#urlpill {
+  left: 540px; top: 1268px; transform: translateX(-50%); padding: 10px 26px; border-radius: 999px;
+  background: #fff; border: 2px solid var(--line); font-size: 34px; font-weight: 650;
+}
+
+#eraser {
+  width: 70px; height: 70px; margin: -35px 0 0 -35px; border-radius: 50%;
+  border: 4px solid #555; background: rgb(255 255 255 / .6);
+}
+
+.montage { width: 1080px; text-align: center; color: #fff; }
+.montage svg { width: 150px; height: 150px; margin: 0 auto 36px; display: block; }
+.montage .t { font-size: 70px; font-weight: 780; letter-spacing: -0.02em; line-height: 1.18; white-space: pre-line; }
+
+#wordmark { width: 640px; height: 250px; left: 220px; top: 70px; }
+.cta { width: 1080px; text-align: center; }
+.cta .small { font-size: 40px; color: var(--muted); font-weight: 600; }
+.cta .big { font-size: 78px; font-weight: 800; color: var(--accent); letter-spacing: -0.02em; }
+.qrbox { width: 300px; text-align: center; }
+.qrbox .qr { width: 300px; height: 300px; background: #fff; border-radius: 18px; padding: 14px; box-shadow: 0 8px 24px rgb(0 0 0 / .1); }
+.qrbox .qr img { width: 100%; height: 100%; display: block; }
+.qrbox .cap { margin-top: 14px; font-size: 34px; font-weight: 700; }
+.heart { color: var(--heart); }
+#disclaimer { top: 1286px; font-size: 24px; color: var(--muted); font-weight: 500; width: 1080px; text-align: center; }
+</style>
+</head>
+<body>
+<div id="bg-dark" class="abs"></div>
+
+<!-- Scene 1-2 -->
+<div id="h1" class="abs text"></div>
+<div id="h2" class="abs text hand"></div>
+<div id="h3" class="abs text"></div>
+<div id="photo" class="abs"><img id="photo-img" alt=""></div>
+<svg id="arrow" class="abs" viewBox="0 0 160 80" fill="none" stroke="#1d1d1b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+  <path id="arrow-path" d="M10 44 C 50 30, 95 52, 140 38 M118 18 L142 38 L116 58"/>
+</svg>
+<div id="tablet" class="abs tablet"><div class="screen"><svg id="ink" viewBox="0 0 1620 2160"></svg></div></div>
+<div id="eraser" class="abs"></div>
+
+<!-- Scene 3 -->
+<div id="cap" class="abs"><div class="badge"></div><div class="label"></div></div>
+<div id="phone" class="abs"><div class="screen" id="phone-screen"><div class="notch"></div></div></div>
+<div id="dragcard" class="abs"><img id="drag-img" alt=""></div>
+<div id="urlpill" class="abs">rmink.vercel.app</div>
+
+<!-- Scene 5 -->
+<div id="montage"></div>
+
+<!-- Scene 6 -->
+<svg id="wordmark" class="abs"></svg>
+<div id="cta-try" class="abs cta"><div class="small"></div><div class="big">rmink.vercel.app</div></div>
+<div id="qr-a" class="abs qrbox"><div class="qr"><img src="out/qr-app.svg" alt=""></div><div class="cap"></div></div>
+<div id="qr-b" class="abs qrbox"><div class="qr"><img src="out/qr-support.svg" alt=""></div><div class="cap"></div></div>
+<div id="cta-code" class="abs cta"><div class="small"></div><div class="big" style="font-size:52px;color:var(--ink)">github.com/thagvall/rmink</div></div>
+<div id="cta-support" class="abs cta" style="font-size:48px;font-weight:750"></div>
+<div id="disclaimer" class="abs"></div>
+
+<script>
+const LANG = new URLSearchParams(location.search).get("lang") || "en";
+const $ = (s) => document.querySelector(s);
+const NS = "http://www.w3.org/2000/svg";
+
+// ---------- timing helpers ----------
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const easeOut = (x) => 1 - Math.pow(1 - x, 3);
+const lerp = (a, b, x) => a + (b - a) * x;
+// opacity: fades in over [a,a+d], out over [b-d,b]
+const win = (t, a, b, d = 0.4) => Math.min(prog(t, a, a + d), 1 - prog(t, b - d, b));
+function place(el, { x = 0, y = 0, s = 1, r = 0, o = 1, cx = true }) {
+  const w = el.offsetWidth, h = el.offsetHeight;
+  const tx = cx ? x - w / 2 : x, ty = cx ? y - h / 2 : y;
+  el.style.transform = `translate(${tx}px, ${ty}px) rotate(${r}deg) scale(${s})`;
+  el.style.opacity = o;
+  el.style.visibility = o <= 0.001 ? "hidden" : "visible";
+}
+// Shrink a text element until it fits on `lines` lines.
+function fit(el, max, min, lines = 1) {
+  let size = max;
+  el.style.fontSize = size + "px";
+  while (size > min && el.scrollHeight > size * 1.25 * lines + 4) {
+    size -= 2;
+    el.style.fontSize = size + "px";
+  }
+}
+function textAt(el, y, o, dy = 0) {
+  el.style.transform = `translate(0px, ${y + dy}px)`;
+  el.style.opacity = o;
+  el.style.visibility = o <= 0.001 ? "hidden" : "visible";
+}
+
+let T, DATA, APP, PAGE;
+const strokes = [];      // {el, len, start, tag, bbox, color}
+let totalLen = 0, sunEls = [], sunBox, titleEls = [], erasePaths = [], eraseBox;
+let wmPaths = [], wmTotal = 0;
+const phoneStates = {};
+
+async function load() {
+  const [i18n, data] = await Promise.all([
+    fetch("i18n.json").then((r) => r.json()),
+    fetch("out/strokes.json").then((r) => r.json()),
+  ]);
+  T = i18n[LANG];
+  DATA = data;
+  APP = await fetch(`out/app-${LANG}/meta.json`).then((r) => r.json());
+  PAGE = data[LANG];
+
+  $("#photo-img").src = `out/note-${LANG}.jpg`;
+  $("#drag-img").src = `out/note-${LANG}.jpg`;
+  $("#h1").textContent = T.hook1;
+  $("#h2").textContent = T.hook2;
+  document.documentElement.lang = LANG;
+
+  buildInk();
+  buildPhone();
+  buildMontage();
+  buildEnd();
+
+  await document.fonts.ready;
+  await Promise.all([...document.images].map((im) => im.decode().catch(() => {})));
+  window.ready = true;
+}
+
+function buildInk() {
+  const svg = $("#ink");
+  svg.setAttribute("viewBox", `0 0 ${PAGE.width} ${PAGE.height}`);
+  const tablet = $("#tablet");
+  tablet.dataset.ratio = PAGE.height / PAGE.width;
+  // Group for strokes that the eraser removes, masked progressively.
+  const defs = document.createElementNS(NS, "defs");
+  defs.innerHTML = `<mask id="erase-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="${PAGE.width}" height="${PAGE.height}">
+      <rect x="0" y="0" width="${PAGE.width}" height="${PAGE.height}" fill="#fff"/>
+      <rect id="erase-rect" x="0" y="0" width="0" height="0" fill="#000"/></mask>`;
+  svg.appendChild(defs);
+  const gMain = document.createElementNS(NS, "g");
+  const gErase = document.createElementNS(NS, "g");
+  gErase.setAttribute("mask", "url(#erase-mask)");
+  const gSun = document.createElementNS(NS, "g");
+  gSun.id = "sun";
+  svg.append(gMain, gErase, gSun);
+
+  const sketch = PAGE.strokes.filter((s) => s.tag === "sketch");
+  const sx0 = Math.min(...sketch.map((s) => s.bbox[0])), sx1 = Math.max(...sketch.map((s) => s.bbox[2]));
+  // The sun: the circle is the largest stroke in the left part of the sketch;
+  // its rays are everything that lies within ~2.4 radii of the circle centre.
+  const left = sketch.filter((s) => (s.bbox[0] + s.bbox[2]) / 2 < sx0 + 0.24 * (sx1 - sx0));
+  const circle = left.reduce((a, s) => ((s.bbox[2] - s.bbox[0]) * (s.bbox[3] - s.bbox[1]) >
+    (a.bbox[2] - a.bbox[0]) * (a.bbox[3] - a.bbox[1]) ? s : a), left[0]);
+  const scx = (circle.bbox[0] + circle.bbox[2]) / 2, scy = (circle.bbox[1] + circle.bbox[3]) / 2;
+  const sr = (circle.bbox[2] - circle.bbox[0]) / 2;
+  const isSun = (s) => s.tag === "sketch" && [[s.bbox[0], s.bbox[1]], [s.bbox[2], s.bbox[3]]]
+    .every(([x, y]) => Math.hypot(x - scx, y - scy) < 2.4 * sr);
+
+  for (const s of PAGE.strokes) {
+    const p = document.createElementNS(NS, "path");
+    p.setAttribute("d", s.d);
+    p.setAttribute("fill", "none");
+    p.setAttribute("stroke", s.c);
+    p.setAttribute("stroke-width", Math.max(2.2, s.w));
+    p.setAttribute("stroke-linecap", "round");
+    p.setAttribute("stroke-linejoin", "round");
+    const group = s.tag === "item2" ? gErase : isSun(s) ? gSun : gMain;
+    group.appendChild(p);
+    const len = Math.max(p.getTotalLength(), 1);
+    p.style.strokeDasharray = `${len} ${len}`;
+    strokes.push({ el: p, len, start: totalLen, tag: s.tag, color: s.c });
+    totalLen += len;
+    if (isSun(s)) sunEls.push(s);
+    if (s.tag === "title") titleEls.push(p);
+    if (s.tag === "item2") erasePaths.push(s);
+  }
+  const bb = (list) => list.reduce((b, s) => [Math.min(b[0], s.bbox[0]), Math.min(b[1], s.bbox[1]),
+    Math.max(b[2], s.bbox[2]), Math.max(b[3], s.bbox[3])], [1e9, 1e9, -1e9, -1e9]);
+  sunBox = bb(sunEls);
+  eraseBox = bb(erasePaths);
+
+  // Lasso loop around the sun.
+  const [x0, y0, x1, y1] = sunBox, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  const rx = (x1 - x0) / 2 + 70, ry = (y1 - y0) / 2 + 70;
+  let d = "";
+  for (let i = 0; i <= 64; i++) {
+    const a = (i / 64) * Math.PI * 2.08, wob = 1 + 0.04 * Math.sin(a * 3);
+    d += (i ? " L" : "M") + (cx + rx * wob * Math.cos(a)).toFixed(1) + "," + (cy + ry * wob * Math.sin(a)).toFixed(1);
+  }
+  const lasso = document.createElementNS(NS, "path");
+  lasso.id = "lasso";
+  lasso.setAttribute("d", d);
+  lasso.setAttribute("fill", "none");
+  lasso.setAttribute("stroke", "#555");
+  lasso.setAttribute("stroke-width", 6);
+  lasso.setAttribute("stroke-dasharray", "18 14");
+  gSun.appendChild(lasso);
+}
+
+function setInk(t, drawP) {
+  const drawn = drawP * totalLen;
+  for (const s of strokes) {
+    const f = clamp((drawn - s.start) / s.len);
+    s.el.style.strokeDashoffset = s.len * (1 - f);
+  }
+}
+
+function buildPhone() {
+  const screen = $("#phone-screen");
+  for (const name of Object.keys(APP.states)) {
+    const img = document.createElement("img");
+    img.className = "state";
+    img.src = `out/app-${LANG}/${name}.png`;
+    screen.appendChild(img);
+    phoneStates[name] = img;
+  }
+  const r = document.createElement("div");
+  r.className = "ripple";
+  r.id = "ripple";
+  screen.appendChild(r);
+}
+
+const K = 450 / 390; // phone screen px per CSS px
+function phone(t, stateA, stateB, mix, scroll, tap) {
+  for (const [name, img] of Object.entries(phoneStates)) {
+    let o = 0;
+    if (name === stateA) o = 1 - mix;
+    if (name === stateB) o = Math.max(o, mix);
+    img.style.opacity = o;
+    img.style.transform = `translateY(${-scroll * K}px)`;
+  }
+  const r = $("#ripple");
+  if (tap) {
+    const st = APP.states[tap.state].boxes[tap.box];
+    const p = tap.p;
+    r.style.left = (st.x + st.width / 2) * K + "px";
+    r.style.top = (st.y + st.height / 2 - scroll) * K + "px";
+    r.style.opacity = p < 1 ? 1 - p : 0;
+    r.style.transform = `scale(${0.5 + p})`;
+  } else r.style.opacity = 0;
+}
+const boxOf = (state, b) => APP.states[state].boxes[b];
+
+const ICONS = {
+  m1: '<rect x="20" y="40" width="110" height="80" rx="12"/><circle cx="75" cy="80" r="24"/><path d="M50 40 l10-16 h30 l10 16"/>',
+  m2: '<rect x="35" y="15" width="80" height="120" rx="12"/><path d="M55 50 c10-12 20 12 30 0 s15 10 20 0 M55 80 h40 M55 100 h28"/>',
+  m3: '<path d="M75 135 C 20 95, 15 55, 45 35 C 62 24, 75 40, 75 48 C 75 40, 88 24, 105 35 C 135 55, 130 95, 75 135 Z"/>',
+  m4: '<path d="M75 20 L88 62 L130 75 L88 88 L75 130 L62 88 L20 75 L62 62 Z"/>',
+};
+function buildMontage() {
+  const box = $("#montage");
+  for (const k of ["m1", "m2", "m3", "m4"]) {
+    const d = document.createElement("div");
+    d.className = "abs montage";
+    d.id = "mt-" + k;
+    d.innerHTML = `<svg viewBox="0 0 150 150" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg><div class="t"></div>`;
+    d.querySelector(".t").textContent = T[k];
+    box.appendChild(d);
+  }
+}
+
+function buildEnd() {
+  const wm = DATA.wordmark.strokes;
+  const b = wm.reduce((b, s) => [Math.min(b[0], s.bbox[0]), Math.min(b[1], s.bbox[1]),
+    Math.max(b[2], s.bbox[2]), Math.max(b[3], s.bbox[3])], [1e9, 1e9, -1e9, -1e9]);
+  const pad = 30, svg = $("#wordmark");
+  svg.setAttribute("viewBox", `${b[0] - pad} ${b[1] - pad} ${b[2] - b[0] + 2 * pad} ${b[3] - b[1] + 2 * pad}`);
+  for (const s of wm) {
+    const p = document.createElementNS(NS, "path");
+    p.setAttribute("d", s.d);
+    p.setAttribute("fill", "none");
+    p.setAttribute("stroke", "#1d1d1b");
+    p.setAttribute("stroke-width", Math.max(4, s.w * 1.1));
+    p.setAttribute("stroke-linecap", "round");
+    p.setAttribute("stroke-linejoin", "round");
+    svg.appendChild(p);
+    const len = p.getTotalLength();
+    p.style.strokeDasharray = `${len} ${len}`;
+    wmPaths.push({ el: p, len, start: wmTotal });
+    wmTotal += len;
+  }
+  $("#cta-try .small").textContent = T.try;
+  $("#qr-a .cap").textContent = T.qr_try;
+  $("#qr-b .cap").innerHTML = T.qr_support.replace("♥", '<span class="heart">♥</span>');
+  $("#cta-code .small").textContent = T.code;
+  $("#cta-support").innerHTML = T.support.replace("♥", '<span class="heart">♥</span>');
+  $("#disclaimer").textContent = T.disclaimer;
+}
+
+function sizeTablet(width) {
+  const el = $("#tablet"), inner = width - 60;
+  el.style.width = width + "px";
+  el.querySelector(".screen").style.height = inner * Number(el.dataset.ratio) + "px";
+}
+
+function caption(n, text, o, t0, t) {
+  const cap = $("#cap");
+  cap.querySelector(".badge").textContent = n;
+  cap.querySelector(".badge").style.display = n ? "grid" : "none";
+  cap.querySelector(".label").textContent = text;
+  const dy = (1 - easeOut(prog(t, t0, t0 + 0.4))) * 24;
+  cap.style.transform = `translate(0px, ${96 + dy}px)`;
+  cap.style.opacity = o;
+  cap.style.visibility = o <= 0.001 ? "hidden" : "visible";
+}
+
+// ---------- the timeline ----------
+window.seek = async function (t) {
+  // Scene 1+2 text
+  $("#h1").style.fontSize = t < 5.5 ? "76px" : "64px";
+  $("#h1").textContent = t < 5.5 ? T.hook1 : T.what1;
+  const h1o = t < 5.5 ? win(t, 0.15, 5.4, 0.5) : win(t, 5.7, 11.8, 0.5);
+  textAt($("#h1"), t < 5.5 ? 110 : 120, h1o, (1 - easeOut(prog(t, t < 5.5 ? 0.15 : 5.7, (t < 5.5 ? 0.15 : 5.7) + 0.6))) * 30);
+  fit($("#h2"), 104, 60, 1);
+  $("#h2").style.color = "#2b5fd9";
+  textAt($("#h2"), 110 + $("#h1").offsetHeight + 4, win(t, 1.5, 5.4, 0.5), (1 - easeOut(prog(t, 1.5, 2.2))) * 30);
+  $("#h3").style.fontSize = "64px";
+  $("#h3").textContent = T.what2;
+  textAt($("#h3"), 1150, win(t, 9.0, 11.8, 0.5), (1 - easeOut(prog(t, 9.0, 9.6))) * 30);
+
+  // Photo: big in scene 1, moves left in scene 2.
+  const m = ease(prog(t, 4.9, 6.0));
+  const photoO = Math.min(prog(t, 0, 0.4), 1 - prog(t, 11.5, 12));
+  $("#photo").style.width = lerp(620, 430, m) + "px";
+  $("#photo").style.height = lerp(775, 538, m) + "px";
+  place($("#photo"), { x: lerp(540, 290, m), y: lerp(880, 690, m), r: lerp(-3, -5, m), s: lerp(1.05, 1, prog(t, 0, 5)), o: photoO });
+
+  // Arrow between photo and tablet.
+  const ap = $("#arrow-path"), aLen = 330;
+  ap.style.strokeDasharray = aLen;
+  ap.style.strokeDashoffset = aLen * (1 - prog(t, 6.0, 6.6));
+  place($("#arrow"), { x: 540 - 80, y: 690 - 40, o: win(t, 5.9, 11.9, 0.3), cx: false });
+
+  // Tablet: scene 2 (right), scene 4 (centre).
+  const tab = $("#tablet");
+  let tabO = 0;
+  if (t < 12) {
+    sizeTablet(450);
+    tabO = Math.min(prog(t, 5.5, 6.1), 1 - prog(t, 11.5, 12));
+    place(tab, { x: 800 + (1 - easeOut(prog(t, 5.5, 6.3))) * 200, y: 690, r: 2, o: tabO });
+    setInk(t, ease(prog(t, 6.3, 10.6)));
+  } else if (t >= 29.6 && t < 42.2) {
+    sizeTablet(780);
+    tabO = Math.min(prog(t, 29.6, 30.2), 1 - prog(t, 41.8, 42.2));
+    place(tab, { x: 540, y: 770, s: lerp(0.94, 1, easeOut(prog(t, 29.6, 30.4))), o: tabO });
+    setInk(t, 1);
+  } else place(tab, { o: 0 });
+
+  // Scene 4 effects (in SVG page coordinates).
+  const er = $("#erase-rect"), [ex0, ey0, ex1, ey1] = eraseBox;
+  const eraseP = ease(prog(t, 31.0, 32.8));
+  er.setAttribute("x", ex0 - 40);
+  er.setAttribute("y", ey0 - 40);
+  er.setAttribute("height", ey1 - ey0 + 80);
+  er.setAttribute("width", t >= 29 ? (ex1 - ex0 + 80) * eraseP : 0);
+  const eraser = $("#eraser");
+  if (t >= 30.8 && t < 33.2) {
+    const svgRect = $("#ink").getBoundingClientRect(), k = svgRect.width / PAGE.width;
+    const ex = svgRect.left + (ex0 - 40 + (ex1 - ex0 + 80) * eraseP) * k;
+    const ey = svgRect.top + ((ey0 + ey1) / 2 + 30 * Math.sin(eraseP * 18)) * k;
+    place(eraser, { x: ex, y: ey, o: win(t, 30.8, 33.2, 0.25), cx: false });
+  } else place(eraser, { o: 0 });
+
+  const lasso = $("#lasso");
+  const lassoLen = lasso.getTotalLength();
+  lasso.style.strokeDashoffset = 0;
+  lasso.setAttribute("stroke-dasharray", `${lassoLen * prog(t, 33.9, 34.9)} ${lassoLen}`);
+  lasso.style.opacity = t >= 33.8 && t < 37.0 ? 1 - prog(t, 36.6, 37.0) : 0;
+  const mv = ease(prog(t, 35.1, 36.4));
+  const sunCx = (sunBox[0] + sunBox[2]) / 2, sunCy = (sunBox[1] + sunBox[3]) / 2;
+  const tgtX = PAGE.width * 0.82, tgtY = PAGE.height * 0.14;
+  $("#sun").setAttribute("transform", `translate(${(tgtX - sunCx) * mv}, ${(tgtY - sunCy) * mv})`);
+
+  const rc = prog(t, 37.4, 38.2);
+  for (const p of titleEls) p.setAttribute("stroke", rc > 0 ? mixColor("#1d1d1b", "#2850c8", rc) : "#1d1d1b");
+  if (t < 29) { for (const p of titleEls) p.setAttribute("stroke", strokes.find((s) => s.el === p).color); }
+
+  // Captions (scenes 3 & 4).
+  if (t >= 12 && t < 30) {
+    const steps = [[12.2, 14.4, 1, T.step1], [14.4, 17.6, 2, T.step2], [17.6, 23.2, 3, T.step3], [23.2, 29.6, 4, T.step4]];
+    const s = steps.find(([a, b]) => t >= a && t < b) || steps[3];
+    const o = Math.min(prog(t, s[0], s[0] + 0.3), t > 29.2 ? 1 - prog(t, 29.2, 29.6) : 1);
+    caption(s[2], s[3], o, s[0], t);
+  } else if (t >= 30.2 && t < 42) {
+    const caps = [[30.4, 33.6, T.erase], [33.6, 37.1, T.move], [37.1, 39.6, T.recolor + " · " + T.recolor_note], [39.6, 42, T.final]];
+    const c = caps.find(([a, b]) => t >= a && t < b);
+    const o = c ? Math.min(prog(t, c[0], c[0] + 0.3), 1 - prog(t, 41.6, 42)) : 0;
+    if (c) caption("", c[2], o, c[0], t); else caption("", "", 0, 0, t);
+    $("#cap .label").style.fontSize = c && c[2].length > 24 ? "50px" : "62px";
+  } else caption("", "", 0, 0, t);
+  if (!(t >= 30.2 && t < 42)) $("#cap .label").style.fontSize = "62px";
+
+  // Scene 3: phone demo.
+  const ph = $("#phone");
+  const phO = Math.min(prog(t, 12, 12.5), 1 - prog(t, 29.2, 29.7));
+  place(ph, { x: 540, y: 245 + 505 + (1 - easeOut(prog(t, 12, 12.7))) * 80, o: t >= 12 && t < 30 ? phO : 0 });
+  $("#urlpill").style.opacity = t >= 12 && t < 30 ? phO : 0;
+  $("#urlpill").style.transform = "translateX(-50%)";
+  $("#urlpill").style.left = "540px";
+  if (t >= 12 && t < 30) {
+    const gal = boxOf("preview", "gallery"), pro = boxOf("preview", "pro"), dl = boxOf("pro", "download");
+    let a = "empty", b = "empty", mix = 0, scroll = 0, tap = null;
+    if (t < 14.4) {
+      if (t > 14.0) tap = { state: "empty", box: "drop", p: prog(t, 14.0, 14.6) };
+    } else if (t < 17.6) {
+      a = "empty"; b = "preview"; mix = prog(t, 14.4, 14.8);
+      scroll = lerp(0, gal.y - 210, ease(prog(t, 15.2, 16.6)));
+    } else if (t < 23.2) {
+      a = "preview"; b = "pro"; mix = prog(t, 19.5, 19.9);
+      const s1 = gal.y - 210, s2 = pro.y - 520;
+      scroll = t < 19.9 ? lerp(s1, s2, ease(prog(t, 17.7, 18.9))) : lerp(s2, s1, ease(prog(t, 20.3, 21.6)));
+      if (t > 19.2 && t < 20.0) tap = { state: "preview", box: "pro", p: prog(t, 19.2, 19.9) };
+    } else {
+      const s1 = gal.y - 210, s2 = dl.y - 560;
+      a = "pro"; b = "downloaded"; mix = prog(t, 25.0, 25.4);
+      scroll = t < 25.2 ? lerp(s1, s2, ease(prog(t, 23.3, 24.5))) : lerp(s2, 0, ease(prog(t, 25.6, 26.8)));
+      if (t > 24.6 && t < 25.4) tap = { state: "pro", box: "download", p: prog(t, 24.6, 25.3) };
+    }
+    phone(t, a, b, mix, Math.max(0, scroll), tap);
+
+    // Photo card dragged into the drop zone.
+    const drop = boxOf("empty", "drop"), phRect = $("#phone-screen").getBoundingClientRect();
+    const tx = phRect.left + (drop.x + drop.width / 2) * K, ty = phRect.top + (drop.y + drop.height / 2) * K;
+    const dp = ease(prog(t, 12.8, 14.0));
+    place($("#dragcard"), {
+      x: lerp(960, tx, dp), y: lerp(1100, ty, dp), r: lerp(12, 0, dp), s: lerp(1, 0.55, dp),
+      o: t >= 12.6 && t < 14.5 ? Math.min(prog(t, 12.6, 12.9), 1 - prog(t, 14.1, 14.5)) : 0,
+    });
+  } else place($("#dragcard"), { o: 0 });
+
+  // Scene 5: montage on dark.
+  const dark = Math.min(prog(t, 41.8, 42.3), 1 - prog(t, 49.6, 50.1));
+  $("#bg-dark").style.opacity = dark;
+  ["m1", "m2", "m3", "m4"].forEach((k, i) => {
+    const a = 42.2 + i * 1.95, b = a + 1.95, el = $("#mt-" + k);
+    const o = win(t, a, b, 0.3);
+    textAt(el, 470, o, (1 - easeOut(prog(t, a, a + 0.5))) * 50 - easeOut(prog(t, b - 0.3, b)) * 30);
+  });
+
+  // Scene 6: end card.
+  const wmP = ease(prog(t, 50.3, 52.0)), wmDrawn = wmP * wmTotal;
+  for (const p of wmPaths) p.el.style.strokeDashoffset = p.len * (1 - clamp((wmDrawn - p.start) / p.len));
+  $("#wordmark").style.opacity = t >= 50 ? 1 : 0;
+  const show = (sel, y, a) => textAt($(sel), y, t >= a ? easeOut(prog(t, a, a + 0.5)) : 0, (1 - easeOut(prog(t, a, a + 0.5))) * 30);
+  show("#cta-try", 330, 51.6);
+  const qo = (a) => (t >= a ? easeOut(prog(t, a, a + 0.5)) : 0);
+  place($("#qr-a"), { x: 340, y: 680, s: lerp(0.9, 1, qo(52.2)), o: qo(52.2) });
+  place($("#qr-b"), { x: 740, y: 680, s: lerp(0.9, 1, qo(52.6)), o: qo(52.6) });
+  show("#cta-code", 925, 53.1);
+  show("#cta-support", 1105, 53.6);
+  $("#disclaimer").style.opacity = t >= 54 ? easeOut(prog(t, 54, 54.6)) : 0;
+  $("#disclaimer").style.transform = "translate(0px, 1286px)";
+  $("#disclaimer").style.top = "0px";
+};
+
+function mixColor(a, b, x) {
+  const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [ca, cb] = [p(a), p(b)];
+  return "rgb(" + ca.map((v, i) => Math.round(lerp(v, cb[i], x))).join(",") + ")";
+}
+
+load().then(() => seek(Number(new URLSearchParams(location.search).get("t") || 0)));
+</script>
+</body>
+</html>

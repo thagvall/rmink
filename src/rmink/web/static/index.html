@@ -186,7 +186,8 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
   .p-download { order: 4; }
   .empty { min-height: 0; padding: 16px; }
   .empty svg { width: 64px; }
-  #gallery { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  /* auto-fit: a single page uses the full width, two pages share a row. */
+  #gallery { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 }
 </style>
 </head>

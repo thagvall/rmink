@@ -55,3 +55,7 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# Video production scripts: coordinate tables read better on one line.
+"promo/*" = ["E501"]
