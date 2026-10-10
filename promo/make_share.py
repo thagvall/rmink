@@ -3,75 +3,25 @@
 The pages carry the link-preview tags and send visitors on to the app with the
 demo video open (/?demo=en, /?demo=sv).
 
-Writes the link-preview images (1200 × 627, for LinkedIn and others), the
-posters and the pages into deploy/vercel/public/, and copies the rendered MP4s.
-
-Usage: python promo/make_share.py   (after render.py LANG and render.py LANG --cover)
+Usage:
+  python promo/make_share.py           # copy MP4s + posters, write the pages (deploy/vercel/public)
+  python promo/make_share.py --shots   # after deploying: share images (1200 × 627) taken from
+                                       # the live site with the video open
 """
 
+import hashlib
 import html
+import io
 import shutil
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image
 
 HERE = Path(__file__).parent
 OUT = HERE / "out"
 PUBLIC = HERE.parent / "deploy" / "vercel" / "public"
 DEST = PUBLIC / "promo"
 SITE = "https://rmink.vercel.app"
-SANS = "/System/Library/Fonts/HelveticaNeue.ttc"
-TEXT = {
-    "en": ("Photos and handwriting\nbecome real, editable\nreMarkable ink", "Free · open source · no install",
-           "Watch the demo"),
-    "sv": ("Foton och handstil blir\nriktigt, redigerbart\nreMarkable-bläck", "Gratis · öppen källkod · ingen installation",
-           "Se demon"),
-    # The app's own share image (src/rmink/web/static/og.jpg), used for the start page.
-    "app": ("Photos and handwriting\nbecome real, editable\nreMarkable ink", "Free · open source · no install",
-            "Try it free"),
-}  # fmt: skip
-PAPER, INK, MUTED, BLUE = "#f4f2ec", "#1d1d1b", "#6b6a65", "#2b5fd9"
-
-
-def font(path: str, size: int, index: int = 0, weight: int | None = None):
-    f = ImageFont.truetype(path, size, index=index)
-    if weight:
-        f.set_variation_by_axes([weight])
-    return f
-
-
-def make(lang: str, dest: Path | None = None, url: str | None = None) -> Path:
-    img = Image.new("RGB", (1200, 627), PAPER)
-    d = ImageDraw.Draw(img)
-    # Video frame on the right with a shadow and a play button.
-    cover = Image.open(OUT / f"cover-{'en' if lang == 'app' else lang}.png").convert("RGB").resize((448, 560))
-    x0, y0 = 700, 34
-    shadow = Image.new("L", (1200, 627), 0)
-    ImageDraw.Draw(shadow).rounded_rectangle((x0 + 6, y0 + 16, x0 + 454, y0 + 576), 22, fill=110)
-    img.paste(Image.new("RGB", img.size, "#000"), mask=shadow.filter(ImageFilter.GaussianBlur(18)))
-    mask = Image.new("L", cover.size, 0)
-    ImageDraw.Draw(mask).rounded_rectangle((0, 0, *cover.size), 20, fill=255)
-    img.paste(cover, (x0, y0), mask)
-    cx, cy, r = x0 + 224, y0 + 300, 58
-    d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=(29, 29, 27))
-    d.polygon([(cx - 18, cy - 28), (cx - 18, cy + 28), (cx + 30, cy)], fill="white")
-
-    head, sub, cta = TEXT[lang]
-    d.text((68, 34), "rmink", font=font(str(OUT / "assets" / "Caveat.ttf"), 110, weight=700), fill=INK)
-    d.multiline_text((72, 182), head, font=font(SANS, 42, index=1), fill=INK, spacing=8)
-    d.text((72, 352), sub, font=font(SANS, 25), fill=MUTED)
-    bold = font(SANS, 30, index=1)
-    d.rounded_rectangle((72, 420, 72 + d.textlength(cta, font=bold) + 98, 486), 33, fill=BLUE)
-    d.polygon([(104, 439), (104, 467), (127, 453)], fill="white")
-    d.text((142, 436), cta, font=bold, fill="white")
-    url = url or "rmink.vercel.app/video" + ("/sv" if lang == "sv" else "")
-    d.text((72, 540), url, font=font(SANS, 26, index=1), fill=MUTED)
-    DEST.mkdir(parents=True, exist_ok=True)
-    path = dest or DEST / f"og-{lang}.jpg"
-    img.save(path, quality=90)
-    return path
-
-
 PAGE = {
     "en": {
         "path": "/video", "file": "video.html",
@@ -102,7 +52,7 @@ TEMPLATE = """<!doctype html>
 <meta property="og:title" content="{title}">
 <meta property="og:description" content="{desc}">
 <meta property="og:url" content="{site}{path}">
-<meta property="og:image" content="{site}/promo/og-{lang}.jpg">
+<meta property="og:image" content="{site}/promo/og-{lang}.jpg?v={ver}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="627">
 <meta property="og:video" content="{site}/promo/rmink-promo-{lang}.mp4">
@@ -110,7 +60,7 @@ TEMPLATE = """<!doctype html>
 <meta property="og:video:width" content="1080">
 <meta property="og:video:height" content="1350">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="{site}/promo/og-{lang}.jpg">
+<meta name="twitter:image" content="{site}/promo/og-{lang}.jpg?v={ver}">
 <script>location.replace("/?demo={lang}");</script>
 <style>body {{ margin: 0; background: #f4f2ec; color: #1d1d1b; font: 17px/1.5 system-ui, sans-serif; padding: 32px 16px; }}</style>
 </head>
@@ -124,15 +74,64 @@ TEMPLATE = """<!doctype html>
 
 def page(lang: str) -> Path:
     t = {k: html.escape(v) if isinstance(v, str) else v for k, v in PAGE[lang].items()}
-    out = TEMPLATE.format(lang=lang, site=SITE, path=t["path"], title=t["title"], desc=t["desc"], h1=t["h1"])
+    # A content hash in the image URL makes LinkedIn fetch a new image instead of its cached one.
+    og = DEST / f"og-{lang}.jpg"
+    ver = hashlib.sha1(og.read_bytes()).hexdigest()[:8] if og.exists() else "1"
+    out = TEMPLATE.format(lang=lang, site=SITE, path=t["path"], title=t["title"], desc=t["desc"],
+                          h1=t["h1"], ver=ver)  # fmt: skip
     path = PUBLIC / t["file"]
     path.write_text(out)
     return path
 
 
+# Frame of the video shown in the share image (the tablet editing scene).
+SHOT_AT = 38.5
+PLAY_OVERLAY = """
+  const v = document.querySelector('#demo video');
+  v.pause(); v.muted = true; v.removeAttribute('controls'); v.preload = 'auto';
+  await new Promise(r => { if (v.readyState >= 1) r(); else v.addEventListener('loadedmetadata', r, {once: true}); });
+  v.currentTime = %s;
+  await new Promise(r => v.addEventListener('seeked', r, {once: true}));
+  v.pause();
+  document.activeElement.blur();
+  const play = document.createElement('div');
+  play.innerHTML = '<svg viewBox="0 0 100 100" width="120" height="120"><circle cx="50" cy="50" r="48" fill="rgba(29,29,27,.82)"/><path d="M40 30 L72 50 L40 70 Z" fill="#fff"/></svg>';
+  const r = v.getBoundingClientRect();
+  Object.assign(play.style, { position: 'fixed', left: (r.left + r.width / 2 - 60) + 'px', top: (r.top + r.height / 2 - 60) + 'px', zIndex: 99 });
+  v.closest('dialog').appendChild(play);
+"""
+
+
+def site_shot(lang: str, dest: Path) -> Path:
+    """The live app with the demo dialog open, as a 1200 × 627 share image."""
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(channel="chrome", headless=True)
+        page = browser.new_page(viewport={"width": 1600, "height": 836}, device_scale_factor=0.75)
+        page.goto(f"{SITE}/?demo={lang}")
+        page.wait_for_selector("#demo[open]")
+        page.evaluate("async () => {" + PLAY_OVERLAY % SHOT_AT + "}")
+        page.wait_for_timeout(800)
+        png = page.screenshot()
+        browser.close()
+    Image.open(io.BytesIO(png)).convert("RGB").save(dest, quality=90)
+    return dest
+
+
 if __name__ == "__main__":
-    print(make("app", HERE.parent / "src" / "rmink" / "web" / "static" / "og.jpg", "rmink.vercel.app"))
-    for lang in PAGE:
-        shutil.copy(OUT / f"rmink-promo-{lang}.mp4", DEST / f"rmink-promo-{lang}.mp4")
-        Image.open(OUT / f"cover-{lang}.png").convert("RGB").save(DEST / f"poster-{lang}.jpg", quality=88)
-        print(make(lang), page(lang))
+    import sys
+
+    if "--shots" not in sys.argv:
+        DEST.mkdir(parents=True, exist_ok=True)
+        for lang in PAGE:
+            shutil.copy(OUT / f"rmink-promo-{lang}.mp4", DEST / f"rmink-promo-{lang}.mp4")
+            Image.open(OUT / f"cover-{lang}.png").convert("RGB").save(DEST / f"poster-{lang}.jpg", quality=88)
+            print(page(lang))
+    else:
+        # Share images: the live site with the video open, so run this after the
+        # videos are deployed. public/og.jpg overrides the app's own /og.jpg.
+        print(site_shot("en", PUBLIC / "og.jpg"))
+        shutil.copy(PUBLIC / "og.jpg", HERE.parent / "src" / "rmink" / "web" / "static" / "og.jpg")
+        for lang in PAGE:
+            print(site_shot(lang, DEST / f"og-{lang}.jpg"), page(lang))
