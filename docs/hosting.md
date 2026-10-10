@@ -20,10 +20,11 @@ on Hobby; selling is not.
 
 **Updating the site:** release a new version to PyPI, bump the version in
 `deploy/vercel/requirements.txt` and push. Vercel redeploys automatically.
-Wait a few minutes after the PyPI release before pushing the bump. PyPI's
-CDN can take a little while to list a new version, and a Vercel build that
-starts too early fails. The previous deployment stays live; push again (an
-empty commit is enough) or click *Redeploy* in Vercel.
+The project sets `VERCEL_FORCE_NO_BUILD_CACHE=1`. Without it, Vercel restores
+uv's cached copy of the PyPI index from the previous build, and a newly
+released version is reported as missing ("no version of rmink[web]==X"). If
+a build ever fails that way, check that the variable is still set and
+redeploy.
 
 **Limits on the hosted version:**
 - Vercel caps each request and response at 4.5 MB. The browser shrinks
