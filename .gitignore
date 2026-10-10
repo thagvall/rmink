@@ -4,3 +4,10 @@ venv
 .vscode
 real_rm_files
 pdfs
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+dist/
+*.rmdoc
+.DS_Store

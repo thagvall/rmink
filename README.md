@@ -1,117 +1,119 @@
-# py_pdf2rmnotebook
-Creates a reMarkable2 rmdoc file from one or multiple PDFs having one or multipe pages. The rmdoc file can be moved to the reMarkable2 via drag and drop to the web Interface [Transferring files via web Interface](https://support.remarkable.com/s/article/Transferring-files-using-a-USB-cable) .
-## General information
-This project is still in development and only tested with python3.12 on ubuntu with a remarkable2 having Software verison 3.11.2.5 installed.
-It should also work on windows and macOS with minor adaptions as python and java(drawj2d) are platform independent. However, I haven't tested it on other platforms so far. If you want to use it on windows raise a github issue, then I can add support for that.
+# rmink
 
-**Please create a backup of your files before copying the generated rmdoc file to your reMarkable**. It should't break anything but just to be safe [How to backup your data](https://remarkable.guide/guide/access/backup.html). 
+**Turn images, photos of handwriting, SVGs, logos and PDFs into native, editable
+reMarkable ink.**
 
-For question, improvement suggestions, bug reports etc. create a github issue.
+Most tools put a picture *behind* your notes. rmink writes real pen strokes
+(`.rm` v6, the format of firmware 3.x) into a `.rmdoc` notebook, so on the
+tablet you can erase part of a converted sketch, lasso a word and move it, or
+recolour a diagram.
 
+| Input | What happens |
+|---|---|
+| Photo or scan of handwriting, sketches, whiteboards | Paper shadows are removed, the ink is skeletonised, and each line becomes **one stroke along its centre**, with the line's width |
+| Logos, icons, illustrations (PNG/JPG) | Colours are clustered and mapped to the tablet's pen colours. Thin lines are traced; solid areas are outlined and hatched |
+| Vector PDF / SVG | Paths become strokes directly. Text glyphs are outlined and filled |
+| Scanned PDF | Detected automatically and traced like a photo |
 
-## Setup the project on a ubuntu machine (You can also use Ubuntu on a Windows Machine with WSL2 https://learn.microsoft.com/en-us/windows/wsl/install)
-- Install [drawj2d](https://sourceforge.net/projects/drawj2d/files/1.3.3) -> This requires java beeing installed on your machine
-  [drawj2d installation](https://sourceforge.net/p/drawj2d/wiki/Home)
+Supported devices: **reMarkable 2**, **Paper Pure**, **Paper Pro** (colour)
+and **Paper Pro Move** (colour).
+
+## Install
+
 ```bash
-# Install java (jdk and jre)
-# I used openjdk-21-jdk but older versions are fine as well
-sudo apt install openjdk-21-jdk
-# Verify that java is installed
-╰─➤  java --version
-openjdk 21.0.3 2024-04-16
-OpenJDK Runtime Environment (build 21.0.3+9-Ubuntu-1ubuntu122.04.1)
-OpenJDK 64-Bit Server VM (build 21.0.3+9-Ubuntu-1ubuntu122.04.1, mixed mode, sharing)
-# Download drawj2d
-# I used the debian package (drawj2d_1.3.3-4.1_all.deb), if you are on other operating systems, use the .zip file, download it, unzip it and add drawj2d to the PATH so you operating system finds it
-cd ~/Downloads
-sudo dkpg -i drawj2d_1.3.3-4.1_all.deb # the debian package get's installed to a location that part of the PATH so no further adjustments are necessary
-# Verify the installation
-╰─➤  drawj2d                                                                                                      130 ↵
-
-            Welcome to Drawj2d
-            Copyright (c) A. Vontobel, 2014-2024
-            Version 1.3.3
-
-Mode: Freehep
+pip install rmink            # or run without installing: uvx rmink ...
+pip install 'rmink[mcp]'     # + MCP server for Claude and other agents
+pip install 'rmink[heic]'    # + iPhone HEIC photos
 ```
 
-- Setup the python project
+Until it is published on PyPI, install from a checkout with `pip install -e '.[dev]'`.
+
+## Use
+
 ```bash
-sudo apt update
-# Install python3, python3-venv, python3-pip
-sudo apt install python3 python3-venv and python3-pip
-# Clone the repo and cd into it
-git clone https://github.com/simon-rechermann/py_pdf2rmnotebook.git
-cd py_pdf2rmnotebook
-# Setup a python virtual environment
-python3 -m venv venv
-# Activate the venv. This has to be done each time you start a new shell!
-source venv/bin/activate
-# Install the requirements
-pip install -r requirements.txt
+rmink convert notes.jpg                          # -> notes.rmdoc for reMarkable 2
+rmink convert logo.png -d pro --preview logo.png # colour, plus a PNG preview
+rmink convert paper.pdf --pages 1-3 --fit width -o paper.rmdoc
+rmink convert a.jpg b.jpg c.pdf --name "Week 41" # several inputs -> one notebook
+rmink preview sketch.jpg -o preview.png          # preview only, no notebook
+rmink inspect paper.rmdoc                        # pages, strokes, pens, colours
+rmink devices                                    # device profiles
+rmink calibrate -d pro                           # ruler page for checking scale
 ```
 
-## Setup the project on a windows machine
+Useful options: `--mode auto|vector|centerline|outline`,
+`--colors auto|mono|N`, `--pen fineliner|ballpoint|marker|pencil`,
+`--fill hatch|outline|none`, `--threshold auto|0-255`, `--simplify <px>`,
+`--max-points <n>`. Run `rmink convert --help` for the full list.
 
-- Download java (e.g. the openJDK from here https://adoptium.net/) and execute the installer
--> Select "Add to PATH" and "Set JAVA_HOME variable" in the installer and install it
--> To vertify that the installation worked open a Powershell and type *java --version*
+**Getting it onto the tablet:** connect the tablet by USB, turn on
+*Settings → Storage → USB web interface*, open <http://10.11.99.1> and drag the
+`.rmdoc` in (100 MB limit). Alternatively, drag it into the reMarkable desktop app.
+
+## Use with Claude
+
+**MCP server** (Claude Code, Claude Desktop, any MCP client):
+
 ```bash
-java --version # the command should return the openJDK version (the version itself does not matter)
-openjdk 21.0.3 2024-04-16 LTS
-OpenJDK Runtime Environment Temurin-21.0.3+9 (build 21.0.3+9-LTS)
-OpenJDK 64-Bit Server VM Temurin-21.0.3+9 (build 21.0.3+9-LTS, mixed mode, sharing)
+claude mcp add rmink -- uvx --from 'rmink[mcp]' rmink mcp
 ```
-- Install drawj2d [drawj2d](https://sourceforge.net/projects/drawj2d/files/1.3.3)
-Download the zip file and unpack it to a location that you like
-- Add drawj2d to the PATH [How to add something to the PATH in windows](https://www.architectryan.com/2018/03/17/add-to-the-path-on-windows-10/)
--> I unpacked the zip file to my Documents folder so I had to add *C:\Users\simon\Documents\Drawj2d-1.3.3\Drawj2d* to the PATH
--> To vertify that the installation worked open a Powershell and type *drawj2d* (AFTER YOU ADDED SOMETHING TO THE PATH RESTART THE POWERSHELL)
+
+Tools:
+
+- `preview_ink` returns a PNG, so the model can look at the result and tune the options before converting.
+- `convert_to_rmdoc` writes the notebook.
+- `inspect_rmdoc`, `list_devices` and `calibration_sheet`.
+
+**Skill:** copy `skills/rmink/` into `~/.claude/skills/`. It covers choosing a
+mode, the preview → tune → convert loop, and transferring the file.
+
+## How it works
+
+```
+input ─► ingest ─┬─ vector (PDF→SVG with text as paths, SVG) ─► paths → strokes, fills → outline + hatch
+                 └─ raster (photos, scans, images)
+                       background normalisation + Otsu/Sauvola → ink mask
+                       colour clustering (CIELAB k-means) → device palette
+                       per component: thin → skeleton graph → centerline strokes (+ width)
+                                      thick → contours + hatching
+        ─► simplify (RDP), smooth (Chaikin), chain, reading order, point budget
+        ─► .rm v6 via rmscene ─► .rmdoc (content/metadata/thumbnails)
+```
+
+Code layout: `src/rmink/` contains `ingest/`, `extract/`, `geometry/`,
+`color/`, `writer/rm_v6.py`, `package/rmdoc.py`, `render/preview.py`, `api.py`,
+`cli.py` and `mcp_server.py`.
+
+## Device notes
+
+The reMarkable 2 coordinate system is well known: 1404×1872, with x measured
+from the page centre. The other profiles assume the same scene unit on a
+larger canvas, and are marked *beta* until that is confirmed on hardware.
+Print `rmink calibrate -d <device>` and measure it; if it is off, override the
+profile in `~/.config/rmink/devices.toml`:
+
+```toml
+[pro]
+ink_scale = 0.99
+```
+
+See [docs/device-acceptance.md](docs/device-acceptance.md) for the on-device checklist.
+
+## Development
+
 ```bash
-drawj2d
-
-            Welcome to Drawj2d
-            Copyright (c) A. Vontobel, 2014-2024
-            Version 1.3.3
-
-Mode: Freehep
+python -m venv .venv && .venv/bin/pip install -e '.[dev]'
+.venv/bin/pytest            # unit, round-trip, fidelity, CLI and MCP tests
+python examples/make_examples.py
 ```
 
-- Download the py_pdf2rmnotebook zip file [py_pdf2rmnotebook zip file](https://github.com/simon-rechermann/py_pdf2rmnotebook/archive/refs/heads/main.zip) and unpack it (You can also use git of course to clone the repo if you want)
-- Open powershell
-```powershell
-# Install python
-python # this will open the Microsoft Store where you can download python
-# Test the installation -> the python --version command should return the version 
-python --version 
-Python 3.12.4  # Other versions should be file as well
-cd <path_to_py_pdf2rmnotebook> # go to the location where you unpacked the py_pdf2rmnotebook
-Set-ExecutionPolicy Unrestricted -Scope Process
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install -r .\requirements.txt
-python .\pdf2rmnotebook.py <pdf>
-```
+The fidelity tests render the *parsed* output and compare it with the source
+ink, checking precision and recall within 3 px. That way the tests cover the
+writer as well as the tracing.
 
-## Usage
-```bash
-# Make sure you sourced the venv so python knows it's requirements/site-packages!
-# Get help message that shows usage
-python3 pdf2rmnotebook.py -h
-```
+## History
 
-## Example
-I have two PDFs (document1.pdf and document2.pdf) with each of them having 3 pages stored at py_pdf2rmnotebook/pdfs.
-```bash
-# Execute pdf2rmnotebook.py with the two PDFs
-python3 pdf2rmnotebook.py pdfs/document1.pdf pdfs/document2.pdf
-```
-The result is stored at py_pdf2rmnotebook/output.
-To move the notebook to your reMarkable2 you have to drag and drop the file
-**py_pdf2rmnotebook/output/document1.rmdoc** into the web Interface.
-By default the rmdoc name and the name of the notebook that will appear on your reMarkable is the name of the first pdf you passed to the program (in this case document1).
-
-## Limitations
-The amout of pdf pages respectively the size of the rmdoc file you drag and drop is currently limited to a size of 100MB https://support.remarkable.com/s/article/Importing-files
-
-This is approximately 20 PDF pages (depending on the scale you choose). The quality of the thumbnails images of the notebook pages is already reduced pretty much. The limiting factor is the size of the notebook pages created with drawj2d.
+This project began as `pdf2rmnotebook`, a wrapper around drawj2d that wrote
+v5 pages in black fineliner only. That version lives on at the tag `v1.1.0`.
+rmink 2.0 replaces it with a pure-Python pipeline: no Java, v6 output, colour,
+image input, centerline tracing and an agent interface.
