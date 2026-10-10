@@ -46,6 +46,23 @@ Useful options: `--mode auto|vector|centerline|outline`,
 `--fill hatch|outline|none`, `--threshold auto|0-255`, `--simplify <px>`,
 `--max-points <n>`. Run `rmink convert --help` for the full list.
 
+### Web UI
+
+```bash
+pip install 'rmink[web]'
+rmink web                     # opens http://localhost:8765
+```
+
+Drop files on the page, choose a device and options, and the preview updates
+as you change them. When it looks right, download the `.rmdoc`.
+
+To host it for others, use the included `Dockerfile`
+(`docker build -t rmink . && docker run -p 8765:8765 rmink`). The per-request
+limits can be tightened with `RMINK_MAX_UPLOAD_MB`, `RMINK_MAX_FILES`,
+`RMINK_MAX_PAGES`, `RMINK_TIMEOUT_S` and `RMINK_CONCURRENCY`; see
+`src/rmink/web/__init__.py`. Uploads are deleted as soon as the request
+finishes.
+
 **Getting it onto the tablet:** connect the tablet by USB, turn on
 *Settings → Storage → USB web interface*, open <http://10.11.99.1> and drag the
 `.rmdoc` in (100 MB limit). Alternatively, drag it into the reMarkable desktop app.
@@ -82,7 +99,7 @@ input ─► ingest ─┬─ vector (PDF→SVG with text as paths, SVG) ─► 
 
 Code layout: `src/rmink/` contains `ingest/`, `extract/`, `geometry/`,
 `color/`, `writer/rm_v6.py`, `package/rmdoc.py`, `render/preview.py`, `api.py`,
-`cli.py` and `mcp_server.py`.
+`cli.py`, `mcp_server.py` and `web/` (FastAPI plus a single static page).
 
 ## Device notes
 

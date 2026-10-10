@@ -31,7 +31,7 @@ dependencies = [
 mcp = ["mcp>=2.0"]
 heic = ["pillow-heif>=0.16"]
 web = ["fastapi>=0.110", "uvicorn>=0.29", "python-multipart>=0.0.9"]
-dev = ["pytest>=8", "ruff>=0.5", "mcp>=2.0"]
+dev = ["pytest>=8", "ruff>=0.5", "mcp>=2.0", "fastapi>=0.110", "uvicorn>=0.29", "python-multipart>=0.0.9", "httpx>=0.27"]
 
 [project.scripts]
 rmink = "rmink.cli:app"

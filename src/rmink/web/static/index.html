@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>rmink</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23222'/%3E%3Cpath d='M7 22c4-9 7-12 9-6s5 3 9-6' stroke='%23fff' stroke-width='2.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root {
+  --paper: #f4f2ec;
+  --surface: #fbfaf7;
+  --ink: #1d1d1b;
+  --muted: #6b6a65;
+  --line: #dcd8cd;
+  --accent: #2b5fd9;
+  --accent-ink: #ffffff;
+  --danger: #b3261e;
+  --warn-bg: #fff4d6;
+  --warn-ink: #6a4c00;
+  --shadow: 0 1px 2px rgb(0 0 0 / .06), 0 4px 16px rgb(0 0 0 / .06);
+  --radius: 12px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #171716;
+    --surface: #212120;
+    --ink: #ecebe6;
+    --muted: #a3a29b;
+    --line: #353532;
+    --accent: #7ea2ff;
+    --accent-ink: #10172b;
+    --danger: #ff8a80;
+    --warn-bg: #3a3017;
+    --warn-ink: #f3d68a;
+    --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 4px 16px rgb(0 0 0 / .3);
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+header {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  max-width: 1280px; margin: 0 auto; padding: 24px 20px 8px;
+}
+header h1 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+header p { margin: 0; color: var(--muted); }
+main {
+  display: grid; gap: 20px; grid-template-columns: 380px 1fr;
+  max-width: 1280px; margin: 0 auto; padding: 12px 20px 40px;
+}
+@media (max-width: 880px) { main { grid-template-columns: 1fr; } }
+.panel {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px;
+}
+aside { display: flex; flex-direction: column; gap: 16px; align-self: start; }
+@media (min-width: 881px) { aside { position: sticky; top: 16px; } }
+
+#drop {
+  border: 2px dashed var(--line); border-radius: var(--radius);
+  padding: 22px 16px; text-align: center; cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+#drop:hover, #drop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+#drop strong { display: block; font-size: 16px; }
+#drop span { color: var(--muted); font-size: 13px; }
+#drop:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+#files { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+#files li {
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+  border: 1px solid var(--line); border-radius: 8px; font-size: 13px;
+}
+#files li .n { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#files li .s { color: var(--muted); font-variant-numeric: tabular-nums; }
+.icon-btn {
+  border: 0; background: none; color: var(--muted); cursor: pointer;
+  width: 24px; height: 24px; border-radius: 6px; font-size: 16px; line-height: 1;
+}
+.icon-btn:hover { background: var(--line); color: var(--ink); }
+
+fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 12px; }
+legend { font-weight: 600; margin-bottom: 8px; padding: 0; }
+label.field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+label.field > span { display: flex; justify-content: space-between; }
+label.field output { color: var(--ink); font-variant-numeric: tabular-nums; }
+select, input[type="text"] {
+  width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--paper); color: var(--ink); font: inherit;
+}
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 3px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+.seg button {
+  border: 0; border-radius: 7px; padding: 7px 4px; font: inherit; font-size: 13px;
+  background: none; color: var(--ink); cursor: pointer; line-height: 1.2;
+}
+.seg button small { display: block; color: var(--muted); font-size: 11px; }
+.seg button[aria-pressed="true"] { background: var(--surface); box-shadow: var(--shadow); font-weight: 600; }
+
+details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+details[open] summary { margin-bottom: 10px; }
+.check { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: 0; border-radius: 10px; padding: 11px 16px; font: inherit; font-weight: 600;
+  background: var(--accent); color: var(--accent-ink); cursor: pointer; width: 100%;
+}
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.secondary { background: none; color: var(--ink); border: 1px solid var(--line); }
+
+#status { display: flex; align-items: center; gap: 10px; min-height: 24px; color: var(--muted); font-size: 13px; flex-wrap: wrap; }
+.spinner { width: 14px; height: 14px; border: 2px solid var(--line); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .8s linear infinite; display: none; }
+.busy .spinner { display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.notice { border-radius: 8px; padding: 8px 10px; font-size: 13px; margin: 0; }
+.notice.warn { background: var(--warn-bg); color: var(--warn-ink); }
+.notice.err { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+#notices { display: grid; gap: 6px; }
+
+#gallery {
+  display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  margin-top: 12px;
+}
+.page { margin: 0; }
+.page .sheet {
+  background: #fff; border-radius: 6px; box-shadow: var(--shadow); overflow: hidden;
+  border: 1px solid var(--line); cursor: zoom-in;
+}
+.page img { display: block; width: 100%; height: auto; }
+.page figcaption { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); padding: 6px 2px 0; }
+.page figcaption .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.empty {
+  grid-column: 1 / -1;
+  display: grid; place-items: center; text-align: center; color: var(--muted);
+  min-height: 420px; border: 1px dashed var(--line); border-radius: var(--radius);
+}
+.empty svg { width: 120px; height: auto; opacity: .7; }
+.loading #gallery { opacity: .5; transition: opacity .2s; }
+
+dialog { border: 0; padding: 0; background: none; max-width: 96vw; max-height: 96vh; }
+dialog::backdrop { background: rgb(0 0 0 / .7); }
+dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff; border-radius: 6px; }
+
+.help { font-size: 13px; color: var(--muted); }
+.help ol { margin: 6px 0 0; padding-left: 18px; }
+.help code { background: var(--paper); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1>rmink</h1>
+  <p>Photos, sketches, logos and PDFs → editable reMarkable ink</p>
+</header>
+
+<main>
+  <aside>
+    <section class="panel">
+      <div id="drop" tabindex="0" role="button" aria-describedby="drop-hint">
+        <strong>Drop files here</strong>
+        <span id="drop-hint">or click to choose — JPG, PNG, HEIC, SVG, PDF</span>
+      </div>
+      <input id="picker" type="file" multiple hidden>
+      <ul id="files" aria-label="Selected files"></ul>
+    </section>
+
+    <section class="panel">
+      <fieldset>
+        <legend>Device</legend>
+        <div class="seg" id="devices" role="group" aria-label="Device"></div>
+
+        <div class="row">
+          <label class="field"><span>Mode</span>
+            <select name="mode">
+              <option value="auto">Auto</option>
+              <option value="centerline">Handwriting / sketch</option>
+              <option value="outline">Logo / solid shapes</option>
+              <option value="vector">Vector (PDF, SVG)</option>
+            </select>
+          </label>
+          <label class="field"><span>Colours</span>
+            <select name="colors">
+              <option value="auto">Auto</option>
+              <option value="mono">Black only</option>
+              <option value="2">2 colours</option>
+              <option value="3">3 colours</option>
+              <option value="4">4 colours</option>
+              <option value="6">6 colours</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="row">
+          <label class="field"><span>Fills</span>
+            <select name="fill">
+              <option value="hatch">Hatched</option>
+              <option value="outline">Outline only</option>
+              <option value="none">Ignore</option>
+            </select>
+          </label>
+          <label class="field"><span>Fit</span>
+            <select name="fit">
+              <option value="page">Whole page</option>
+              <option value="width">Page width</option>
+              <option value="none">True size</option>
+            </select>
+          </label>
+        </div>
+
+        <details>
+          <summary>Fine tuning</summary>
+          <fieldset>
+            <label class="field"><span>Ink threshold <output id="thr-out">auto</output></span>
+              <input type="range" name="threshold" min="60" max="230" step="5" value="160" disabled>
+            </label>
+            <label class="check"><input type="checkbox" id="thr-auto" checked> Automatic threshold</label>
+            <label class="field"><span>Simplify <output id="simp-out">0.6 px</output></span>
+              <input type="range" name="simplify" min="0" max="3" step="0.1" value="0.6">
+            </label>
+            <div class="row">
+              <label class="field"><span>Pen</span>
+                <select name="pen">
+                  <option value="fineliner">Fineliner</option>
+                  <option value="ballpoint">Ballpoint</option>
+                  <option value="marker">Marker</option>
+                  <option value="pencil">Pencil</option>
+                </select>
+              </label>
+              <label class="field"><span>PDF pages</span>
+                <input type="text" name="pages" placeholder="all, e.g. 1-3,7" inputmode="numeric">
+              </label>
+            </div>
+          </fieldset>
+        </details>
+      </fieldset>
+    </section>
+
+    <section class="panel">
+      <fieldset>
+        <label class="field"><span>Notebook name</span>
+          <input type="text" name="name" placeholder="From the first file">
+        </label>
+        <button class="btn" id="download" disabled>Download .rmdoc</button>
+        <div class="help">
+          Copy it to the tablet:
+          <ol>
+            <li>Connect the tablet by USB and turn on <em>Settings → Storage → USB web interface</em>.</li>
+            <li>Open <code>http://10.11.99.1</code> and drag the file in.</li>
+          </ol>
+          You can also drag it into the reMarkable desktop app.
+        </div>
+      </fieldset>
+    </section>
+  </aside>
+
+  <section aria-live="polite">
+    <div id="status"><span class="spinner"></span><span id="status-text">Add files to see a preview.</span></div>
+    <div id="notices"></div>
+    <div id="gallery">
+      <div class="empty" id="empty">
+        <div>
+          <svg viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true">
+            <rect x="20" y="4" width="80" height="82" rx="6"/>
+            <path d="M32 30c8-14 14-14 18-2s10 12 18-2 12-6 20 4"/>
+            <path d="M32 52h56M32 66h36"/>
+          </svg>
+          <p>The preview shows the strokes exactly as they are written to the notebook.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog id="zoom"><img alt=""></dialog>
+
+<script>
+(() => {
+  const $ = (s, el = document) => el.querySelector(s);
+  const state = { files: [], device: "rm2", devices: [], ctrl: null, timer: null, seq: 0 };
+
+  const drop = $("#drop"), picker = $("#picker"), list = $("#files");
+  const gallery = $("#gallery"), empty = $("#empty"), notices = $("#notices");
+  const status = $("#status"), statusText = $("#status-text"), dl = $("#download");
+  const thr = $('[name="threshold"]'), thrAuto = $("#thr-auto"), simp = $('[name="simplify"]');
+
+  const fmtSize = (b) => b > 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1e3)) + " kB";
+  const fmtNum = (n) => n.toLocaleString();
+
+  function setStatus(text, busy = false) {
+    statusText.textContent = text;
+    status.classList.toggle("busy", busy);
+    document.body.classList.toggle("loading", busy);
+  }
+
+  function setNotices(warnings = [], error = null) {
+    notices.replaceChildren();
+    if (error) notices.append(Object.assign(document.createElement("p"), { className: "notice err", textContent: error }));
+    for (const w of warnings) notices.append(Object.assign(document.createElement("p"), { className: "notice warn", textContent: w }));
+  }
+
+  function renderFiles() {
+    list.replaceChildren(...state.files.map((f, i) => {
+      const li = document.createElement("li");
+      li.innerHTML = `<span class="n"></span><span class="s"></span><button class="icon-btn" aria-label="Remove">×</button>`;
+      li.querySelector(".n").textContent = f.name;
+      li.querySelector(".s").textContent = fmtSize(f.size);
+      li.querySelector("button").onclick = () => { state.files.splice(i, 1); renderFiles(); schedule(0); };
+      return li;
+    }));
+    dl.disabled = state.files.length === 0;
+  }
+
+  function addFiles(fileList) {
+    for (const f of fileList) {
+      if (!state.files.some((g) => g.name === f.name && g.size === f.size)) state.files.push(f);
+    }
+    renderFiles();
+    schedule(0);
+  }
+
+  drop.addEventListener("click", () => picker.click());
+  drop.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); picker.click(); } });
+  picker.addEventListener("change", () => { addFiles(picker.files); picker.value = ""; });
+  for (const ev of ["dragenter", "dragover"]) drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); });
+  for (const ev of ["dragleave", "drop"]) drop.addEventListener(ev, () => drop.classList.remove("over"));
+  drop.addEventListener("drop", (e) => { e.preventDefault(); e.stopPropagation(); addFiles(e.dataTransfer.files); });
+  // Dropping anywhere on the page should not navigate away.
+  window.addEventListener("dragover", (e) => e.preventDefault());
+  window.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer?.files.length) addFiles(e.dataTransfer.files); });
+
+  function renderDevices() {
+    const box = $("#devices");
+    box.replaceChildren(...state.devices.map((d) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(d.key === state.device));
+      b.title = `${d.name} · ${d.width}×${d.height}${d.verified ? "" : " · beta"}`;
+      const short = { rm2: "rM2", pure: "Pure", pro: "Pro", move: "Move" }[d.key] || d.key;
+      b.innerHTML = `<span></span><small></small>`;
+      b.firstChild.textContent = short;
+      b.lastChild.textContent = d.color ? "colour" : "mono";
+      b.onclick = () => { state.device = d.key; renderDevices(); schedule(0); };
+      return b;
+    }));
+  }
+
+  function formData(includeName) {
+    const fd = new FormData();
+    for (const f of state.files) fd.append("files", f, f.name);
+    fd.append("device", state.device);
+    for (const n of ["mode", "colors", "fill", "fit", "pen", "pages"]) {
+      const v = $(`[name="${n}"]`).value.trim();
+      if (v) fd.append(n, v);
+    }
+    fd.append("simplify", simp.value);
+    fd.append("threshold", thrAuto.checked ? "auto" : thr.value);
+    if (includeName) {
+      const name = $('[name="name"]').value.trim();
+      if (name) fd.append("name", name);
+    }
+    return fd;
+  }
+
+  async function errorText(res) {
+    try {
+      const body = await res.json();
+      if (typeof body.detail === "string") return body.detail;
+      if (Array.isArray(body.detail)) return body.detail.map((d) => `${(d.loc || []).slice(-1)[0]}: ${d.msg}`).join("; ");
+    } catch {}
+    return `${res.status} ${res.statusText}`;
+  }
+
+  function schedule(delay = 500) {
+    clearTimeout(state.timer);
+    state.timer = setTimeout(preview, delay);
+  }
+
+  async function preview() {
+    state.ctrl?.abort();
+    if (!state.files.length) {
+      gallery.replaceChildren(empty);
+      setNotices();
+      setStatus("Add files to see a preview.");
+      return;
+    }
+    const ctrl = state.ctrl = new AbortController();
+    const seq = ++state.seq;
+    setStatus("Converting…", true);
+    try {
+      const res = await fetch("/api/preview", { method: "POST", body: formData(false), signal: ctrl.signal });
+      if (!res.ok) throw new Error(await errorText(res));
+      const data = await res.json();
+      if (seq !== state.seq) return;
+      const strokes = data.pages.reduce((a, p) => a + p.strokes, 0);
+      const points = data.pages.reduce((a, p) => a + p.points, 0);
+      gallery.replaceChildren(...data.pages.map((p, i) => {
+        const fig = document.createElement("figure");
+        fig.className = "page";
+        fig.innerHTML = `<div class="sheet"><img alt=""></div><figcaption><span class="lbl"></span><span></span></figcaption>`;
+        const img = fig.querySelector("img");
+        img.src = p.image;
+        img.alt = `Page ${i + 1}: ${p.label}`;
+        fig.querySelector(".lbl").textContent = `${i + 1}. ${p.label}`;
+        fig.querySelector("figcaption span:last-child").textContent = `${fmtNum(p.strokes)} strokes`;
+        fig.querySelector(".sheet").onclick = () => { const z = $("#zoom"); z.querySelector("img").src = p.image; z.showModal(); };
+        return fig;
+      }));
+      setNotices(data.warnings);
+      setStatus(`${data.pages.length} page${data.pages.length === 1 ? "" : "s"} · ${fmtNum(strokes)} strokes · ${fmtNum(points)} points`);
+    } catch (e) {
+      if (e.name === "AbortError") return;
+      setNotices([], e.message);
+      setStatus("Preview failed.");
+    }
+  }
+
+  dl.addEventListener("click", async () => {
+    dl.disabled = true;
+    const label = dl.textContent;
+    dl.textContent = "Building notebook…";
+    try {
+      const res = await fetch("/api/convert", { method: "POST", body: formData(true) });
+      if (!res.ok) throw new Error(await errorText(res));
+      const blob = await res.blob();
+      const cd = res.headers.get("content-disposition") || "";
+      const m = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(cd);
+      const filename = m ? decodeURIComponent(m[1] || m[2]) : "notebook.rmdoc";
+      const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: filename });
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      setStatus(`Downloaded ${filename} (${fmtSize(blob.size)}).`);
+    } catch (e) {
+      setNotices([], e.message);
+    } finally {
+      dl.textContent = label;
+      dl.disabled = state.files.length === 0;
+    }
+  });
+
+  $("#zoom").addEventListener("click", (e) => e.currentTarget.close());
+
+  thrAuto.addEventListener("change", () => {
+    thr.disabled = thrAuto.checked;
+    $("#thr-out").textContent = thrAuto.checked ? "auto" : thr.value;
+    schedule();
+  });
+  thr.addEventListener("input", () => { $("#thr-out").textContent = thr.value; schedule(); });
+  simp.addEventListener("input", () => { $("#simp-out").textContent = `${simp.value} px`; schedule(); });
+  for (const n of ["mode", "colors", "fill", "fit", "pen"]) $(`[name="${n}"]`).addEventListener("change", () => schedule(0));
+  $('[name="pages"]').addEventListener("input", () => schedule(800));
+
+  fetch("/api/devices").then((r) => r.json()).then((d) => { state.devices = d; renderDevices(); })
+    .catch(() => setNotices([], "Could not reach the rmink server."));
+  fetch("/api/limits").then((r) => r.json()).then((l) => {
+    picker.accept = l.accept.join(",");
+    $("#drop-hint").textContent = `or click to choose — JPG, PNG, HEIC, SVG, PDF · up to ${Math.round(l.max_upload_mb)} MB`;
+  }).catch(() => {});
+})();
+</script>
+</body>
+</html>

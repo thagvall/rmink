@@ -1,0 +1,6 @@
+.venv
+venv
+output
+.git
+**/__pycache__
+*.rmdoc

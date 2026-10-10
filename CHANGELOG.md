@@ -11,6 +11,7 @@ Rewritten as `rmink`, a pure-Python converter.
 - Device profiles for rM2, Paper Pure, Paper Pro and Paper Pro Move, plus a `calibrate` command.
 - New CLI commands: `convert`, `preview`, `inspect`, `devices`, `calibrate`, `mcp`.
 - MCP server and Claude skill.
+- Web UI (`rmink web`) with drag and drop, live preview and download. It ships with a Dockerfile and configurable limits for hosting.
 - Fixes: file names no longer mangled by `strip(".pdf")`; `sizeInBytes` is now filled in; the `.content` author UUID matches the pages; no more relative template or output paths.
 
 ## 1.1.0

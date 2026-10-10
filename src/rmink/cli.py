@@ -152,6 +152,30 @@ def calibrate(
 
 
 @app.command()
+def web(
+    host: Annotated[str, typer.Option(help="Interface to bind")] = "127.0.0.1",
+    port: Annotated[int, typer.Option(help="Port")] = 8765,
+    open_browser: Annotated[bool, typer.Option("--open/--no-open")] = True,
+) -> None:
+    """Start the web UI: drop files, preview the ink, download the notebook."""
+    try:
+        import uvicorn
+
+        from rmink.web import create_app
+    except ImportError as e:
+        typer.secho("The web UI needs: pip install 'rmink[web]'", fg="red", err=True)
+        raise typer.Exit(1) from e
+    url = f"http://{'localhost' if host in ('127.0.0.1', '0.0.0.0') else host}:{port}"
+    typer.echo(f"rmink web UI on {url}  (Ctrl+C to stop)")
+    if open_browser:
+        import threading
+        import webbrowser
+
+        threading.Timer(1.0, webbrowser.open, args=(url,)).start()
+    uvicorn.run(create_app(), host=host, port=port, log_level="warning")
+
+
+@app.command()
 def mcp() -> None:
     """Run the MCP server on stdio (for Claude and other MCP clients)."""
     try:
