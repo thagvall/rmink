@@ -13,6 +13,7 @@ from rmink import api
 from rmink.devices import all_devices
 from rmink.geometry.transform import Fit
 from rmink.options import ConvertOptions, FillMode, Mode, PenChoice
+from rmink.support import support_url
 
 app = typer.Typer(
     help="Convert images, photos, SVGs and PDFs into native, editable reMarkable ink.",
@@ -167,6 +168,8 @@ def web(
         raise typer.Exit(1) from e
     url = f"http://{'localhost' if host in ('127.0.0.1', '0.0.0.0') else host}:{port}"
     typer.echo(f"rmink web UI on {url}  (Ctrl+C to stop)")
+    if support := support_url():
+        typer.echo(f"rmink is free. If it is useful to you, you can support it: {support}")
     if open_browser:
         import threading
         import webbrowser

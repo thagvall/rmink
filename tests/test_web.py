@@ -73,3 +73,18 @@ def test_rejects_bad_input(client, examples, tmp_path):
 def test_page_limit(client, examples):
     r = client.post("/api/preview", files=[_upload(examples["pdf"])] * 3)
     assert r.status_code == 413 and "limit" in r.json()["detail"]
+
+
+def test_support_links_follow_env(client, monkeypatch):
+    monkeypatch.setenv("RMINK_SUPPORT_URL", "https://buy.stripe.com/test_abc")
+    monkeypatch.setenv("RMINK_SOURCE_URL", "https://github.com/example/rmink")
+    limits = client.get("/api/limits").json()
+    assert limits["support_url"] == "https://buy.stripe.com/test_abc"
+    assert limits["source_url"] == "https://github.com/example/rmink"
+
+    monkeypatch.setenv("RMINK_SUPPORT_URL", "")
+    assert client.get("/api/limits").json()["support_url"] == ""
+
+    assert 'id="support-btn"' in client.get("/").text
+    r = client.get("/thanks")
+    assert r.status_code == 200 and "Thank you" in r.text

@@ -38,6 +38,7 @@
   }
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; }
 body {
   background: var(--paper);
@@ -50,6 +51,24 @@ header {
 }
 header h1 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
 header p { margin: 0; color: var(--muted); }
+.support-btn {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px;
+  color: var(--ink); text-decoration: none; font-size: 13px; background: var(--surface);
+}
+.support-btn:hover { border-color: var(--accent); }
+.support-btn .heart { color: #d0406a; }
+#nudge {
+  display: flex; align-items: center; gap: 10px; margin: 8px 0 0; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: 8px; font-size: 13px; background: var(--surface);
+}
+#nudge a { color: var(--accent); font-weight: 600; }
+#nudge .icon-btn { margin-left: auto; }
+footer {
+  max-width: 1280px; margin: 0 auto; padding: 0 20px 32px;
+  display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 12px;
+}
+footer a { color: inherit; }
 main {
   display: grid; gap: 20px; grid-template-columns: 380px 1fr;
   max-width: 1280px; margin: 0 auto; padding: 12px 20px 40px;
@@ -162,6 +181,9 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
 <header>
   <h1>rmink</h1>
   <p>Photos, sketches, logos and PDFs → editable reMarkable ink</p>
+  <a class="support-btn" id="support-btn" target="_blank" rel="noopener" hidden>
+    <span class="heart" aria-hidden="true">♥</span> Support rmink · 100 kr
+  </a>
 </header>
 
 <main>
@@ -267,6 +289,11 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
   <section aria-live="polite">
     <div id="status"><span class="spinner"></span><span id="status-text">Add files to see a preview.</span></div>
     <div id="notices"></div>
+    <p id="nudge" hidden>
+      <span>Enjoying rmink? It is free, and you can support it with 100 kr.</span>
+      <a id="nudge-link" target="_blank" rel="noopener">Support</a>
+      <button class="icon-btn" id="nudge-close" aria-label="Don't show again">×</button>
+    </p>
     <div id="gallery">
       <div class="empty" id="empty">
         <div>
@@ -281,6 +308,13 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
     </div>
   </section>
 </main>
+
+<footer>
+  <span>rmink is free software (AGPL-3.0).</span>
+  <a id="source-link" target="_blank" rel="noopener" hidden>Source code</a>
+  <a id="support-link" target="_blank" rel="noopener" hidden>Support the project</a>
+  <span>Not affiliated with or endorsed by reMarkable AS.</span>
+</footer>
 
 <dialog id="zoom"><img alt=""></dialog>
 
@@ -440,6 +474,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
       document.body.append(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 10000);
       setStatus(`Downloaded ${filename} (${fmtSize(blob.size)}).`);
+      maybeNudge();
     } catch (e) {
       setNotices([], e.message);
     } finally {
@@ -462,8 +497,35 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
 
   fetch("/api/devices").then((r) => r.json()).then((d) => { state.devices = d; renderDevices(); })
     .catch(() => setNotices([], "Could not reach the rmink server."));
+  // Support prompt: first download, then every 10th, until dismissed.
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  };
+  function maybeNudge() {
+    if (!state.supportUrl || store.get("rmink.nudge.dismissed") === "1") return;
+    const n = Number(store.get("rmink.downloads") || 0) + 1;
+    store.set("rmink.downloads", String(n));
+    if (n === 1 || n % 10 === 0) $("#nudge").hidden = false;
+  }
+  $("#nudge-close").addEventListener("click", () => {
+    $("#nudge").hidden = true;
+    store.set("rmink.nudge.dismissed", "1");
+  });
+
   fetch("/api/limits").then((r) => r.json()).then((l) => {
     picker.accept = l.accept.join(",");
+    if (l.support_url) {
+      state.supportUrl = l.support_url;
+      for (const id of ["support-btn", "support-link", "nudge-link"]) {
+        $("#" + id).href = l.support_url;
+        $("#" + id).hidden = false;
+      }
+    }
+    if (l.source_url) {
+      $("#source-link").href = l.source_url;
+      $("#source-link").hidden = false;
+    }
     $("#drop-hint").textContent = `or click to choose — JPG, PNG, HEIC, SVG, PDF · up to ${Math.round(l.max_upload_mb)} MB`;
   }).catch(() => {});
 })();

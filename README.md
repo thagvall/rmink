@@ -128,9 +128,25 @@ The fidelity tests render the *parsed* output and compare it with the source
 ink, checking precision and recall within 3 px. That way the tests cover the
 writer as well as the tracing.
 
+## Support
+
+rmink is free, and that is not going to change. If it saves you time and you
+want to say thanks, you can [support it with 100 kr](#) via Stripe. The
+money pays for the hosted web service and further development.
+
+## License
+
+rmink is free software under the [GNU AGPL-3.0](LICENSE) or later. This is
+required by PyMuPDF, which is AGPL. If you host a modified version as a web
+service, you have to offer its source code to the people who use it.
+Hosted instances set `RMINK_SOURCE_URL` so the footer links to the source.
+
+Not affiliated with or endorsed by reMarkable AS. "reMarkable" is a trademark
+of reMarkable AS.
+
 ## History
 
-This project began as `pdf2rmnotebook`, a wrapper around drawj2d that wrote
+This project began as `pdf2rmnotebook` by Simon Rechermann, a wrapper around drawj2d that wrote
 v5 pages in black fineliner only. That version lives on at the tag `v1.1.0`.
 rmink 2.0 replaces it with a pure-Python pipeline: no Java, v6 output, colour,
 image input, centerline tracing and an agent interface.

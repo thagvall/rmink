@@ -23,6 +23,7 @@ from rmink import api
 from rmink.devices import all_devices
 from rmink.ingest import IMAGE_SUFFIXES, parse_page_ranges
 from rmink.options import ConvertOptions
+from rmink.support import source_url, support_url
 
 _STATIC = Path(__file__).parent / "static"
 _ALLOWED = IMAGE_SUFFIXES | {".pdf", ".svg"}
@@ -141,7 +142,13 @@ def create_app(limits: Limits | None = None) -> FastAPI:
             "max_files": limits.max_files,
             "max_pages": limits.max_pages,
             "accept": sorted(_ALLOWED),
+            "support_url": support_url(),
+            "source_url": source_url(),
         }
+
+    @app.get("/thanks", response_class=HTMLResponse)
+    def thanks() -> str:
+        return (_STATIC / "thanks.html").read_text(encoding="utf-8")
 
     @app.post("/api/preview")
     async def preview(
