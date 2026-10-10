@@ -47,20 +47,19 @@ TEMPLATE = """<!doctype html>
 <title>{title}</title>
 <meta name="description" content="{desc}">
 <link rel="canonical" href="{site}{path}">
-<meta property="og:type" content="video.other">
+<meta property="og:type" content="website">
 <meta property="og:site_name" content="rmink">
 <meta property="og:title" content="{title}">
 <meta property="og:description" content="{desc}">
 <meta property="og:url" content="{site}{path}">
-<meta property="og:image" content="{site}/promo/og-{lang}.jpg?v={ver}">
+<meta property="og:image" content="{site}/promo/{image}">
+<meta property="og:image:secure_url" content="{site}/promo/{image}">
+<meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="627">
-<meta property="og:video" content="{site}/promo/rmink-promo-{lang}.mp4">
-<meta property="og:video:type" content="video/mp4">
-<meta property="og:video:width" content="1080">
-<meta property="og:video:height" content="1350">
+<meta property="og:image:alt" content="{h1}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="{site}/promo/og-{lang}.jpg?v={ver}">
+<meta name="twitter:image" content="{site}/promo/{image}">
 <script>location.replace("/?demo={lang}");</script>
 <style>body {{ margin: 0; background: #f4f2ec; color: #1d1d1b; font: 17px/1.5 system-ui, sans-serif; padding: 32px 16px; }}</style>
 </head>
@@ -74,11 +73,12 @@ TEMPLATE = """<!doctype html>
 
 def page(lang: str) -> Path:
     t = {k: html.escape(v) if isinstance(v, str) else v for k, v in PAGE[lang].items()}
-    # A content hash in the image URL makes LinkedIn fetch a new image instead of its cached one.
-    og = DEST / f"og-{lang}.jpg"
-    ver = hashlib.sha1(og.read_bytes()).hexdigest()[:8] if og.exists() else "1"
+    # The newest share image; its name carries a content hash so that LinkedIn
+    # fetches it instead of a cached one.
+    shots = sorted(DEST.glob(f"og-{lang}-*.jpg"), key=lambda f: f.stat().st_mtime)
+    image = shots[-1].name if shots else f"og-{lang}.jpg"
     out = TEMPLATE.format(lang=lang, site=SITE, path=t["path"], title=t["title"], desc=t["desc"],
-                          h1=t["h1"], ver=ver)  # fmt: skip
+                          h1=t["h1"], image=image)  # fmt: skip
     path = PUBLIC / t["file"]
     path.write_text(out)
     return path
@@ -134,4 +134,9 @@ if __name__ == "__main__":
         print(site_shot("en", PUBLIC / "og.jpg"))
         shutil.copy(PUBLIC / "og.jpg", HERE.parent / "src" / "rmink" / "web" / "static" / "og.jpg")
         for lang in PAGE:
-            print(site_shot(lang, DEST / f"og-{lang}.jpg"), page(lang))
+            for old in DEST.glob(f"og-{lang}*.jpg"):
+                old.unlink()
+            tmp = site_shot(lang, DEST / f"og-{lang}.jpg")
+            named = DEST / f"og-{lang}-{hashlib.sha1(tmp.read_bytes()).hexdigest()[:8]}.jpg"
+            tmp.rename(named)
+            print(named, page(lang))
