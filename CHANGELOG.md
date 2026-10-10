@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.4 — 2026-10-10
+
+- Web UI on phones: the preview comes right after the file list instead of below all the options, with a smaller empty state and two previews per row.
+
 ## 2.0.3 — 2026-10-10
 
 - Support rmink with 100 kr: a Stripe link in the web UI (button, a dismissible note after downloads, footer), in `rmink web` and in the README. Set `RMINK_SUPPORT_URL=""` to hide it, for example in a fork.

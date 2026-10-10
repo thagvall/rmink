@@ -73,7 +73,6 @@ main {
   display: grid; gap: 20px; grid-template-columns: 380px 1fr;
   max-width: 1280px; margin: 0 auto; padding: 12px 20px 40px;
 }
-@media (max-width: 880px) { main { grid-template-columns: 1fr; } }
 .panel {
   background: var(--surface); border: 1px solid var(--line);
   border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px;
@@ -177,6 +176,18 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
 .help .repair p { margin: 6px 0 8px; }
 .help code { background: var(--paper); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 880px) {
+  main { grid-template-columns: 1fr; gap: 16px; }
+  /* Phones: show the preview right after the file list, before the options. */
+  aside { display: contents; }
+  .p-files { order: 1; }
+  #preview { order: 2; }
+  .p-options { order: 3; }
+  .p-download { order: 4; }
+  .empty { min-height: 0; padding: 16px; }
+  .empty svg { width: 64px; }
+  #gallery { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+}
 </style>
 </head>
 <body>
@@ -190,7 +201,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
 
 <main>
   <aside>
-    <section class="panel">
+    <section class="panel p-files">
       <div id="drop" tabindex="0" role="button" aria-describedby="drop-hint">
         <strong>Drop files here</strong>
         <span id="drop-hint">or click to choose — JPG, PNG, HEIC, SVG, PDF</span>
@@ -199,7 +210,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
       <ul id="files" aria-label="Selected files"></ul>
     </section>
 
-    <section class="panel">
+    <section class="panel p-options">
       <fieldset>
         <legend>Device</legend>
         <div class="seg" id="devices" role="group" aria-label="Device"></div>
@@ -270,7 +281,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
       </fieldset>
     </section>
 
-    <section class="panel">
+    <section class="panel p-download">
       <fieldset>
         <label class="field"><span>Notebook name</span>
           <input type="text" name="name" placeholder="From the first file">
@@ -295,7 +306,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
     </section>
   </aside>
 
-  <section aria-live="polite">
+  <section id="preview" aria-live="polite">
     <div id="status"><span class="spinner"></span><span id="status-text">Add files to see a preview.</span></div>
     <div id="notices"></div>
     <p id="nudge" hidden>
