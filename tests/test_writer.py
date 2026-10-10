@@ -78,3 +78,22 @@ def test_seeded_output_is_reproducible(examples, tmp_path):
     convert([examples["svg"]], a, ConvertOptions(seed=7))
     convert([examples["svg"]], b, ConvertOptions(seed=7))
     assert a.read_bytes() == b.read_bytes()
+
+
+def test_repair_rezipped_rmdoc(examples, tmp_path):
+    from rmink.package.rmdoc import repair_rmdoc
+
+    good = tmp_path / "good.rmdoc"
+    convert([examples["svg"]], good, ConvertOptions(seed=3))
+    # Simulate Safari unpacking + Finder "Compress": wrapping folder + __MACOSX.
+    broken = tmp_path / "good.rmdoc.zip"
+    with zipfile.ZipFile(good) as zin, zipfile.ZipFile(broken, "w") as zout:
+        zout.writestr("good/", b"")
+        for n in zin.namelist():
+            zout.writestr(f"good/{n}", zin.read(n))
+            zout.writestr(f"__MACOSX/good/._{n.rsplit('/', 1)[-1]}", b"junk")
+        zout.writestr("good/.DS_Store", b"junk")
+    fixed = repair_rmdoc(broken, tmp_path / "fixed.rmdoc")
+    with zipfile.ZipFile(good) as a, zipfile.ZipFile(fixed) as b:
+        assert sorted(a.namelist()) == sorted(b.namelist())
+        assert all(a.read(n) == b.read(n) for n in a.namelist())

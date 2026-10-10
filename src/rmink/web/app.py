@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import tempfile
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
@@ -23,6 +24,7 @@ from rmink import api
 from rmink.devices import all_devices
 from rmink.ingest import IMAGE_SUFFIXES, parse_page_ranges
 from rmink.options import ConvertOptions
+from rmink.package.rmdoc import repair_rmdoc
 from rmink.support import source_url, support_url
 
 _STATIC = Path(__file__).parent / "static"
@@ -146,6 +148,35 @@ def create_app(limits: Limits | None = None) -> FastAPI:
             "source_url": source_url(),
         }
 
+    @app.post("/api/repair")
+    async def repair(file: Annotated[UploadFile, File()]) -> FileResponse:
+        """Fix a notebook that a Mac unpacked and re-zipped into a folder."""
+        tmp = Path(tempfile.mkdtemp(prefix="rmink-"))
+        try:
+            src = tmp / "upload.zip"
+            size = 0
+            with src.open("wb") as out:
+                while chunk := await file.read(1 << 20):
+                    size += len(chunk)
+                    if size > limits.max_upload_bytes:
+                        raise HTTPException(413, "File is too large")
+                    out.write(chunk)
+            stem = _safe_stem((file.filename or "notebook").removesuffix(".zip"))
+            dst = tmp / f"{stem}.rmdoc"
+            try:
+                repair_rmdoc(src, dst)
+            except (ValueError, zipfile.BadZipFile) as e:
+                raise HTTPException(422, f"Not a reMarkable notebook archive: {e}") from e
+        except BaseException:
+            shutil.rmtree(tmp, ignore_errors=True)
+            raise
+        return FileResponse(
+            dst,
+            media_type="application/octet-stream",
+            filename=dst.name,
+            background=BackgroundTask(shutil.rmtree, tmp, ignore_errors=True),
+        )
+
     @app.get("/thanks", response_class=HTMLResponse)
     def thanks() -> str:
         return (_STATIC / "thanks.html").read_text(encoding="utf-8")
@@ -222,7 +253,9 @@ def create_app(limits: Limits | None = None) -> FastAPI:
         headers = {"X-Rmink-Warnings": str(len(result.warnings))}
         return FileResponse(
             result.path,
-            media_type="application/zip",
+            # Not application/zip: Safari on macOS unpacks zips it downloads, which
+            # turns the notebook into a folder the tablet cannot import.
+            media_type="application/octet-stream",
             filename=result.path.name,
             headers=headers,
             background=BackgroundTask(shutil.rmtree, tmp, ignore_errors=True),

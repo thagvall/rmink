@@ -48,6 +48,8 @@ def test_convert_downloads_rmdoc(client, examples):
     )
     assert r.status_code == 200, r.text
     assert "My%20notes.rmdoc" in r.headers["content-disposition"]
+    # application/zip makes Safari unpack the notebook into a folder.
+    assert r.headers["content-type"] == "application/octet-stream"
     with zipfile.ZipFile(io.BytesIO(r.content)) as zf:
         assert sum(n.endswith(".rm") for n in zf.namelist()) == 1
         meta = next(n for n in zf.namelist() if n.endswith(".metadata"))
@@ -88,3 +90,20 @@ def test_support_links_follow_env(client, monkeypatch):
     assert 'id="support-btn"' in client.get("/").text
     r = client.get("/thanks")
     assert r.status_code == 200 and "Thank you" in r.text
+
+
+def test_repair_endpoint(client, examples, tmp_path):
+    good = client.post("/api/convert", files=[_upload(examples["svg"])]).content
+    broken = io.BytesIO()
+    with zipfile.ZipFile(io.BytesIO(good)) as zin, zipfile.ZipFile(broken, "w") as zout:
+        for n in zin.namelist():
+            zout.writestr(f"logo/{n}", zin.read(n))
+            zout.writestr(f"__MACOSX/logo/._{n.rsplit('/', 1)[-1]}", b"junk")
+    r = client.post("/api/repair", files={"file": ("logo.rmdoc.zip", broken.getvalue())})
+    assert r.status_code == 200, r.text
+    assert "logo.rmdoc" in r.headers["content-disposition"]
+    with zipfile.ZipFile(io.BytesIO(good)) as a, zipfile.ZipFile(io.BytesIO(r.content)) as b:
+        assert sorted(a.namelist()) == sorted(b.namelist())
+
+    r = client.post("/api/repair", files={"file": ("x.zip", b"not a zip")})
+    assert r.status_code == 422

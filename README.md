@@ -38,6 +38,7 @@ rmink convert paper.pdf --pages 1-3 --fit width -o paper.rmdoc
 rmink convert a.jpg b.jpg c.pdf --name "Week 41" # several inputs -> one notebook
 rmink preview sketch.jpg -o preview.png          # preview only, no notebook
 rmink inspect paper.rmdoc                        # pages, strokes, pens, colours
+rmink repair broken.rmdoc.zip                    # fix a notebook a Mac unpacked and re-zipped
 rmink devices                                    # device profiles
 rmink calibrate -d pro                           # ruler page for checking scale
 ```
@@ -67,6 +68,9 @@ finishes.
 **Getting it onto the tablet:** connect the tablet by USB, turn on
 *Settings → Storage → USB web interface*, open <http://10.11.99.1> and drag the
 `.rmdoc` in (100 MB limit). Alternatively, drag it into the reMarkable desktop app.
+
+If a Mac turned the download into a folder or a `.zip` and the tablet will not
+import it, run `rmink repair` on it, or use *Repair a notebook* in the web UI.
 
 ## Use with Claude
 

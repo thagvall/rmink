@@ -173,6 +173,8 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
 
 .help { font-size: 13px; color: var(--muted); }
 .help ol { margin: 6px 0 0; padding-left: 18px; }
+.help .repair { margin-top: 10px; }
+.help .repair p { margin: 6px 0 8px; }
 .help code { background: var(--paper); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 </style>
@@ -281,6 +283,13 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
             <li>Open <code>http://10.11.99.1</code> and drag the file in.</li>
           </ol>
           You can also drag it into the reMarkable desktop app.
+          <details class="repair">
+            <summary>Got a .zip or a folder instead of a notebook?</summary>
+            <p>Some Macs unpack the download into a folder. If that folder was zipped
+            again, choose the .zip here and you get a working notebook back.</p>
+            <button class="btn secondary" id="repair-btn" type="button">Repair a notebook…</button>
+            <input id="repair-picker" type="file" accept=".zip,.rmdoc" hidden>
+          </details>
         </div>
       </fieldset>
     </section>
@@ -504,14 +513,8 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
     try {
       const res = await fetch("/api/convert", { method: "POST", body: await formData(true) });
       if (!res.ok) throw new Error(await errorText(res));
-      const blob = await res.blob();
-      const cd = res.headers.get("content-disposition") || "";
-      const m = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(cd);
-      const filename = m ? decodeURIComponent(m[1] || m[2]) : "notebook.rmdoc";
-      const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: filename });
-      document.body.append(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-      setStatus(`Downloaded ${filename} (${fmtSize(blob.size)}).`);
+      const { filename, size } = await saveResponse(res, "notebook.rmdoc");
+      setStatus(`Downloaded ${filename} (${fmtSize(size)}).`);
       maybeNudge();
     } catch (e) {
       setNotices([], e.message);
@@ -522,6 +525,38 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
   });
 
   $("#zoom").addEventListener("click", (e) => e.currentTarget.close());
+
+  async function saveResponse(res, fallbackName) {
+    const blob = new Blob([await res.blob()], { type: "application/octet-stream" });
+    const cd = res.headers.get("content-disposition") || "";
+    const m = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(cd);
+    const filename = m ? decodeURIComponent(m[1] || m[2]) : fallbackName;
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: filename });
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    return { filename, size: blob.size };
+  }
+
+  const repairPicker = $("#repair-picker");
+  $("#repair-btn").addEventListener("click", () => repairPicker.click());
+  repairPicker.addEventListener("change", async () => {
+    const file = repairPicker.files[0];
+    repairPicker.value = "";
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("file", file, file.name);
+    setStatus("Repairing…", true);
+    try {
+      const res = await fetch("/api/repair", { method: "POST", body: fd });
+      if (!res.ok) throw new Error(await errorText(res));
+      const { filename } = await saveResponse(res, "notebook.rmdoc");
+      setNotices();
+      setStatus(`Repaired: ${filename} is ready to copy to the tablet.`);
+    } catch (e) {
+      setNotices([], e.message);
+      setStatus("Repair failed.");
+    }
+  });
 
   thrAuto.addEventListener("change", () => {
     thr.disabled = thrAuto.checked;

@@ -181,3 +181,29 @@ def write_rmdoc(
 
     size = path.stat().st_size
     return RmdocResult(path=path, doc_id=doc_id, size_bytes=size, warnings=size_warnings(size))
+
+
+def repair_rmdoc(src: Path, dst: Path) -> Path:
+    """Rebuild a ``.rmdoc`` that was unpacked and re-zipped, e.g. by macOS
+    Finder: drop ``__MACOSX`` and ``._*`` entries and the wrapping folder so
+    the notebook files sit at the archive root again."""
+    with zipfile.ZipFile(src) as zin:
+        names = [
+            n
+            for n in zin.namelist()
+            if not n.endswith("/")
+            and not n.startswith("__MACOSX/")
+            and not n.rsplit("/", 1)[-1].startswith("._")
+            and ".DS_Store" not in n
+        ]
+        contents = [n for n in names if n.endswith(".content")]
+        if len(contents) != 1:
+            raise ValueError(f"{src.name}: expected one .content file, found {len(contents)}")
+        prefix = contents[0][: contents[0].rfind("/") + 1]
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(dst, "w", zipfile.ZIP_STORED) as zout:
+            for n in names:
+                if n.startswith(prefix):
+                    info = zipfile.ZipInfo(n[len(prefix) :], date_time=(2024, 1, 1, 0, 0, 0))
+                    zout.writestr(info, zin.read(n))
+    return dst

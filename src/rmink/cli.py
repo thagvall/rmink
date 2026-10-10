@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import zipfile
 from pathlib import Path
 from typing import Annotated
 
@@ -127,6 +128,26 @@ def preview(
 def inspect(path: Annotated[Path, typer.Argument(exists=True)]) -> None:
     """Show pages, strokes, pens and colours of a .rmdoc or .rm file."""
     typer.echo(json.dumps(api.inspect(path), indent=2))
+
+
+@app.command()
+def repair(
+    path: Annotated[Path, typer.Argument(exists=True, help="Broken .rmdoc / .zip")],
+    output: Annotated[Path | None, typer.Option("--output", "-o")] = None,
+) -> None:
+    """Fix a notebook that was unpacked and re-zipped (e.g. by Safari or Finder on a Mac)."""
+    from rmink.package.rmdoc import repair_rmdoc
+
+    stem = path.name.removesuffix(".zip").removesuffix(".rmdoc")
+    dst = output or path.with_name(f"{stem}.rmdoc")
+    if dst.resolve() == path.resolve():
+        dst = path.with_name(f"{stem}-repaired.rmdoc")
+    try:
+        repair_rmdoc(path, dst)
+    except (ValueError, zipfile.BadZipFile) as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+    typer.echo(str(dst))
 
 
 @app.command()
