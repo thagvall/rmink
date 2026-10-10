@@ -29,8 +29,12 @@ package, runs a smoke test and uploads the current version to TestPyPI.
 To check it:
 
 ```bash
-uvx --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ rmink devices
+# Take only rmink from TestPyPI. Its copies of scipy etc. are often broken,
+# so dependencies come from the real PyPI.
+uvx --from "https://test.pypi.org/packages/.../rmink-<version>-py3-none-any.whl" rmink devices
 ```
+
+The wheel URL is listed at https://test.pypi.org/project/rmink/#files.
 
 TestPyPI never accepts the same version twice, so bump the `.devN` suffix in
 `pyproject.toml` before each new trial upload.
