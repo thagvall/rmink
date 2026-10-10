@@ -389,9 +389,47 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
     }));
   }
 
-  function formData(includeName) {
+  // Large photos are shrunk in the browser before upload: the tablet needs
+  // far fewer pixels than a phone camera takes, uploads get faster, and the
+  // hosted version has a request size limit.
+  const MAX_SIDE = 3200, SHRINK_ABOVE = 1.5e6;
+  const prepCache = new WeakMap();
+  function prepared(file) {
+    if (!prepCache.has(file)) prepCache.set(file, shrink(file));
+    return prepCache.get(file);
+  }
+  async function shrink(file) {
+    if (file.size <= SHRINK_ABOVE || !/^image\/(jpeg|png|webp|bmp|gif|heic|heif)$/.test(file.type)) return file;
+    try {
+      const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+      const scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(bmp.width * scale);
+      canvas.height = Math.round(bmp.height * scale);
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+      bmp.close();
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
+      if (!blob || blob.size >= file.size) return file;
+      return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+    } catch {
+      return file; // e.g. HEIC in browsers that can't decode it; the server handles it
+    }
+  }
+
+  async function formData(includeName) {
+    const files = await Promise.all(state.files.map(prepared));
+    const total = files.reduce((a, f) => a + f.size, 0);
+    if (state.maxUpload && total > state.maxUpload) {
+      throw new Error(
+        `These files are ${fmtSize(total)}; this server accepts ${fmtSize(state.maxUpload)} per conversion. ` +
+        "Convert fewer files at a time, or run rmink on your own computer: uvx --from 'rmink[web]' rmink web"
+      );
+    }
     const fd = new FormData();
-    for (const f of state.files) fd.append("files", f, f.name);
+    for (const f of files) fd.append("files", f, f.name);
     fd.append("device", state.device);
     for (const n of ["mode", "colors", "fill", "fit", "pen", "pages"]) {
       const v = $(`[name="${n}"]`).value.trim();
@@ -432,7 +470,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
     const seq = ++state.seq;
     setStatus("Converting…", true);
     try {
-      const res = await fetch("/api/preview", { method: "POST", body: formData(false), signal: ctrl.signal });
+      const res = await fetch("/api/preview", { method: "POST", body: await formData(false), signal: ctrl.signal });
       if (!res.ok) throw new Error(await errorText(res));
       const data = await res.json();
       if (seq !== state.seq) return;
@@ -464,7 +502,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
     const label = dl.textContent;
     dl.textContent = "Building notebook…";
     try {
-      const res = await fetch("/api/convert", { method: "POST", body: formData(true) });
+      const res = await fetch("/api/convert", { method: "POST", body: await formData(true) });
       if (!res.ok) throw new Error(await errorText(res));
       const blob = await res.blob();
       const cd = res.headers.get("content-disposition") || "";
@@ -515,6 +553,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
 
   fetch("/api/limits").then((r) => r.json()).then((l) => {
     picker.accept = l.accept.join(",");
+    state.maxUpload = l.max_upload_mb * 1e6;
     if (l.support_url) {
       state.supportUrl = l.support_url;
       for (const id of ["support-btn", "support-link", "nudge-link"]) {

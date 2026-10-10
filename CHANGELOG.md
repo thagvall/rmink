@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.1 — 2026-10-10
+
+- Web UI: large photos are shrunk in the browser before upload (at most 3200 px, as JPEG). Uploads get faster, and photos fit the request size limit of hosted deployments.
+- Web UI: a clear message when the upload is over the server's limit.
+- Ready-made Vercel deployment in `deploy/vercel/`; see `docs/hosting.md`.
+
 ## 2.0.0 — 2026-10-10 — rmink
 
 Rewritten as `rmink`, a pure-Python converter.

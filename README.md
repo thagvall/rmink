@@ -57,7 +57,7 @@ rmink web                     # opens http://localhost:8765
 Drop files on the page, choose a device and options, and the preview updates
 as you change them. When it looks right, download the `.rmdoc`.
 
-To host it for others, use the included `Dockerfile`
+To host it for others, deploy `deploy/vercel/` on Vercel (see [hosting](https://github.com/thagvall/rmink/blob/main/docs/hosting.md)), or use the included `Dockerfile`
 (`docker build -t rmink . && docker run -p 8765:8765 rmink`). The per-request
 limits can be tightened with `RMINK_MAX_UPLOAD_MB`, `RMINK_MAX_FILES`,
 `RMINK_MAX_PAGES`, `RMINK_TIMEOUT_S` and `RMINK_CONCURRENCY`; see
