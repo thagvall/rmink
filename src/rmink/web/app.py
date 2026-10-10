@@ -15,7 +15,7 @@ from typing import Annotated
 
 import anyio
 import pymupdf
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import ValidationError
 from starlette.background import BackgroundTask
@@ -120,8 +120,18 @@ def create_app(limits: Limits | None = None) -> FastAPI:
             raise HTTPException(422, str(e)) from e
 
     @app.get("/", response_class=HTMLResponse)
-    def index() -> str:
-        return (_STATIC / "index.html").read_text(encoding="utf-8")
+    def index(request: Request) -> str:
+        # Link previews (LinkedIn and others) need absolute URLs; behind a proxy
+        # such as Vercel the original scheme and host are in the forwarded headers.
+        h = request.headers
+        scheme = h.get("x-forwarded-proto", request.url.scheme).split(",")[0].strip()
+        host = h.get("x-forwarded-host", h.get("host", request.url.netloc)).split(",")[0].strip()
+        page = (_STATIC / "index.html").read_text(encoding="utf-8")
+        return page.replace("{{base}}", f"{scheme}://{host}")
+
+    @app.get("/og.jpg")
+    def og_image() -> FileResponse:
+        return FileResponse(_STATIC / "og.jpg", media_type="image/jpeg")
 
     @app.get("/api/devices")
     def devices() -> list[dict]:

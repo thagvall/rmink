@@ -108,3 +108,13 @@ def test_repair_endpoint(client, examples, tmp_path):
 
     r = client.post("/api/repair", files={"file": ("x.zip", b"not a zip")})
     assert r.status_code == 422
+
+
+def test_index_has_link_preview_tags(client):
+    html = client.get(
+        "/", headers={"x-forwarded-proto": "https", "x-forwarded-host": "ink.example"}
+    ).text
+    assert '<meta property="og:image" content="https://ink.example/og.jpg">' in html
+    assert "{{base}}" not in html
+    r = client.get("/og.jpg")
+    assert r.status_code == 200 and r.headers["content-type"] == "image/jpeg"

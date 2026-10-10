@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.6 — 2026-10-10
+
+- Web UI: link previews. The start page has a title, a description and a share image (`/og.jpg`), so a link to rmink on LinkedIn and other sites shows a card instead of a bare "rmink".
+
 ## 2.0.5 — 2026-10-10
 
 - Web UI: a "Watch the demo" button next to the support button opens the demo video (English or Swedish) in a dialog. `/?demo` opens it on load, `/?demo=sv` in Swedish. Set `RMINK_DEMO_URL=""` to hide it.

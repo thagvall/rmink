@@ -26,6 +26,9 @@ TEXT = {
            "Watch the demo"),
     "sv": ("Foton och handstil blir\nriktigt, redigerbart\nreMarkable-bläck", "Gratis · öppen källkod · ingen installation",
            "Se demon"),
+    # The app's own share image (src/rmink/web/static/og.jpg), used for the start page.
+    "app": ("Photos and handwriting\nbecome real, editable\nreMarkable ink", "Free · open source · no install",
+            "Try it free"),
 }  # fmt: skip
 PAPER, INK, MUTED, BLUE = "#f4f2ec", "#1d1d1b", "#6b6a65", "#2b5fd9"
 
@@ -37,11 +40,11 @@ def font(path: str, size: int, index: int = 0, weight: int | None = None):
     return f
 
 
-def make(lang: str) -> Path:
+def make(lang: str, dest: Path | None = None, url: str | None = None) -> Path:
     img = Image.new("RGB", (1200, 627), PAPER)
     d = ImageDraw.Draw(img)
     # Video frame on the right with a shadow and a play button.
-    cover = Image.open(OUT / f"cover-{lang}.png").convert("RGB").resize((448, 560))
+    cover = Image.open(OUT / f"cover-{'en' if lang == 'app' else lang}.png").convert("RGB").resize((448, 560))
     x0, y0 = 700, 34
     shadow = Image.new("L", (1200, 627), 0)
     ImageDraw.Draw(shadow).rounded_rectangle((x0 + 6, y0 + 16, x0 + 454, y0 + 576), 22, fill=110)
@@ -61,9 +64,10 @@ def make(lang: str) -> Path:
     d.rounded_rectangle((72, 420, 72 + d.textlength(cta, font=bold) + 98, 486), 33, fill=BLUE)
     d.polygon([(104, 439), (104, 467), (127, 453)], fill="white")
     d.text((142, 436), cta, font=bold, fill="white")
-    d.text((72, 540), "rmink.vercel.app/video" + ("/sv" if lang == "sv" else ""), font=font(SANS, 26, index=1), fill=MUTED)
+    url = url or "rmink.vercel.app/video" + ("/sv" if lang == "sv" else "")
+    d.text((72, 540), url, font=font(SANS, 26, index=1), fill=MUTED)
     DEST.mkdir(parents=True, exist_ok=True)
-    path = DEST / f"og-{lang}.jpg"
+    path = dest or DEST / f"og-{lang}.jpg"
     img.save(path, quality=90)
     return path
 
@@ -127,7 +131,8 @@ def page(lang: str) -> Path:
 
 
 if __name__ == "__main__":
-    for lang in TEXT:
+    print(make("app", HERE.parent / "src" / "rmink" / "web" / "static" / "og.jpg", "rmink.vercel.app"))
+    for lang in PAGE:
         shutil.copy(OUT / f"rmink-promo-{lang}.mp4", DEST / f"rmink-promo-{lang}.mp4")
         Image.open(OUT / f"cover-{lang}.png").convert("RGB").save(DEST / f"poster-{lang}.jpg", quality=88)
         print(make(lang), page(lang))
