@@ -25,12 +25,12 @@ body {
 
 #bg-dark { width: 1080px; height: 1350px; background: #121212; opacity: 0; }
 
-#photo {
+#photo, #fphoto {
   width: 700px; height: 875px; border-radius: 14px; overflow: hidden;
   box-shadow: 0 30px 60px rgb(0 0 0 / .25), 0 6px 14px rgb(0 0 0 / .18);
   transform-origin: 50% 50%;
 }
-#photo img { width: 100%; height: 100%; display: block; object-fit: cover; }
+#photo img, #fphoto img { width: 100%; height: 100%; display: block; object-fit: cover; }
 
 .tablet {
   background: #262624; border-radius: 34px; padding: 30px;
@@ -42,38 +42,103 @@ body {
 
 #arrow { width: 160px; height: 80px; }
 
-#cap { display: flex; justify-content: center; align-items: center; gap: 22px; width: 1080px; }
+#cap { z-index: 15; display: flex; justify-content: center; align-items: center; gap: 22px; width: 1080px; }
 #cap .badge {
   width: 74px; height: 74px; border-radius: 50%; background: var(--accent); color: #fff;
   display: grid; place-items: center; font-size: 42px; font-weight: 800; flex: none;
 }
 #cap .label { font-size: 62px; font-weight: 760; letter-spacing: -0.02em; }
 
-#phone {
-  width: 486px; height: 1010px; border-radius: 64px; background: #161616; padding: 18px;
-  box-shadow: 0 40px 80px rgb(0 0 0 / .3), inset 0 0 0 2px #333;
-}
-#phone .screen { width: 450px; height: 974px; border-radius: 48px; overflow: hidden; position: relative; background: #f4f2ec; }
-#phone .state { position: absolute; left: 0; top: 0; width: 450px; }
-#phone .notch {
-  position: absolute; left: 50%; top: 14px; width: 120px; height: 34px; margin-left: -60px;
-  background: #161616; border-radius: 20px; z-index: 5;
-}
-.ripple {
-  position: absolute; width: 90px; height: 90px; margin: -45px 0 0 -45px; border-radius: 50%;
-  background: rgb(43 95 217 / .28); border: 4px solid rgb(43 95 217 / .7); z-index: 6;
-}
 #dragcard {
   width: 150px; height: 188px; border-radius: 8px; overflow: hidden;
   box-shadow: 0 14px 30px rgb(0 0 0 / .3);
 }
 #dragcard img { width: 100%; height: 100%; object-fit: cover; }
-#urlpill {
-  left: 540px; top: 1268px; transform: translateX(-50%); padding: 10px 26px; border-radius: 999px;
-  background: #fff; border: 2px solid var(--line); font-size: 34px; font-weight: 650;
-}
+/* Desktop scene: a browser window with the real app, then the upload targets. */
+#desk { width: 1000px; border-radius: 16px; overflow: hidden; background: #fff; transform-origin: 0 0;
+  box-shadow: 0 30px 70px rgb(0 0 0 / .25), 0 0 0 1px rgb(0 0 0 / .08); }
+#desk .bar { height: 56px; background: #e9e7e1; display: flex; align-items: center; padding: 0 20px; gap: 9px; position: relative; }
+#desk .bar i { width: 14px; height: 14px; border-radius: 50%; display: block; }
+#desk-url { position: absolute; left: 50%; transform: translateX(-50%); width: 520px; height: 36px; border-radius: 18px;
+  background: #fff; font-size: 18px; color: #3a3a37; display: flex; align-items: center; justify-content: center; gap: 8px; }
+#desk-url svg { width: 15px; height: 15px; }
+#desk-view { width: 1000px; height: 833px; overflow: hidden; position: relative; background: #f4f2ec; }
+#desk-content { width: 960px; height: 800px; transform: scale(1.0416667); transform-origin: 0 0; position: relative; }
+.dstate, .dpage { position: absolute; left: 0; top: 0; width: 960px; height: 800px; }
+.dpage { opacity: 0; font-family: -apple-system, "Helvetica Neue", sans-serif; color: #1d1d1b; }
+#usb { background: #fafaf8; }
+#usb .hd { height: 64px; border-bottom: 1px solid #e3e1db; display: flex; align-items: center; padding: 0 32px; font-size: 21px; font-weight: 700; }
+#usb .crumb, #rmapp .crumb { position: absolute; font-size: 30px; font-weight: 700; }
+#usb .crumb { left: 40px; top: 92px; }
+.grid { position: absolute; display: grid; }
+#usb .grid { left: 40px; top: 156px; grid-template-columns: repeat(4, 190px); gap: 34px 36px; }
+#rmapp .grid { left: 250px; top: 120px; grid-template-columns: repeat(4, 150px); gap: 28px 30px; }
+.tile .th { background: #fff repeating-linear-gradient(#fff 0 22px, #e7e5df 22px 24px); border: 1px solid #dddad2; border-radius: 6px;
+  aspect-ratio: 3 / 4; overflow: hidden; }
+.tile .th img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tile .nm { font-size: 17px; font-weight: 600; margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile.new .th { border: 3px solid #2b5fd9; }
+#usb-drop { position: absolute; inset: 14px; border: 5px dashed #2b5fd9; border-radius: 16px; background: rgb(43 95 217 / .08);
+  display: grid; place-items: center; font-size: 34px; font-weight: 750; color: #2b5fd9; opacity: 0; }
+#usb-toast { position: absolute; right: 28px; bottom: 28px; width: 430px; background: #fff; border-radius: 14px; padding: 18px 22px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / .16); font-size: 19px; opacity: 0; }
+#usb-toast .row { display: flex; justify-content: space-between; font-weight: 650; }
+#usb-toast .track { height: 10px; background: #e7e5df; border-radius: 5px; margin-top: 12px; overflow: hidden; }
+#usb-toast .fill { height: 100%; width: 0; background: #2b5fd9; }
+#usb-toast .ok { color: #1f9d55; }
+#rmapp { background: #faf9f6; }
+#rmapp .side { position: absolute; left: 0; top: 0; bottom: 0; width: 210px; background: #f0eee8; border-right: 1px solid #e3e1db; padding: 30px 0; }
+#rmapp .side div { padding: 14px 28px; font-size: 19px; color: #55544f; }
+#rmapp .side div:first-child { background: #e3e0d8; color: #1d1d1b; font-weight: 700; }
+#rmapp .crumb { left: 250px; top: 40px; font-weight: 500; font-size: 34px; }
+#dlb { position: absolute; right: 16px; top: 10px; width: 400px; background: #fff; border-radius: 14px; padding: 16px 18px; display: flex;
+  gap: 14px; align-items: center; box-shadow: 0 12px 34px rgb(0 0 0 / .2); opacity: 0; }
+#dlb svg { width: 40px; height: 48px; flex: none; }
+#dlb .n { font-size: 19px; font-weight: 700; }
+#dlb .s { font-size: 16px; color: #1f9d55; font-weight: 600; margin-top: 3px; }
+#cursor { width: 0; height: 0; z-index: 20; }
+#cursor svg { position: absolute; left: -3px; top: -2px; width: 34px; height: 48px; overflow: visible; }
+#fchip { z-index: 19; background: #fff; border-radius: 12px; padding: 12px 18px; display: flex; gap: 12px; align-items: center;
+  box-shadow: 0 14px 30px rgb(0 0 0 / .25); font-size: 22px; font-weight: 700; white-space: nowrap; }
+#fchip svg { width: 28px; height: 34px; }
+#clickring { width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; border: 5px solid rgb(43 95 217 / .8); z-index: 18; }
+#utab { padding: 18px; border-radius: 24px; }
+#utab .screen { width: 260px; height: 347px; padding: 18px 16px; }
+#utab .grid { position: static; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 12px; }
+#utab .tile .nm { font-size: 10px; margin-top: 3px; }
+#utab .tile .th { border-radius: 3px; background: #fff repeating-linear-gradient(#fff 0 8px, #e7e5df 8px 9px); }
+#utab .tile.new .th { border-width: 2px; }
+#cable { width: 1080px; height: 1350px; pointer-events: none; }
 
-#eraser {
+/* Claude scene */
+#term { width: 960px; background: #1c1c1b; color: #e8e6df; border-radius: 16px; padding: 30px 34px; font: 500 25px/1.5 "SF Mono", Menlo, monospace;
+  box-shadow: 0 30px 60px rgb(0 0 0 / .25); }
+#term .p { color: #8f8d86; }
+#term .ok { color: #6fd08c; }
+#term-label { width: 1080px; text-align: center; font-size: 36px; font-weight: 650; color: var(--muted); }
+#chat { width: 960px; background: #fff; border-radius: 22px; box-shadow: 0 30px 60px rgb(0 0 0 / .2); overflow: hidden; }
+#chat .hd { padding: 22px 30px; border-bottom: 1px solid #ecebe6; display: flex; justify-content: space-between; align-items: center; }
+#chat .hd b { font-size: 30px; }
+#chat .hd span { font-size: 20px; font-weight: 650; color: #555; background: #f1efe9; border-radius: 999px; padding: 6px 16px; }
+#chat .body { padding: 28px 30px 34px; display: flex; flex-direction: column; gap: 20px; font-size: 27px; line-height: 1.35; }
+#chat .msg { opacity: 0; }
+#chat .user { align-self: flex-end; background: #ecebe5; border-radius: 22px 22px 6px 22px; padding: 16px; display: flex; gap: 18px; align-items: center; max-width: 760px; }
+#chat .user img { width: 120px; height: 150px; object-fit: cover; border-radius: 10px; }
+#chat .tool { display: flex; gap: 14px; align-items: center; font: 600 23px/1.2 "SF Mono", Menlo, monospace; color: #444;
+  background: #f6f5f1; border: 1px solid #e6e4dd; border-radius: 12px; padding: 12px 18px; align-self: flex-start; }
+#chat .tool .st { width: 26px; height: 26px; display: grid; place-items: center; font-family: -apple-system, sans-serif; }
+#chat .spin { width: 22px; height: 22px; border: 3px solid #d0cec6; border-top-color: #555; border-radius: 50%; }
+#chat .ok { color: #1f9d55; font-weight: 800; }
+#chat .pv { width: 170px; border: 1px solid #e6e4dd; border-radius: 8px; align-self: flex-start; margin-left: 40px; }
+#chat .reply { min-height: 74px; }
+#chat .file { align-self: flex-start; display: flex; gap: 14px; align-items: center; border: 2px solid #2b5fd9; color: #1d1d1b;
+  border-radius: 14px; padding: 12px 20px; font-weight: 700; }
+#chat .file svg { width: 28px; height: 34px; }
+
+#stylus { width: 0; height: 0; z-index: 10; }
+#stylus svg { position: absolute; left: -4px; top: -146px; width: 150px; height: 150px; overflow: visible; }
+
+#eraser { z-index: 10;
   width: 70px; height: 70px; margin: -35px 0 0 -35px; border-radius: 50%;
   border: 4px solid #555; background: rgb(255 255 255 / .6);
 }
@@ -108,11 +173,48 @@ body {
 <div id="tablet" class="abs tablet"><div class="screen"><svg id="ink" viewBox="0 0 1620 2160"></svg></div></div>
 <div id="eraser" class="abs"></div>
 
+<!-- Face scene -->
+<div id="fphoto" class="abs"><img src="out/face.jpg" alt=""></div>
+<div id="ftablet" class="abs tablet"><div class="screen"><svg id="fink"></svg></div></div>
+<div id="stylus" class="abs"><svg viewBox="0 0 150 150">
+  <path d="M10 140 L126 24" stroke="#2a2a28" stroke-width="24" stroke-linecap="round"/>
+  <path d="M10 140 L126 24" stroke="#4a4a46" stroke-width="10" stroke-linecap="round" opacity=".6"/>
+  <path d="M0 150 L14 136" stroke="#2a2a28" stroke-width="9" stroke-linecap="round"/>
+</svg></div>
+
 <!-- Scene 3 -->
 <div id="cap" class="abs"><div class="badge"></div><div class="label"></div></div>
-<div id="phone" class="abs"><div class="screen" id="phone-screen"><div class="notch"></div></div></div>
+<div id="desk" class="abs">
+  <div class="bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i>
+    <div id="desk-url"><svg viewBox="0 0 16 16" fill="#777"><path d="M4 7V5a4 4 0 0 1 8 0v2h1v8H3V7h1zm2 0h4V5a2 2 0 0 0-4 0v2z"/></svg><span></span></div></div>
+  <div id="desk-view"><div id="desk-content">
+    <div id="usb" class="dpage"><div class="hd">USB web interface</div><div class="crumb"></div><div class="grid"></div>
+      <div id="usb-drop"></div>
+      <div id="usb-toast"><div class="row"><span class="fn"></span><span class="st"></span></div><div class="track"><div class="fill"></div></div></div></div>
+    <div id="rmapp" class="dpage"><div class="side"><div></div><div>Notebooks</div><div>PDFs</div><div>Favorites</div></div>
+      <div class="crumb"></div><div class="grid"></div></div>
+    <div id="dlb"><svg viewBox="0 0 40 48"><path d="M4 2h22l10 10v34H4z" fill="#eef2fd" stroke="#2b5fd9" stroke-width="3" stroke-linejoin="round"/><path d="M26 2v10h10" fill="none" stroke="#2b5fd9" stroke-width="3" stroke-linejoin="round"/></svg>
+      <div><div class="n"></div><div class="s"></div></div></div>
+  </div></div>
+</div>
+<svg id="cable" class="abs"><path id="cable-path" fill="none" stroke="#3a3a37" stroke-width="9" stroke-linecap="round"/></svg>
+<div id="utab" class="abs tablet"><div class="screen"><div class="grid"></div></div></div>
 <div id="dragcard" class="abs"><img id="drag-img" alt=""></div>
-<div id="urlpill" class="abs">rmink.vercel.app</div>
+<div id="fchip" class="abs"><svg viewBox="0 0 40 48"><path d="M4 2h22l10 10v34H4z" fill="#eef2fd" stroke="#2b5fd9" stroke-width="3" stroke-linejoin="round"/></svg><span></span></div>
+<div id="clickring" class="abs"></div>
+<div id="cursor" class="abs"><svg viewBox="0 0 24 34"><path d="M1 1 L1 26 L7.5 20 L12 31 L16.5 29 L12 18.5 L21 18.5 Z" fill="#111" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg></div>
+
+<!-- Claude scene -->
+<div id="term-label" class="abs"></div>
+<div id="term" class="abs"><div><span class="p">$ </span><span id="term-cmd"></span></div><div id="term-out" class="ok"></div></div>
+<div id="chat" class="abs"><div class="hd"><b>Claude</b><span>🔌 rmink</span></div><div class="body">
+  <div class="msg user" id="c-user"><img id="c-photo" alt=""><div></div></div>
+  <div class="msg tool" id="c-t1"><span class="st"></span><span>rmink · preview_ink</span></div>
+  <img class="msg pv" id="c-pv" alt="">
+  <div class="msg tool" id="c-t2"><span class="st"></span><span>rmink · convert_to_rmdoc</span></div>
+  <div class="msg reply" id="c-reply"></div>
+  <div class="msg file" id="c-file"><svg viewBox="0 0 40 48"><path d="M4 2h22l10 10v34H4z" fill="#eef2fd" stroke="#2b5fd9" stroke-width="3" stroke-linejoin="round"/></svg><span></span></div>
+</div></div>
 
 <!-- Scene 5 -->
 <div id="montage"></div>
@@ -161,11 +263,10 @@ function textAt(el, y, o, dy = 0) {
   el.style.visibility = o <= 0.001 ? "hidden" : "visible";
 }
 
-let T, DATA, APP, PAGE;
+let T, DATA, DESK, PAGE;
 const strokes = [];      // {el, len, start, tag, bbox, color}
 let totalLen = 0, sunEls = [], sunBox, titleEls = [], erasePaths = [], eraseBox;
 let wmPaths = [], wmTotal = 0;
-const phoneStates = {};
 
 async function load() {
   const [i18n, data] = await Promise.all([
@@ -174,7 +275,7 @@ async function load() {
   ]);
   T = i18n[LANG];
   DATA = data;
-  APP = await fetch(`out/app-${LANG}/meta.json`).then((r) => r.json());
+  DESK = await fetch(`out/desk-${LANG}/meta.json`).then((r) => r.json());
   PAGE = data[LANG];
 
   $("#photo-img").src = `out/note-${LANG}.jpg`;
@@ -184,7 +285,9 @@ async function load() {
   document.documentElement.lang = LANG;
 
   buildInk();
-  buildPhone();
+  buildFace();
+  buildDesk();
+  buildClaude();
   buildMontage();
   buildEnd();
 
@@ -272,42 +375,6 @@ function setInk(t, drawP) {
   }
 }
 
-function buildPhone() {
-  const screen = $("#phone-screen");
-  for (const name of Object.keys(APP.states)) {
-    const img = document.createElement("img");
-    img.className = "state";
-    img.src = `out/app-${LANG}/${name}.png`;
-    screen.appendChild(img);
-    phoneStates[name] = img;
-  }
-  const r = document.createElement("div");
-  r.className = "ripple";
-  r.id = "ripple";
-  screen.appendChild(r);
-}
-
-const K = 450 / 390; // phone screen px per CSS px
-function phone(t, stateA, stateB, mix, scroll, tap) {
-  for (const [name, img] of Object.entries(phoneStates)) {
-    let o = 0;
-    if (name === stateA) o = 1 - mix;
-    if (name === stateB) o = Math.max(o, mix);
-    img.style.opacity = o;
-    img.style.transform = `translateY(${-scroll * K}px)`;
-  }
-  const r = $("#ripple");
-  if (tap) {
-    const st = APP.states[tap.state].boxes[tap.box];
-    const p = tap.p;
-    r.style.left = (st.x + st.width / 2) * K + "px";
-    r.style.top = (st.y + st.height / 2 - scroll) * K + "px";
-    r.style.opacity = p < 1 ? 1 - p : 0;
-    r.style.transform = `scale(${0.5 + p})`;
-  } else r.style.opacity = 0;
-}
-const boxOf = (state, b) => APP.states[state].boxes[b];
-
 const ICONS = {
   m1: '<rect x="20" y="40" width="110" height="80" rx="12"/><circle cx="75" cy="80" r="24"/><path d="M50 40 l10-16 h30 l10 16"/>',
   m2: '<rect x="35" y="15" width="80" height="120" rx="12"/><path d="M55 50 c10-12 20 12 30 0 s15 10 20 0 M55 80 h40 M55 100 h28"/>',
@@ -371,8 +438,424 @@ function caption(n, text, o, t0, t) {
   cap.style.visibility = o <= 0.001 ? "hidden" : "visible";
 }
 
+// ---------- face scene ----------
+const FACE = { strokes: [], total: 0, drawn: [], drawTotal: 0 };
+
+function buildFace() {
+  const F = DATA.face, W = F.width, H = F.height, svg = $("#fink");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  $("#ftablet").dataset.ratio = H / W;
+  const all = F.strokes;
+  const bb = all.reduce((b, s) => [Math.min(b[0], s.bbox[0]), Math.min(b[1], s.bbox[1]),
+    Math.max(b[2], s.bbox[2]), Math.max(b[3], s.bbox[3])], [1e9, 1e9, -1e9, -1e9]);
+  const shirt = all.filter((s) => s.tag === "shirt");
+  const sb = shirt.reduce((b, s) => [Math.min(b[0], s.bbox[0]), Math.min(b[1], s.bbox[1]),
+    Math.max(b[2], s.bbox[2]), Math.max(b[3], s.bbox[3])], [1e9, 1e9, -1e9, -1e9]);
+  // Resize: shrink towards the top-left corner of the portrait.
+  Object.assign(FACE, { bbox: bb, shirtBox: sb, anchor: [bb[0], bb[1]], scale: 0.6 });
+
+  const defs = document.createElementNS(NS, "defs");
+  defs.innerHTML = `<mask id="face-erase" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}">
+      <rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>
+      <rect id="face-erase-rect" x="0" y="0" width="0" height="0" fill="#000"/></mask>`;
+  const gScaled = document.createElementNS(NS, "g"), gShirt = document.createElementNS(NS, "g");
+  gScaled.id = "face-scaled";
+  gShirt.setAttribute("mask", "url(#face-erase)");
+  const gDraw = document.createElementNS(NS, "g");
+  svg.append(defs, gScaled, gDraw);
+
+  const path = (d, color, w, parent) => {
+    const p = document.createElementNS(NS, "path");
+    p.setAttribute("d", d);
+    p.setAttribute("fill", "none");
+    p.setAttribute("stroke", color);
+    p.setAttribute("stroke-width", w);
+    p.setAttribute("stroke-linecap", "round");
+    p.setAttribute("stroke-linejoin", "round");
+    parent.appendChild(p);
+    const len = Math.max(p.getTotalLength(), 1);
+    p.style.strokeDasharray = `${len} ${len}`;
+    return { el: p, len };
+  };
+  for (const s of all) {
+    const st = path(s.d, s.c, Math.max(2.2, s.w), gShirt);
+    FACE.strokes.push({ ...st, start: FACE.total });
+    FACE.total += st.len;
+  }
+  gScaled.appendChild(gShirt);
+
+  // Lasso frame around the whole portrait (scaled together with it).
+  const pad = 30;
+  const frame = document.createElementNS(NS, "rect");
+  frame.id = "face-frame";
+  frame.setAttribute("x", bb[0] - pad);
+  frame.setAttribute("y", bb[1] - pad);
+  frame.setAttribute("width", bb[2] - bb[0] + 2 * pad);
+  frame.setAttribute("height", bb[3] - bb[1] + 2 * pad);
+  frame.setAttribute("fill", "none");
+  frame.setAttribute("stroke", "#555");
+  frame.setAttribute("stroke-width", 6);
+  gScaled.appendChild(frame);
+  FACE.frameLen = 2 * (bb[2] - bb[0] + bb[3] - bb[1] + 4 * pad);
+
+  // New ink drawn after the resize: glasses, then a speech bubble saying hello.
+  const k = FACE.scale, [ax, ay] = FACE.anchor, at = ([x, y]) => [ax + (x - ax) * k, ay + (y - ay) * k];
+  const [e1, e2, mouth] = F.marks.map(at), r = 0.36 * Math.hypot(e2[0] - e1[0], e2[1] - e1[1]);
+  const circle = ([x, y]) => `M${x - r},${y} A${r},${r} 0 1 1 ${x + r},${y} A${r},${r} 0 1 1 ${x - r},${y}`;
+  const blue = "#2850c8", draw = (d, c, w) => {
+    const st = path(d, c, w, gDraw);
+    FACE.drawn.push({ ...st, start: FACE.drawTotal });
+    FACE.drawTotal += st.len;
+  };
+  const dx = (e2[0] - e1[0]) / Math.hypot(e2[0] - e1[0], e2[1] - e1[1]);
+  const dy = (e2[1] - e1[1]) / Math.hypot(e2[0] - e1[0], e2[1] - e1[1]);
+  draw(circle(e1), blue, 9);
+  draw(`M${e1[0] + r * dx},${e1[1] + r * dy} Q${(e1[0] + e2[0]) / 2},${(e1[1] + e2[1]) / 2 - r * 0.5} ${e2[0] - r * dx},${e2[1] - r * dy}`, blue, 9);
+  draw(circle(e2), blue, 9);
+  // Bubble to the right of the head, its tail pointing at the mouth.
+  const right = ax + (bb[2] - ax) * k;
+  const bx0 = right + 30, bx1 = W - 90, by1 = mouth[1] + 40, by0 = by1 - (bx1 - bx0) * 0.6;
+  const tip = [mouth[0] + 150, mouth[1] + 10], R = 60;
+  draw(`M${bx0 + R},${by0} L${bx1 - R},${by0} Q${bx1},${by0} ${bx1},${by0 + R} L${bx1},${by1 - R} Q${bx1},${by1} ${bx1 - R},${by1}
+        L${bx0 + R},${by1} Q${bx0},${by1} ${bx0},${by1 - R} L${bx0},${by1 - 80} L${tip[0]},${tip[1]} L${bx0},${by1 - 170}
+        L${bx0},${by0 + R} Q${bx0},${by0} ${bx0 + R},${by0} Z`, "#1d1d1b", 7);
+  FACE.drawSplit = FACE.drawTotal;
+  const hello = DATA["hello-" + LANG].strokes;
+  const hb = hello.reduce((b, s) => [Math.min(b[0], s.bbox[0]), Math.min(b[1], s.bbox[1]),
+    Math.max(b[2], s.bbox[2]), Math.max(b[3], s.bbox[3])], [1e9, 1e9, -1e9, -1e9]);
+  const hs = Math.min((bx1 - bx0 - 140) / (hb[2] - hb[0]), (by1 - by0 - 120) / (hb[3] - hb[1]));
+  const gHello = document.createElementNS(NS, "g");
+  gHello.setAttribute("transform", `translate(${(bx0 + bx1) / 2 - hs * (hb[0] + hb[2]) / 2}, ${(by0 + by1) / 2 - hs * (hb[1] + hb[3]) / 2}) scale(${hs})`);
+  gDraw.appendChild(gHello);
+  for (const s of hello) {
+    const st = path(s.d, "#1d1d1b", Math.max(4, s.w * 1.1), gHello);
+    FACE.drawn.push({ ...st, start: FACE.drawTotal, g: gHello });
+    FACE.drawTotal += st.len;
+  }
+}
+
+// Point on the tablet screen (body px) for an SVG page coordinate.
+function inkToScreen(x, y) {
+  const r = $("#fink").getBoundingClientRect(), k = r.width / DATA.face.width;
+  return [r.left + x * k, r.top + y * k];
+}
+
+function faceScene(u) {
+  const F = DATA.face;
+  // Title, photo, arrow and the small tablet (like scene 2).
+  $("#h1").style.fontSize = "64px";
+  $("#h1").textContent = T.face;
+  textAt($("#h1"), 120, win(u, 0.1, 5.0, 0.5), (1 - easeOut(prog(u, 0.1, 0.7))) * 30);
+  const fp = $("#fphoto");
+  fp.style.width = "430px";
+  fp.style.height = "538px";
+  place(fp, { x: 290 - (1 - easeOut(prog(u, 0.2, 0.9))) * 200, y: 690, r: -5, o: win(u, 0.2, 5.2, 0.4) });
+  const ap = $("#arrow-path"), aLen = 330;
+  ap.style.strokeDasharray = aLen;
+  ap.style.strokeDashoffset = aLen * (1 - prog(u, 0.9, 1.4));
+  place($("#arrow"), { x: 540 - 80, y: 690 - 40, o: win(u, 0.8, 5.2, 0.3), cx: false });
+
+  const tab = $("#ftablet"), mv = ease(prog(u, 4.9, 5.8));
+  const width = lerp(450, 780, mv), inner = width - 60;
+  tab.style.width = width + "px";
+  tab.querySelector(".screen").style.height = inner * Number(tab.dataset.ratio) + "px";
+  const tabO = Math.min(prog(u, 0.5, 1.1), 1 - prog(u, 13.5, 14));
+  place(tab, { x: lerp(800 + (1 - easeOut(prog(u, 0.5, 1.3))) * 200, 540, mv), y: lerp(690, 770, mv), r: lerp(2, 0, mv), o: tabO });
+
+  // Ink appears stroke by stroke.
+  const drawn = ease(prog(u, 1.3, 4.6)) * FACE.total;
+  for (const s of FACE.strokes) s.el.style.strokeDashoffset = s.len * (1 - clamp((drawn - s.start) / s.len));
+
+  // Resize: lasso frame, then drag the corner inwards.
+  const frame = $("#face-frame");
+  frame.setAttribute("stroke-dasharray", `${FACE.frameLen * prog(u, 5.9, 6.5)} ${FACE.frameLen}`);
+  frame.style.opacity = u >= 5.9 && u < 8.4 ? 1 - prog(u, 8.0, 8.4) : 0;
+  const k = lerp(1, FACE.scale, ease(prog(u, 6.7, 7.9)));
+  const [ax, ay] = FACE.anchor, [, , bx1, by1] = FACE.bbox;
+  $("#face-scaled").setAttribute("transform", `translate(${ax * (1 - k)}, ${ay * (1 - k)}) scale(${k})`);
+
+  // Erase the shirt with a sweeping eraser.
+  const [sx0, sy0] = FACE.shirtBox, [, , sx1, sy1] = FACE.bbox, eraseP = ease(prog(u, 8.8, 10.3));
+  const er = $("#face-erase-rect");
+  er.setAttribute("x", sx0 - 40);
+  er.setAttribute("y", sy0 - 40);
+  er.setAttribute("height", sy1 - sy0 + 80);
+  er.setAttribute("width", (sx1 - sx0 + 80) * eraseP);
+  const S = FACE.scale, toPage = (x, y) => [ax + (x - ax) * S, ay + (y - ay) * S];
+  if (u >= 8.6 && u < 10.5) {
+    const [ex, ey] = inkToScreen(...toPage(sx0 - 40 + (sx1 - sx0 + 80) * eraseP,
+      (sy0 + sy1) / 2 + (sy1 - sy0) * 0.3 * Math.sin(eraseP * 16)));
+    place($("#eraser"), { x: ex, y: ey, o: win(u, 8.6, 10.5, 0.25), cx: false });
+  } else place($("#eraser"), { o: 0 });
+
+  // Draw again: glasses, the bubble, then the greeting.
+  const gl = u < 12.1 ? lerp(0, FACE.drawSplit, ease(prog(u, 10.8, 12.1)))
+    : lerp(FACE.drawSplit, FACE.drawTotal, prog(u, 12.2, 13.3));
+  let tip = null;
+  for (const s of FACE.drawn) {
+    const f = clamp((gl - s.start) / s.len);
+    s.el.style.strokeDashoffset = s.len * (1 - f);
+    if (f > 0 && f < 1) {
+      const pt = s.el.getPointAtLength(s.len * f);
+      tip = [pt.x, pt.y, s.g];
+    }
+  }
+  // Stylus: holds the resize corner, then follows the pen tip.
+  const stylus = $("#stylus");
+  if (u >= 6.2 && u < 8.2) {
+    const c = inkToScreen(ax + (bx1 + 30 - ax) * k, ay + (by1 + 30 - ay) * k);
+    place(stylus, { x: c[0], y: c[1], o: win(u, 6.2, 8.2, 0.3), cx: false });
+  } else if (u >= 10.6 && u < 13.6) {
+    if (tip) {
+      let [x, y] = tip;
+      if (tip[2]) {
+        // Greeting strokes live in a scaled group.
+        const m = tip[2].transform.baseVal.consolidate().matrix;
+        [x, y] = [m.a * x + m.e, m.d * y + m.f];
+      }
+      FACE.lastTip = inkToScreen(x, y);
+    }
+    const p = FACE.lastTip || inkToScreen(...toPage(...F.marks[0]));
+    place(stylus, { x: p[0], y: p[1], o: win(u, 10.6, 13.6, 0.3), cx: false });
+  } else place(stylus, { o: 0 });
+
+  // Captions.
+  const caps = [[5.8, 8.4, T.resize], [8.4, 10.6, T.erase], [10.6, 13.6, T.draw]];
+  const c = caps.find(([a, b]) => u >= a && u < b);
+  if (c) caption("", c[2], Math.min(prog(u, c[0], c[0] + 0.3), 1 - prog(u, 13.3, 13.6)), c[0], u);
+  else caption("", "", 0, 0, 0);
+}
+
+// ---------- desktop scene: the web app, the saved file, the upload ----------
+const BAR = 56;
+function tiles(grid, names, newSrc, newName) {
+  grid.innerHTML = "";
+  for (const n of names) {
+    const d = document.createElement("div");
+    d.className = "tile";
+    d.innerHTML = `<div class="th"></div><div class="nm"></div>`;
+    d.querySelector(".nm").textContent = n;
+    grid.appendChild(d);
+  }
+  const d = document.createElement("div");
+  d.className = "tile new";
+  d.innerHTML = `<div class="th"><img alt=""></div><div class="nm"></div>`;
+  d.querySelector("img").src = newSrc;
+  d.querySelector(".nm").textContent = newName;
+  grid.appendChild(d);
+  return d;
+}
+
+function buildDesk() {
+  const c = $("#desk-content");
+  for (const name of Object.keys(DESK.states).reverse()) {
+    const img = document.createElement("img");
+    img.className = "dstate";
+    img.dataset.state = name;
+    img.src = `out/desk-${LANG}/${name}.png`;
+    c.insertBefore(img, c.firstChild);
+  }
+  const file = DESK.filename, kb = Math.round(DESK.size / 1000) + " kB";
+  const doc = file.replace(/\.rmdoc$/, ""), pv = `out/note-${LANG}-preview.png`;
+  $("#dlb .n").textContent = file;
+  $("#dlb .s").textContent = `${kb} · ${T.saved} ✓`;
+  $("#fchip span").textContent = file;
+  $("#usb .crumb").textContent = T.files;
+  $("#rmapp .crumb").textContent = T.files;
+  $("#rmapp .side div").textContent = T.files;
+  $("#usb-drop").textContent = T.drop_upload;
+  $("#usb-toast .fn").textContent = file;
+  $("#drag-img").src = `out/note-${LANG}.jpg`;
+  DESK.newUsb = tiles($("#usb .grid"), T.tiles, pv, doc);
+  DESK.newApp = tiles($("#rmapp .grid"), T.tiles, pv, doc);
+  DESK.newTab = tiles($("#utab .grid"), T.tiles, pv, doc);
+}
+
+// Content coordinates (the 960 × 800 screenshot) → canvas.
+function deskPt(x, y) {
+  const r = $("#desk-content").getBoundingClientRect(), k = r.width / 960;
+  return [r.left + x * k, r.top + y * k];
+}
+const boxC = (state, b) => {
+  const x = DESK.states[state].boxes[b];
+  return [x.x + x.width / 2, x.y + x.height / 2];
+};
+const mixCam = (a, b, p) => Object.fromEntries(Object.keys(a).map((k) => [k, lerp(a[k], b[k], p)]));
+// Put content point (fx, fy) at canvas point (cx, cy) with zoom z.
+function deskCamera({ z, fx, fy, cx, cy }, o) {
+  const s = 1000 / 960, el = $("#desk");
+  el.style.transform = `translate(${cx - fx * s * z}px, ${cy - (BAR + fy * s) * z}px) scale(${z})`;
+  el.style.opacity = o;
+  el.style.visibility = o <= 0.001 ? "hidden" : "visible";
+}
+// Keyframed path: keys are [time, () => [x, y]]; eased between keys.
+function along(keys, u) {
+  if (u <= keys[0][0]) return keys[0][1]();
+  for (let i = 1; i < keys.length; i++) {
+    if (u <= keys[i][0]) {
+      const [a, pa] = keys[i - 1], [b, pb] = keys[i], f = ease(prog(u, a, b)), A = pa(), B = pb();
+      return [lerp(A[0], B[0], f), lerp(A[1], B[1], f)];
+    }
+  }
+  return keys[keys.length - 1][1]();
+}
+const pop = (u, a) => (u < a ? 0 : easeOut(prog(u, a, a + 0.35)));
+
+function deskScene(u) {
+  const g = DESK.states.preview.boxes.gallery;
+  const BASE = { z: 1, fx: 480, fy: 400, cx: 540, cy: 720 };
+  const GAL = { z: 1.6, fx: g.x + g.width / 2, fy: g.y + g.height / 2, cx: 540, cy: 730 };
+  const SMALL = { z: 0.72, fx: 480, fy: 400, cx: 540, cy: 590 };
+  const DEV = { z: 1.35, fx: 420, fy: 330, cx: 540, cy: 720 };
+  let cam = mixCam(BASE, GAL, ease(prog(u, 2.7, 3.5)) * (1 - ease(prog(u, 4.4, 5.1))));
+  if (u >= 5.1) cam = mixCam(BASE, DEV, ease(prog(u, 5.1, 5.8)) * (1 - ease(prog(u, 7.3, 7.9))));
+  if (u >= 10.8) cam = mixCam(BASE, SMALL, ease(prog(u, 10.8, 11.6)));
+  cam = { ...cam, cy: cam.cy + (1 - easeOut(prog(u, 0, 0.7))) * 70 };
+  deskCamera(cam, Math.min(prog(u, 0, 0.5), 1 - prog(u, 19.5, 20)));
+
+  // Which page the window shows.
+  const show = { empty: 1, preview: prog(u, 2.0, 2.3), pro: prog(u, 6.2, 6.6), downloaded: prog(u, 8.6, 8.9) };
+  for (const img of document.querySelectorAll(".dstate")) img.style.opacity = show[img.dataset.state];
+  $("#usb").style.opacity = prog(u, 10.9, 11.4);
+  $("#rmapp").style.opacity = prog(u, 15.9, 16.4);
+  $("#desk-url span").textContent = u < 11.1 ? "rmink.vercel.app" : u < 16.1 ? "10.11.99.1" : "reMarkable";
+  $("#desk-url svg").style.display = u < 11.1 ? "block" : "none";
+
+  // The download shows up as saved; the bubble stays until the file is dragged out.
+  $("#dlb").style.opacity = Math.min(pop(u, 8.9), 1 - prog(u, 12.0, 12.4));
+  $("#dlb").style.transform = `translateY(${(1 - pop(u, 8.9)) * -16}px)`;
+
+  // USB upload: drop target, progress, the new file in the list and on the tablet.
+  $("#usb-drop").style.opacity = win(u, 12.5, 13.4, 0.2);
+  const up = prog(u, 13.3, 14.6);
+  $("#usb-toast").style.opacity = win(u, 13.2, 16.0, 0.25);
+  $("#usb-toast .fill").style.width = up * 100 + "%";
+  const st = $("#usb-toast .st");
+  st.textContent = up < 1 ? Math.round(up * 100) + " %" : T.uploaded + " ✓";
+  st.className = up < 1 ? "st" : "st ok";
+  for (const [el, a] of [[DESK.newUsb, 14.7], [DESK.newTab, 15.1], [DESK.newApp, 18.0]]) {
+    el.style.opacity = pop(u, a);
+    el.style.transform = `scale(${lerp(0.6, 1, pop(u, a))})`;
+  }
+  const tabO = Math.min(prog(u, 11.2, 11.8), 1 - prog(u, 15.9, 16.3));
+  place($("#utab"), { x: 860 + (1 - easeOut(prog(u, 11.2, 11.9))) * 120, y: 1120, r: -3, o: tabO });
+  const tr = $("#utab").getBoundingClientRect(), dr = $("#desk").getBoundingClientRect();
+  const c0 = [dr.left + dr.width * 0.3, dr.bottom - 2], c1 = [tr.left + 4, tr.top + tr.height * 0.55];
+  const cp = $("#cable-path"), cd = `M${c0[0]},${c0[1]} C${c0[0]},${c0[1] + 230} ${c1[0] - 260},${c1[1]} ${c1[0]},${c1[1]}`;
+  cp.setAttribute("d", cd);
+  const cl = cp.getTotalLength();
+  cp.style.strokeDasharray = `${cl} ${cl}`;
+  cp.style.strokeDashoffset = cl * (1 - prog(u, 11.5, 12.2));
+  place($("#cable"), { o: tabO, cx: false });
+
+  // Captions.
+  const steps = [[0.3, 2.6, 1, T.step1], [2.6, 5.0, 2, T.step2], [5.0, 7.6, 3, T.step3], [7.6, 10.8, 4, T.step4],
+    [10.8, 15.9, 5, T.usb], [15.9, 19.6, 5, T.app]];
+  const s = steps.find(([a, b]) => u >= a && u < b);
+  if (s) caption(s[2], s[3], Math.min(prog(u, s[0], s[0] + 0.3), 1 - prog(u, 19.2, 19.6)), s[0], u);
+  else caption("", "", 0, 0, 0);
+  $("#cap .label").style.fontSize = s && s[3].length > 26 ? "48px" : "62px";
+
+  // The photo is dragged in from the corner.
+  const drop = () => deskPt(...boxC("empty", "drop"));
+  const dp = ease(prog(u, 0.7, 1.9));
+  const [dx, dy] = along([[0.7, () => [930, 1240]], [1.9, drop]], u);
+  place($("#dragcard"), { x: dx, y: dy, r: lerp(12, 0, dp), s: lerp(1, 0.5, dp), o: win(u, 0.5, 2.2, 0.3) });
+
+  // Cursor: carries the photo, clicks Pro and Download, then drags the file.
+  const at = (x, y) => () => deskPt(x, y);
+  const pro = () => deskPt(...boxC("preview", "pro")), dl = () => deskPt(...boxC("pro", "download"));
+  const dlb = () => deskPt(760, 52), mid = at(480, 430);
+  const keys = [[0.7, () => [930 + 20, 1240 + 30]], [1.9, () => { const p = drop(); return [p[0] + 20, p[1] + 30]; }],
+    [5.2, at(330, 560)], [6.0, pro], [7.9, pro], [8.5, dl], [10.6, dl], [11.4, dlb], [11.9, dlb], [13.1, mid], [13.8, mid],
+    [16.3, () => [160, 1230]], [16.6, () => [160, 1230]], [17.8, at(560, 440)], [19, at(560, 440)]];
+  const [x, y] = along(keys, u);
+  const cO = u < 2.3 ? win(u, 0.5, 2.3, 0.2) : u < 13.9 ? win(u, 5.0, 13.9, 0.3) : win(u, 16.2, 18.8, 0.3);
+  place($("#cursor"), { x, y, o: cO, cx: false });
+  const click = [6.0, 8.5].find((a) => u >= a && u < a + 0.5);
+  if (click) {
+    const [rx, ry] = click === 6.0 ? pro() : dl(), f = prog(u, click, click + 0.5);
+    place($("#clickring"), { x: rx, y: ry, s: 0.5 + f, o: 1 - f, cx: false });
+  }
+  // The file being dragged: out of the download bubble into USB, then into the app.
+  const dragging = (u >= 11.9 && u < 13.2) || (u >= 16.6 && u < 17.9);
+  if (dragging || (u >= 16.3 && u < 16.6)) place($("#fchip"), { x: x + 18, y: y + 18, o: u < 16.6 ? prog(u, 16.3, 16.6) : 1, cx: false });
+}
+
+// ---------- Claude scene ----------
+function buildClaude() {
+  $("#term-label").textContent = T.setup;
+  $("#c-photo").src = `out/note-${LANG}.jpg`;
+  $("#c-user div").textContent = T.ask;
+  $("#c-pv").src = `out/note-${LANG}-preview.png`;
+  $("#c-file span").textContent = DESK.filename;
+}
+const CMD = "claude mcp add rmink -- uvx --from 'rmink[mcp]' rmink mcp";
+
+function claudeScene(u) {
+  caption("", T.claude, Math.min(prog(u, 0, 0.3), 1 - prog(u, 11.5, 12)), 0, u);
+  // One-time setup in a terminal.
+  const termO = Math.min(prog(u, 0.3, 0.7), 1 - prog(u, 3.5, 3.9));
+  textAt($("#term-label"), 330, termO, -easeOut(prog(u, 3.5, 3.9)) * 40);
+  place($("#term"), { x: 540, y: 520 - easeOut(prog(u, 3.5, 3.9)) * 40, o: termO });
+  $("#term-cmd").textContent = CMD.slice(0, Math.round(CMD.length * prog(u, 0.7, 2.4)));
+  $("#term-out").textContent = u >= 2.7 ? "✓ Added stdio MCP server rmink" : " ";
+
+  // Then just ask.
+  const chatO = Math.min(prog(u, 3.7, 4.2), 1 - prog(u, 11.5, 12));
+  place($("#chat"), { x: 540, y: 740 + (1 - easeOut(prog(u, 3.7, 4.4))) * 60, o: chatO });
+  const show = (sel, a) => {
+    const el = $(sel), o = pop(u, a);
+    el.style.opacity = o;
+    el.style.transform = `translateY(${(1 - o) * 16}px)`;
+  };
+  show("#c-user", 4.2);
+  show("#c-t1", 5.2);
+  show("#c-pv", 6.2);
+  show("#c-t2", 7.0);
+  show("#c-reply", 7.9);
+  show("#c-file", 9.9);
+  const state = (sel, a, done) => {
+    $(sel + " .st").innerHTML = u < done ? `<div class="spin" style="transform:rotate(${u * 720}deg)"></div>` : '<span class="ok">✓</span>';
+  };
+  state("#c-t1", 5.2, 6.1);
+  state("#c-t2", 7.0, 7.8);
+  $("#c-reply").textContent = T.claude_done.slice(0, Math.round(T.claude_done.length * prog(u, 8.0, 9.7)));
+}
+
+
 // ---------- the timeline ----------
+// The original scenes (seekMain, in their own time) with new scenes spliced in.
+const SEGMENTS = [
+  { main: [0, 12] },                       // hook, photo → ink
+  { scene: deskScene, len: 20 },           // web app, download, upload
+  { main: [29.6, 42.2] },                  // edit on the tablet
+  { scene: faceScene, len: 14 },           // faces
+  { scene: claudeScene, len: 12 },         // Claude
+  { main: [42.2, 60] },                    // montage, end card
+];
+const SCENE_ELS = ["#fphoto", "#ftablet", "#stylus", "#desk", "#utab", "#cable", "#dragcard", "#fchip",
+  "#clickring", "#cursor", "#term", "#term-label", "#chat"];
+window.DURATION = SEGMENTS.reduce((d, s) => d + (s.len ?? s.main[1] - s.main[0]), 0);
+
 window.seek = async function (t) {
+  let at = 0;
+  for (const seg of SEGMENTS) {
+    const len = seg.len ?? seg.main[1] - seg.main[0];
+    if (t < at + len || seg === SEGMENTS[SEGMENTS.length - 1]) {
+      for (const sel of SCENE_ELS) place($(sel), { o: 0 });
+      if (seg.main) seekMain(seg.main[0] + t - at);
+      else {
+        seekMain(-1);
+        seg.scene(t - at);
+      }
+      return;
+    }
+    at += len;
+  }
+};
+
+function seekMain(t) {
   // Scene 1+2 text
   $("#h1").style.fontSize = t < 5.5 ? "76px" : "64px";
   $("#h1").textContent = t < 5.5 ? T.hook1 : T.what1;
@@ -442,13 +925,8 @@ window.seek = async function (t) {
   for (const p of titleEls) p.setAttribute("stroke", rc > 0 ? mixColor("#1d1d1b", "#2850c8", rc) : "#1d1d1b");
   if (t < 29) { for (const p of titleEls) p.setAttribute("stroke", strokes.find((s) => s.el === p).color); }
 
-  // Captions (scenes 3 & 4).
-  if (t >= 12 && t < 30) {
-    const steps = [[12.2, 14.4, 1, T.step1], [14.4, 17.6, 2, T.step2], [17.6, 23.2, 3, T.step3], [23.2, 29.6, 4, T.step4]];
-    const s = steps.find(([a, b]) => t >= a && t < b) || steps[3];
-    const o = Math.min(prog(t, s[0], s[0] + 0.3), t > 29.2 ? 1 - prog(t, 29.2, 29.6) : 1);
-    caption(s[2], s[3], o, s[0], t);
-  } else if (t >= 30.2 && t < 42) {
+  // Captions (scene 4).
+  if (t >= 30.2 && t < 42) {
     const caps = [[30.4, 33.6, T.erase], [33.6, 37.1, T.move], [37.1, 39.6, T.recolor + " · " + T.recolor_note], [39.6, 42, T.final]];
     const c = caps.find(([a, b]) => t >= a && t < b);
     const o = c ? Math.min(prog(t, c[0], c[0] + 0.3), 1 - prog(t, 41.6, 42)) : 0;
@@ -457,46 +935,8 @@ window.seek = async function (t) {
   } else caption("", "", 0, 0, t);
   if (!(t >= 30.2 && t < 42)) $("#cap .label").style.fontSize = "62px";
 
-  // Scene 3: phone demo.
-  const ph = $("#phone");
-  const phO = Math.min(prog(t, 12, 12.5), 1 - prog(t, 29.2, 29.7));
-  place(ph, { x: 540, y: 245 + 505 + (1 - easeOut(prog(t, 12, 12.7))) * 80, o: t >= 12 && t < 30 ? phO : 0 });
-  $("#urlpill").style.opacity = t >= 12 && t < 30 ? phO : 0;
-  $("#urlpill").style.transform = "translateX(-50%)";
-  $("#urlpill").style.left = "540px";
-  if (t >= 12 && t < 30) {
-    const gal = boxOf("preview", "gallery"), pro = boxOf("preview", "pro"), dl = boxOf("pro", "download");
-    let a = "empty", b = "empty", mix = 0, scroll = 0, tap = null;
-    if (t < 14.4) {
-      if (t > 14.0) tap = { state: "empty", box: "drop", p: prog(t, 14.0, 14.6) };
-    } else if (t < 17.6) {
-      a = "empty"; b = "preview"; mix = prog(t, 14.4, 14.8);
-      scroll = lerp(0, gal.y - 210, ease(prog(t, 15.2, 16.6)));
-    } else if (t < 23.2) {
-      a = "preview"; b = "pro"; mix = prog(t, 19.5, 19.9);
-      const s1 = gal.y - 210, s2 = pro.y - 520;
-      scroll = t < 19.9 ? lerp(s1, s2, ease(prog(t, 17.7, 18.9))) : lerp(s2, s1, ease(prog(t, 20.3, 21.6)));
-      if (t > 19.2 && t < 20.0) tap = { state: "preview", box: "pro", p: prog(t, 19.2, 19.9) };
-    } else {
-      const s1 = gal.y - 210, s2 = dl.y - 560;
-      a = "pro"; b = "downloaded"; mix = prog(t, 25.0, 25.4);
-      scroll = t < 25.2 ? lerp(s1, s2, ease(prog(t, 23.3, 24.5))) : lerp(s2, 0, ease(prog(t, 25.6, 26.8)));
-      if (t > 24.6 && t < 25.4) tap = { state: "pro", box: "download", p: prog(t, 24.6, 25.3) };
-    }
-    phone(t, a, b, mix, Math.max(0, scroll), tap);
-
-    // Photo card dragged into the drop zone.
-    const drop = boxOf("empty", "drop"), phRect = $("#phone-screen").getBoundingClientRect();
-    const tx = phRect.left + (drop.x + drop.width / 2) * K, ty = phRect.top + (drop.y + drop.height / 2) * K;
-    const dp = ease(prog(t, 12.8, 14.0));
-    place($("#dragcard"), {
-      x: lerp(960, tx, dp), y: lerp(1100, ty, dp), r: lerp(12, 0, dp), s: lerp(1, 0.55, dp),
-      o: t >= 12.6 && t < 14.5 ? Math.min(prog(t, 12.6, 12.9), 1 - prog(t, 14.1, 14.5)) : 0,
-    });
-  } else place($("#dragcard"), { o: 0 });
-
   // Scene 5: montage on dark.
-  const dark = Math.min(prog(t, 41.8, 42.3), 1 - prog(t, 49.6, 50.1));
+  const dark = Math.min(prog(t, 42.2, 42.6), 1 - prog(t, 49.6, 50.1));
   $("#bg-dark").style.opacity = dark;
   ["m1", "m2", "m3", "m4"].forEach((k, i) => {
     const a = 42.2 + i * 1.95, b = a + 1.95, el = $("#mt-" + k);
@@ -518,7 +958,7 @@ window.seek = async function (t) {
   $("#disclaimer").style.opacity = t >= 54 ? easeOut(prog(t, 54, 54.6)) : 0;
   $("#disclaimer").style.transform = "translate(0px, 1286px)";
   $("#disclaimer").style.top = "0px";
-};
+}
 
 function mixColor(a, b, x) {
   const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));

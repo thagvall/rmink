@@ -12,7 +12,7 @@ thread.
 I made a free tool that turns photos of handwritten notes into **real, editable
 reMarkable ink**, not a picture behind your notes ✍️
 
-📸 Snap your paper notes, a sketch, a whiteboard, a logo or a PDF
+📸 Snap your paper notes, a sketch, a whiteboard, a portrait, a logo or a PDF
 ➡️ rmink traces it into native pen strokes
 📲 Copy the notebook to your tablet, then erase, lasso, move and recolour like your own writing
 
@@ -34,7 +34,7 @@ Feedback and ideas are very welcome. Tell me what you'd like to convert!
 Jag har byggt ett gratis verktyg som gör om foton av handskrivna anteckningar
 till **riktigt, redigerbart reMarkable-bläck**, inte en bild bakom anteckningarna ✍️
 
-📸 Fota dina pappersanteckningar, en skiss, en whiteboard, en logga eller en PDF
+📸 Fota dina pappersanteckningar, en skiss, en whiteboard, ett porträtt, en logga eller en PDF
 ➡️ rmink spårar om det till riktiga pennstreck
 📲 Lägg över anteckningsboken till plattan och sudda, lassa, flytta och färga om som om du skrivit själv
 

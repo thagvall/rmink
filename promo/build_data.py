@@ -1,6 +1,7 @@
 """Convert the demo notes with rmink and export strokes as JSON for the video.
 
-Usage: python promo/build_data.py   (after make_note.py has written out/note-{en,sv}.jpg)
+Usage: python promo/build_data.py   (after make_note.py has written out/note-{en,sv}.jpg
+                                     and make_face.py has written out/face.jpg)
 """
 
 import json
@@ -20,6 +21,10 @@ RGB = {e.color: "#{:02x}{:02x}{:02x}".format(*e.rgb) for e in COLOR_PALETTE}
 
 # Layout of make_note.py in source pixels (2400 x 3000).
 ITEM_Y0, ITEM_STEP = 860, 300
+# Face scene, in out/face.jpg pixels: the eyes (for the drawn glasses), the
+# mouth (the speech bubble points at it) and the line where the shirt starts.
+FACE_MARKS = [(355, 505), (620, 465), (560, 790)]
+FACE_SHIRT_Y = 940
 
 
 def tag_for(cx: float, cy: float, color: str) -> str:
@@ -34,7 +39,8 @@ def tag_for(cx: float, cy: float, color: str) -> str:
     return "sketch"
 
 
-def strokes_json(img_path: Path, device_key: str) -> dict:
+def strokes_json(img_path: Path, device_key: str, tagger=tag_for, marks=()) -> dict:
+    """`marks` are source-pixel points to return in page coordinates."""
     opts = ConvertOptions(device=device_key, seed=1)
     rendered = render([img_path], opts)
     device = rendered.device
@@ -52,18 +58,25 @@ def strokes_json(img_path: Path, device_key: str) -> dict:
                 "d": "M" + " L".join(f"{x:.1f},{y:.1f}" for x, y in pts),
                 "w": round(float(np.median(s.widths) if s.widths is not None else s.width), 2),
                 "c": RGB.get(s.color, "#000000"),
-                "tag": tag_for(cx, cy, s.color.name),
+                "tag": tagger(cx, cy, s.color.name),
                 "bbox": [round(float(v), 1) for v in (*pts.min(axis=0), *pts.max(axis=0))],
             }
         )
-    return {"width": device.width, "height": page.height, "strokes": strokes}
+    return {
+        "width": device.width,
+        "height": page.height,
+        "strokes": strokes,
+        "scale": pl.scale,
+        "marks": [[round(x * pl.scale + pl.offset_x, 1), round(y * pl.scale + pl.offset_y, 1)]
+                  for x, y in marks],
+    }
 
 
-def wordmark(path: Path) -> None:
+def handwriting(text: str, path: Path) -> None:
     font = ImageFont.truetype(str(OUT / "assets" / "Caveat.ttf"), 420)
     font.set_variation_by_axes([600])
     img = Image.new("RGB", (1500, 600), "white")
-    ImageDraw.Draw(img).text((90, 20), "rmink", font=font, fill="black")
+    ImageDraw.Draw(img).text((90, 20), text, font=font, fill="black")
     img.save(path)
 
 
@@ -87,11 +100,16 @@ def main() -> None:
     data = {}
     for lang in ("en", "sv"):
         data[lang] = strokes_json(OUT / f"note-{lang}.jpg", "pro")
-    wm = OUT / "wordmark.png"
-    wordmark(wm)
-    data["wordmark"] = strokes_json(wm, "pro")
-    for s in data["wordmark"]["strokes"]:
-        s["tag"] = "wordmark"
+    data["face"] = strokes_json(
+        OUT / "face.jpg", "pro", lambda cx, cy, c: "shirt" if cy > FACE_SHIRT_Y else "face",
+        marks=FACE_MARKS,
+    )  # fmt: skip
+    for key, text in (("wordmark", "rmink"), ("hello-en", "Hi!"), ("hello-sv", "Hej!")):
+        img = OUT / f"{key}.png"
+        handwriting(text, img)
+        data[key] = strokes_json(img, "pro")
+        for s in data[key]["strokes"]:
+            s["tag"] = key
     (OUT / "strokes.json").write_text(json.dumps(data))
     for k, v in data.items():
         tags = {}

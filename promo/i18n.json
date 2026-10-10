@@ -13,7 +13,7 @@
     "recolor": "Recolour it",
     "recolor_note": "on Paper Pro & Move",
     "final": "Just like your own pen strokes",
-    "app": "Opens in the reMarkable app",
+    "app": "…or drag it into the reMarkable app",
     "m1": "Photos · sketches\nlogos · PDFs",
     "m2": "reMarkable 2 · Paper Pure\nPaper Pro · Paper Pro Move",
     "m3": "Free & open source",
@@ -23,7 +23,25 @@
     "qr_support": "Support ♥ 100 kr",
     "code": "Source code",
     "support": "Like it? Support it with 100 kr ♥",
-    "disclaimer": "rmink is an independent project, not affiliated with reMarkable AS"
+    "disclaimer": "rmink is an independent project, not affiliated with reMarkable AS",
+    "face": "Works with faces too",
+    "resize": "Resize it",
+    "draw": "Draw on it",
+    "saved": "Saved to Downloads",
+    "files": "My files",
+    "drop_upload": "Drop files to upload",
+    "uploaded": "Uploaded",
+    "tiles": [
+      "Meeting notes",
+      "Sketchbook",
+      "Journal",
+      "Recipes"
+    ],
+    "usb": "Upload it to your tablet over USB",
+    "claude": "Or just ask Claude",
+    "setup": "One-time setup",
+    "ask": "Turn this into a notebook for my Paper Pro",
+    "claude_done": "Done! Copy it to your tablet over USB or with the reMarkable app."
   },
   "sv": {
     "hook1": "Dina handskrivna anteckningar…",
@@ -39,7 +57,7 @@
     "recolor": "Färga om",
     "recolor_note": "på Paper Pro & Move",
     "final": "Precis som dina egna pennstreck",
-    "app": "Öppnas i reMarkable-appen",
+    "app": "…eller dra in den i reMarkable-appen",
     "m1": "Foton · skisser\nlogotyper · PDF:er",
     "m2": "reMarkable 2 · Paper Pure\nPaper Pro · Paper Pro Move",
     "m3": "Gratis & öppen källkod",
@@ -49,6 +67,24 @@
     "qr_support": "Stöd ♥ 100 kr",
     "code": "Källkod",
     "support": "Gillar du det? Stöd med 100 kr ♥",
-    "disclaimer": "rmink är ett fristående projekt utan koppling till reMarkable AS"
+    "disclaimer": "rmink är ett fristående projekt utan koppling till reMarkable AS",
+    "face": "Funkar med ansikten också",
+    "resize": "Ändra storlek",
+    "draw": "Rita vidare",
+    "saved": "Sparad i Hämtade filer",
+    "files": "Mina filer",
+    "drop_upload": "Släpp filer för att ladda upp",
+    "uploaded": "Uppladdad",
+    "tiles": [
+      "Mötesanteckningar",
+      "Skissbok",
+      "Dagbok",
+      "Recept"
+    ],
+    "usb": "Ladda upp till plattan via USB",
+    "claude": "Eller be Claude",
+    "setup": "Engångsinstallation",
+    "ask": "Gör om det här till en anteckningsbok för min Paper Pro",
+    "claude_done": "Klart! Lägg över den till plattan via USB eller med reMarkable-appen."
   }
 }

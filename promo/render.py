@@ -19,7 +19,7 @@ from playwright.sync_api import sync_playwright
 
 HERE = Path(__file__).parent
 OUT = HERE / "out"
-W, H, FPS, DURATION = 1080, 1350, 30, 60.0
+W, H, FPS = 1080, 1350, 30
 
 
 def serve() -> int:
@@ -96,9 +96,9 @@ def video(lang: str) -> Path:
         str(path),
     ]  # fmt: skip
     ff = subprocess.Popen(cmd, stdin=subprocess.PIPE)
-    n = int(DURATION * FPS)
     with sync_playwright() as p:
         browser, page, errors = open_page(p, port, lang)
+        n = int(page.evaluate("window.DURATION") * FPS)
         for i in range(n):
             ff.stdin.write(frame(page, i / FPS))
             if i % 150 == 0:

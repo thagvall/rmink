@@ -26,6 +26,11 @@ released version is reported as missing ("no version of rmink[web]==X"). If
 a build ever fails that way, check that the variable is still set and
 redeploy.
 
+**Demo video pages:** `deploy/vercel/public/` is served as static files.
+`/video` and `/video/sv` (rewrites in `vercel.json`) show the promo video
+with link-preview tags for LinkedIn and other sites. Regenerate them with
+`python promo/make_share.py` (see `promo/README.md`).
+
 **Limits on the hosted version:**
 - Vercel caps each request and response at 4.5 MB. The browser shrinks
   large photos (to at most 3200 px, as JPEG) before uploading, which is
