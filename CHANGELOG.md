@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 (unreleased) — rmink
+## 2.0.0 — 2026-10-10 — rmink
 
 Rewritten as `rmink`, a pure-Python converter.
 
@@ -8,7 +8,7 @@ Rewritten as `rmink`, a pure-Python converter.
 - New inputs: PNG/JPG/WebP/TIFF/HEIC photos and images, and SVG. Scanned PDFs are detected automatically.
 - Centerline tracing: handwriting becomes single strokes, with the line width preserved.
 - Colour support for Paper Pro and Paper Pro Move: colours are clustered and mapped to the pen palette.
-- Device profiles for rM2, Paper Pure, Paper Pro and Paper Pro Move, plus a `calibrate` command.
+- Device profiles for rM2, Paper Pure, Paper Pro and Paper Pro Move, plus a `calibrate` command. The output was tested on a reMarkable 2: notebooks open, and erasing, lasso and stroke width work. Pure, Pro and Move are still marked beta.
 - New CLI commands: `convert`, `preview`, `inspect`, `devices`, `calibrate`, `mcp`.
 - MCP server and Claude skill.
 - Licensed under AGPL-3.0-or-later. An optional support link (Stripe Payment Link via `RMINK_SUPPORT_URL`) appears in the web UI and README.

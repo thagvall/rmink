@@ -26,8 +26,8 @@ pip install 'rmink[mcp]'     # + MCP server for Claude and other agents
 pip install 'rmink[heic]'    # + iPhone HEIC photos
 ```
 
-Until it is published on PyPI, install from GitHub:
-`pip install 'rmink[web,mcp] @ git+https://github.com/thagvall/rmink'`
+Every command also works without installing anything: `uvx rmink convert notes.jpg`
+(needs [uv](https://docs.astral.sh/uv/)).
 
 ## Use
 
@@ -115,7 +115,7 @@ profile in `~/.config/rmink/devices.toml`:
 ink_scale = 0.99
 ```
 
-See [docs/device-acceptance.md](docs/device-acceptance.md) for the on-device checklist.
+See [docs/device-acceptance.md](https://github.com/thagvall/rmink/blob/main/docs/device-acceptance.md) for the on-device checklist.
 
 ## Development
 
@@ -125,7 +125,7 @@ python -m venv .venv && .venv/bin/pip install -e '.[dev]'
 python examples/make_examples.py
 ```
 
-Releases: see [docs/releasing.md](docs/releasing.md).
+Releases: see [docs/releasing.md](https://github.com/thagvall/rmink/blob/main/docs/releasing.md).
 
 The fidelity tests render the *parsed* output and compare it with the source
 ink, checking precision and recall within 3 px. That way the tests cover the
@@ -133,13 +133,13 @@ writer as well as the tracing.
 
 ## Support
 
-rmink is free, and that is not going to change. If it saves you time and you
-want to say thanks, you can [support it with 100 kr](#) via Stripe. The
-money pays for the hosted web service and further development.
+rmink is free, and that is not going to change. If it saves you time,
+starring the repo and reporting how it works on your tablet in an
+[issue](https://github.com/thagvall/rmink/issues) helps a lot.
 
 ## License
 
-rmink is free software under the [GNU AGPL-3.0](LICENSE) or later. This is
+rmink is free software under the [GNU AGPL-3.0](https://github.com/thagvall/rmink/blob/main/LICENSE) or later. This is
 required by PyMuPDF, which is AGPL. If you host a modified version as a web
 service, you have to offer its source code to the people who use it.
 Hosted instances set `RMINK_SOURCE_URL` so the footer links to the source.

@@ -18,7 +18,7 @@ Run this per device and firmware version, then record the result in the table be
 
 | Device | Firmware | Scale OK | Editing OK | Notes |
 |---|---|---|---|---|
-| reMarkable 2 | | not measured | opens, eraser works (2026-10-10) | v6 + .rmdoc confirmed |
+| reMarkable 2 | | not measured | opens, eraser, lasso, stroke width OK (2026-10-10) | v6 + .rmdoc confirmed |
 | Paper Pure | | | | |
 | Paper Pro | | | | |
 | Paper Pro Move | | | | |
