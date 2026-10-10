@@ -1,6 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["arn1"],
+  "rewrites": [
+    { "source": "/video", "destination": "/video.html" },
+    { "source": "/video/sv", "destination": "/video-sv.html" }
+  ],
   "functions": {
     "app.py": {
       "maxDuration": 300
