@@ -1,3 +1,1 @@
-# Shows a "Sponsor" button on GitHub. Replace with the Stripe Payment Link,
-# e.g. custom: ["https://buy.stripe.com/xxxxxxxx"], then uncomment.
-# custom: []
+custom: ["https://buy.stripe.com/7sY4gy4b1aQo0iI0SB1sQ00"]

@@ -137,9 +137,11 @@ writer as well as the tracing.
 
 ## Support
 
-rmink is free, and that is not going to change. If it saves you time,
-starring the repo and reporting how it works on your tablet in an
-[issue](https://github.com/thagvall/rmink/issues) helps a lot.
+rmink is free, and that is not going to change. If it saves you time and you
+want to say thanks, you can [support it with 100 kr](https://buy.stripe.com/7sY4gy4b1aQo0iI0SB1sQ00) via Stripe.
+The money pays for the hosted web service and further development. Starring
+the repo and reporting how it works on your tablet in an
+[issue](https://github.com/thagvall/rmink/issues) helps a lot too.
 
 ## License
 

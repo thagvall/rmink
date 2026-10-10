@@ -9,8 +9,7 @@ from __future__ import annotations
 
 import os
 
-# Filled in once the Stripe Payment Link and public repository exist.
-DEFAULT_SUPPORT_URL = ""
+DEFAULT_SUPPORT_URL = "https://buy.stripe.com/7sY4gy4b1aQo0iI0SB1sQ00"
 DEFAULT_SOURCE_URL = "https://github.com/thagvall/rmink"
 
 

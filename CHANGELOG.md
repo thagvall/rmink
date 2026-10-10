@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.3 — 2026-10-10
+
+- Support rmink with 100 kr: a Stripe link in the web UI (button, a dismissible note after downloads, footer), in `rmink web` and in the README. Set `RMINK_SUPPORT_URL=""` to hide it, for example in a fork.
+
 ## 2.0.2 — 2026-10-10
 
 - Fix: downloads from the web UI are served as `application/octet-stream` instead of `application/zip`. Safari on macOS unpacked the notebook into a folder, and once that folder was zipped again the tablet could not import it.
