@@ -125,6 +125,8 @@ python -m venv .venv && .venv/bin/pip install -e '.[dev]'
 python examples/make_examples.py
 ```
 
+Releases: see [docs/releasing.md](docs/releasing.md).
+
 The fidelity tests render the *parsed* output and compare it with the source
 ink, checking precision and recall within 3 px. That way the tests cover the
 writer as well as the tracing.
