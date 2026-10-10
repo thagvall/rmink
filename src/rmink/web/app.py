@@ -25,7 +25,7 @@ from rmink.devices import all_devices
 from rmink.ingest import IMAGE_SUFFIXES, parse_page_ranges
 from rmink.options import ConvertOptions
 from rmink.package.rmdoc import repair_rmdoc
-from rmink.support import source_url, support_url
+from rmink.support import demo_url, source_url, support_url
 
 _STATIC = Path(__file__).parent / "static"
 _ALLOWED = IMAGE_SUFFIXES | {".pdf", ".svg"}
@@ -146,6 +146,7 @@ def create_app(limits: Limits | None = None) -> FastAPI:
             "accept": sorted(_ALLOWED),
             "support_url": support_url(),
             "source_url": source_url(),
+            "demo_url": demo_url(),
         }
 
     @app.post("/api/repair")

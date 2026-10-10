@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.5 — 2026-10-10
+
+- Web UI: a "Watch the demo" button next to the support button opens the demo video (English or Swedish) in a dialog. `/?demo` opens it on load, `/?demo=sv` in Swedish. Set `RMINK_DEMO_URL=""` to hide it.
+- Web UI on phones: a single preview uses the full width.
+
 ## 2.0.4 — 2026-10-10
 
 - Web UI on phones: the preview comes right after the file list instead of below all the options, with a smaller empty state and two previews per row.

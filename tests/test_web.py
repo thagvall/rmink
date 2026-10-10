@@ -83,6 +83,7 @@ def test_support_links_follow_env(client, monkeypatch):
     limits = client.get("/api/limits").json()
     assert limits["support_url"] == "https://buy.stripe.com/test_abc"
     assert limits["source_url"] == "https://github.com/example/rmink"
+    assert "{lang}" in limits["demo_url"]
 
     monkeypatch.setenv("RMINK_SUPPORT_URL", "")
     assert client.get("/api/limits").json()["support_url"] == ""

@@ -12,6 +12,8 @@ released rmink version pinned in `requirements.txt` as a Python function
 3. Optional, under *Settings → Environment Variables*:
    - `RMINK_SUPPORT_URL`: the Stripe Payment Link; shows the support button
    - `RMINK_SOURCE_URL`: defaults to the GitHub repo
+   - `RMINK_DEMO_URL`: the demo video behind "Watch the demo" (`{lang}` is
+     `en` or `sv`); defaults to the video on rmink.vercel.app, `""` hides it
 4. Optional: add your own domain under *Settings → Domains*.
 
 The Hobby plan is enough to start with. It includes about 4 hours of active
@@ -26,9 +28,10 @@ released version is reported as missing ("no version of rmink[web]==X"). If
 a build ever fails that way, check that the variable is still set and
 redeploy.
 
-**Demo video pages:** `deploy/vercel/public/` is served as static files.
-`/video` and `/video/sv` (rewrites in `vercel.json`) show the promo video
-with link-preview tags for LinkedIn and other sites. Regenerate them with
+**Demo video links:** `deploy/vercel/public/` is served as static files.
+`/video` and `/video/sv` (rewrites in `vercel.json`) carry link-preview tags
+for LinkedIn and other sites, and send visitors on to the app with the video
+open (`/?demo`, `/?demo=sv`). Regenerate them with
 `python promo/make_share.py` (see `promo/README.md`).
 
 **Limits on the hosted version:**

@@ -51,13 +51,24 @@ header {
 }
 header h1 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
 header p { margin: 0; color: var(--muted); }
+.header-links { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
 .support-btn {
-  margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; gap: 6px;
   padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px;
   color: var(--ink); text-decoration: none; font-size: 13px; background: var(--surface);
 }
 .support-btn:hover { border-color: var(--accent); }
 .support-btn .heart { color: #d0406a; }
+button.support-btn { font: inherit; font-size: 13px; cursor: pointer; }
+.support-btn .play { color: var(--accent); font-size: 11px; }
+#demo { width: min(94vw, calc((92vh - 52px) * .8)); }
+#demo .bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+#demo .seg { background: rgb(255 255 255 / .14); grid-template-columns: repeat(2, auto); }
+#demo .seg button { color: #fff; padding: 6px 16px; }
+#demo .seg button[aria-pressed="true"] { color: var(--ink); }
+#demo .close { background: rgb(255 255 255 / .14); color: #fff; border: 0; border-radius: 999px; width: 40px; height: 40px;
+  font-size: 22px; cursor: pointer; }
+#demo video { display: block; width: 100%; aspect-ratio: 4 / 5; background: #000; border-radius: 12px; }
 #nudge {
   display: flex; align-items: center; gap: 10px; margin: 8px 0 0; padding: 8px 10px;
   border: 1px solid var(--line); border-radius: 8px; font-size: 13px; background: var(--surface);
@@ -195,9 +206,14 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
 <header>
   <h1>rmink</h1>
   <p>Photos, sketches, logos and PDFs → editable reMarkable ink</p>
-  <a class="support-btn" id="support-btn" target="_blank" rel="noopener" hidden>
-    <span class="heart" aria-hidden="true">♥</span> Support rmink · 100 kr
-  </a>
+  <div class="header-links">
+    <button type="button" class="support-btn" id="demo-btn" hidden>
+      <span class="play" aria-hidden="true">▶</span> Watch the demo
+    </button>
+    <a class="support-btn" id="support-btn" target="_blank" rel="noopener" hidden>
+      <span class="heart" aria-hidden="true">♥</span> Support rmink · 100 kr
+    </a>
+  </div>
 </header>
 
 <main>
@@ -338,6 +354,15 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
 </footer>
 
 <dialog id="zoom"><img alt=""></dialog>
+<dialog id="demo" aria-label="Demo video">
+  <div class="bar">
+    <div class="seg" role="group" aria-label="Language">
+      <button type="button" data-lang="en">English</button><button type="button" data-lang="sv">Svenska</button>
+    </div>
+    <button type="button" class="close" aria-label="Close" autofocus>×</button>
+  </div>
+  <video controls playsinline preload="none"></video>
+</dialog>
 
 <script>
 (() => {
@@ -593,6 +618,36 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
     store.set("rmink.downloads", String(n));
     if (n === 1 || n % 10 === 0) $("#nudge").hidden = false;
   }
+  // Demo video in a dialog. ?demo (or ?demo=sv) opens it on load, so the video has a link.
+  function setupDemo(template) {
+    const dlg = $("#demo"), video = $("video", dlg);
+    const show = (lang, autoplay) => {
+      for (const b of dlg.querySelectorAll("[data-lang]")) b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
+      const src = template.replace("{lang}", lang), poster = src.replace(/rmink-promo-(\w+)\.mp4$/, "poster-$1.jpg");
+      if (video.getAttribute("src") !== src) {
+        video.src = src;
+        if (poster !== src) video.poster = poster;
+      }
+      if (autoplay) video.play().catch(() => { video.muted = true; video.play().catch(() => {}); });
+    };
+    const open = (lang) => {
+      if (!dlg.open) dlg.showModal();
+      show(lang, true);
+    };
+    const params = new URLSearchParams(location.search);
+    const preferred = () => (params.get("demo") === "sv" || (!params.get("demo") && navigator.language.startsWith("sv")) ? "sv" : "en");
+    $("#demo-btn").hidden = false;
+    $("#demo-btn").addEventListener("click", () => open(preferred()));
+    for (const b of dlg.querySelectorAll("[data-lang]")) b.addEventListener("click", () => show(b.dataset.lang, true));
+    $(".close", dlg).addEventListener("click", () => dlg.close());
+    dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
+    dlg.addEventListener("close", () => {
+      video.pause();
+      if (params.has("demo")) history.replaceState(null, "", location.pathname);
+    });
+    if (params.has("demo")) open(preferred());
+  }
+
   $("#nudge-close").addEventListener("click", () => {
     $("#nudge").hidden = true;
     store.set("rmink.nudge.dismissed", "1");
@@ -612,6 +667,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
       $("#source-link").href = l.source_url;
       $("#source-link").hidden = false;
     }
+    if (l.demo_url) setupDemo(l.demo_url);
     $("#drop-hint").textContent = `or click to choose — JPG, PNG, HEIC, SVG, PDF · up to ${Math.round(l.max_upload_mb)} MB`;
   }).catch(() => {});
 })();
