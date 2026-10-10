@@ -11,7 +11,7 @@ import os
 
 # Filled in once the Stripe Payment Link and public repository exist.
 DEFAULT_SUPPORT_URL = ""
-DEFAULT_SOURCE_URL = ""
+DEFAULT_SOURCE_URL = "https://github.com/thagvall/rmink"
 
 
 def support_url() -> str:

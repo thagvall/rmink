@@ -28,6 +28,12 @@ dependencies = [
     "typer>=0.12",
 ]
 
+[project.urls]
+Homepage = "https://github.com/thagvall/rmink"
+Source = "https://github.com/thagvall/rmink"
+Issues = "https://github.com/thagvall/rmink/issues"
+Changelog = "https://github.com/thagvall/rmink/blob/main/CHANGELOG.md"
+
 [project.optional-dependencies]
 mcp = ["mcp>=2.0"]
 heic = ["pillow-heif>=0.16"]

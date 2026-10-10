@@ -26,7 +26,8 @@ pip install 'rmink[mcp]'     # + MCP server for Claude and other agents
 pip install 'rmink[heic]'    # + iPhone HEIC photos
 ```
 
-Until it is published on PyPI, install from a checkout with `pip install -e '.[dev]'`.
+Until it is published on PyPI, install from GitHub:
+`pip install 'rmink[web,mcp] @ git+https://github.com/thagvall/rmink'`
 
 ## Use
 
@@ -146,7 +147,7 @@ of reMarkable AS.
 
 ## History
 
-This project began as `pdf2rmnotebook` by Simon Rechermann, a wrapper around drawj2d that wrote
+This project began as [`pdf2rmnotebook`](https://github.com/simon-rechermann/py_pdf2rmnotebook) by Simon Rechermann, a wrapper around drawj2d that wrote
 v5 pages in black fineliner only. That version lives on at the tag `v1.1.0`.
 rmink 2.0 replaces it with a pure-Python pipeline: no Java, v6 output, colour,
 image input, centerline tracing and an agent interface.
