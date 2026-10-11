@@ -1,6 +1,6 @@
 # rmink promo video
 
-An 88-second, 1080×1350 (4:5) video in English and Swedish. It is rendered
+A 98-second, 1080×1350 (4:5) video in English and Swedish. It is rendered
 frame by frame from `timeline.html` with Playwright and Chrome, then encoded
 with ffmpeg.
 
@@ -9,6 +9,7 @@ with ffmpeg.
 python promo/make_note.py en promo/out/note-en.jpg   # demo note "photo"
 python promo/make_note.py sv promo/out/note-sv.jpg
 python promo/make_face.py ~/Downloads/Tommy_porträtt_Linkedln_220531.jpg  # face scene
+python promo/make_shade.py                           # the portrait in every shading style
 python promo/build_data.py                           # convert with rmink → strokes.json
 rmink web --port 8771 &                              # current UI for the app scene
 python promo/capture_desktop.py en && python promo/capture_desktop.py sv

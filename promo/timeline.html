@@ -115,6 +115,10 @@ body {
   box-shadow: 0 30px 60px rgb(0 0 0 / .25); }
 #term .p { color: #8f8d86; }
 #term .ok { color: #6fd08c; }
+.scard { width: 290px; text-align: center; }
+.scard .im { background: #fff; border-radius: 14px; padding: 10px; box-shadow: 0 8px 24px rgb(0 0 0 / .12); }
+.scard img { display: block; width: 100%; border-radius: 4px; }
+.scard .nm { margin-top: 12px; font-size: 32px; font-weight: 720; }
 #term-label { width: 1080px; text-align: center; font-size: 36px; font-weight: 650; color: var(--muted); }
 #chat { width: 960px; background: #fff; border-radius: 22px; box-shadow: 0 30px 60px rgb(0 0 0 / .2); overflow: hidden; }
 #chat .hd { padding: 22px 30px; border-bottom: 1px solid #ecebe6; display: flex; justify-content: space-between; align-items: center; }
@@ -204,6 +208,9 @@ body {
 <div id="clickring" class="abs"></div>
 <div id="cursor" class="abs"><svg viewBox="0 0 24 34"><path d="M1 1 L1 26 L7.5 20 L12 31 L16.5 29 L12 18.5 L21 18.5 Z" fill="#111" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg></div>
 
+<!-- Shading scene -->
+<div id="shade"></div>
+
 <!-- Claude scene -->
 <div id="term-label" class="abs"></div>
 <div id="term" class="abs"><div><span class="p">$ </span><span id="term-cmd"></span></div><div id="term-out" class="ok"></div></div>
@@ -286,6 +293,7 @@ async function load() {
 
   buildInk();
   buildFace();
+  buildShade();
   buildDesk();
   buildClaude();
   buildMontage();
@@ -626,6 +634,45 @@ function faceScene(u) {
   else caption("", "", 0, 0, 0);
 }
 
+// ---------- shading scene: the portrait in every style ----------
+const SHADES = ["none", "stipple", "halftone", "hatch", "crosshatch", "pencil"];
+const PICK = 2;  // halftone
+
+function buildShade() {
+  const box = $("#shade");
+  for (const st of SHADES) {
+    const d = document.createElement("div");
+    d.className = "abs scard";
+    d.innerHTML = `<div class="im"><img alt=""></div><div class="nm"></div>`;
+    d.querySelector("img").src = `out/shade-${st}.png`;
+    d.querySelector(".nm").textContent = T.styles[st];
+    box.appendChild(d);
+  }
+}
+
+function shadeScene(u) {
+  $("#h1").style.fontSize = "64px";
+  $("#h1").textContent = T.shade;
+  textAt($("#h1"), 120, win(u, 0.1, 5.6, 0.4), (1 - easeOut(prog(u, 0.1, 0.7))) * 30);
+  const cards = document.querySelectorAll(".scard");
+  const zoom = ease(prog(u, 5.6, 6.6));
+  cards.forEach((el, i) => {
+    const col = i % 3, row = Math.floor(i / 3);
+    const x = 210 + col * 330, y = 560 + row * 490;
+    const t0 = 0.5 + i * 0.45, pop = easeOut(prog(u, t0, t0 + 0.5));
+    const end = 1 - prog(u, 9.5, 10);
+    if (i === PICK) {
+      place(el, { x: lerp(x, 540, zoom), y: lerp(y, 740, zoom), s: lerp(0.85 + 0.15 * pop, 2.2, zoom),
+        o: Math.min(pop, end) });
+      el.style.zIndex = 5;
+    } else {
+      place(el, { x, y, s: 0.85 + 0.15 * pop, o: Math.min(pop, 1 - prog(u, 5.4, 6.0), end) });
+    }
+  });
+  if (u >= 6.2) caption("", T.shade_pick, Math.min(prog(u, 6.2, 6.5), 1 - prog(u, 9.4, 9.8)), 6.2, u);
+  else caption("", "", 0, 0, 0);
+}
+
 // ---------- desktop scene: the web app, the saved file, the upload ----------
 const BAR = 56;
 function tiles(grid, names, newSrc, newName) {
@@ -831,11 +878,12 @@ const SEGMENTS = [
   { scene: deskScene, len: 20 },           // web app, download, upload
   { main: [29.6, 42.2] },                  // edit on the tablet
   { scene: faceScene, len: 14 },           // faces
+  { scene: shadeScene, len: 10 },          // shading styles
   { scene: claudeScene, len: 12 },         // Claude
   { main: [42.2, 60] },                    // montage, end card
 ];
 const SCENE_ELS = ["#fphoto", "#ftablet", "#stylus", "#desk", "#utab", "#cable", "#dragcard", "#fchip",
-  "#clickring", "#cursor", "#term", "#term-label", "#chat"];
+  "#clickring", "#cursor", "#term", "#term-label", "#chat", ".scard"];
 window.DURATION = SEGMENTS.reduce((d, s) => d + (s.len ?? s.main[1] - s.main[0]), 0);
 
 window.seek = async function (t) {
@@ -843,7 +891,7 @@ window.seek = async function (t) {
   for (const seg of SEGMENTS) {
     const len = seg.len ?? seg.main[1] - seg.main[0];
     if (t < at + len || seg === SEGMENTS[SEGMENTS.length - 1]) {
-      for (const sel of SCENE_ELS) place($(sel), { o: 0 });
+      for (const sel of SCENE_ELS) for (const el of document.querySelectorAll(sel)) place(el, { o: 0 });
       if (seg.main) seekMain(seg.main[0] + t - at);
       else {
         seekMain(-1);

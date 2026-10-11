@@ -41,7 +41,17 @@
     "claude": "Or just ask Claude",
     "setup": "One-time setup",
     "ask": "Turn this into a notebook for my Paper Pro",
-    "claude_done": "Done! Copy it to your tablet over USB or with the reMarkable app."
+    "claude_done": "Done! Copy it to your tablet over USB or with the reMarkable app.",
+    "shade": "Keep the shadows",
+    "shade_pick": "Pick a style, pen and thickness",
+    "styles": {
+      "none": "Lines",
+      "stipple": "Dots",
+      "halftone": "Halftone",
+      "hatch": "Hatching",
+      "crosshatch": "Cross-hatch",
+      "pencil": "Pencil"
+    }
   },
   "sv": {
     "hook1": "Dina handskrivna anteckningar…",
@@ -85,6 +95,16 @@
     "claude": "Eller be Claude",
     "setup": "Engångsinstallation",
     "ask": "Gör om det här till en anteckningsbok för min Paper Pro",
-    "claude_done": "Klart! Lägg över den till plattan via USB eller med reMarkable-appen."
+    "claude_done": "Klart! Lägg över den till plattan via USB eller med reMarkable-appen.",
+    "shade": "Behåll skuggorna",
+    "shade_pick": "Välj stil, penna och tjocklek",
+    "styles": {
+      "none": "Linjer",
+      "stipple": "Prickar",
+      "halftone": "Raster",
+      "hatch": "Hatchning",
+      "crosshatch": "Korshatch",
+      "pencil": "Blyerts"
+    }
   }
 }
