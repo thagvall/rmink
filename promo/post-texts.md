@@ -89,7 +89,7 @@ Det fungerar också med Claude: lägg till rmink som MCP-server, och be Claude g
 
 Det är gratis och öppen källkod. Testat på reMarkable 2. Paper Pro, Move och Pure är i beta, så berätta gärna hur det fungerar på din!
 
-🎬 Se demon (90 s): https://rmink.vercel.app/video/sv
+🎬 Se demon (100 s): https://rmink.vercel.app/video/sv
 💻 Källkod: https://github.com/thagvall/rmink
 
 #reMarkable #OpenSource #Python #AI #Claude #Produktivitet
@@ -110,7 +110,7 @@ It also works with Claude: add rmink as an MCP server and ask Claude to turn a p
 
 It's free and open source. Tested on reMarkable 2. Paper Pro, Move and Pure are in beta, so I'd love to hear how it works on yours!
 
-🎬 Watch the demo (90 s): https://rmink.vercel.app/video
+🎬 Watch the demo (100 s): https://rmink.vercel.app/video
 💻 Source: https://github.com/thagvall/rmink
 
 #reMarkable #OpenSource #Python #AI #Claude #Productivity

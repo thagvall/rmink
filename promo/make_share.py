@@ -26,14 +26,14 @@ PAGE = {
     "en": {
         "path": "/video", "file": "video.html",
         "title": "rmink: photos and handwriting as real reMarkable ink",
-        "desc": "A 90-second demo: drop a photo, download the notebook, copy it to your "
+        "desc": "A 100-second demo: drop a photo, download the notebook, copy it to your "
                 "reMarkable, then erase, move and draw on it like your own pen strokes. Free and open source.",
         "h1": "Your handwritten notes, as real reMarkable ink",
     },
     "sv": {
         "path": "/video/sv", "file": "video-sv.html",
         "title": "rmink: foton och handstil som riktigt reMarkable-bläck",
-        "desc": "En 90 sekunder lång demo: släpp in ett foto, ladda ner anteckningsboken, lägg över den till "
+        "desc": "En 100 sekunder lång demo: släpp in ett foto, ladda ner anteckningsboken, lägg över den till "
                 "din reMarkable och sudda, flytta och rita som med din egen penna. Gratis och öppen källkod.",
         "h1": "Dina handskrivna anteckningar, som riktigt reMarkable-bläck",
     },
