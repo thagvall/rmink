@@ -110,6 +110,8 @@ aside { display: flex; flex-direction: column; gap: 16px; align-self: start; }
 #drop strong { display: block; font-size: 16px; }
 #drop span { color: var(--muted); font-size: 13px; }
 #drop:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#camera-btn { margin-top: 10px; }
+#camera-btn svg { width: 20px; height: 20px; }
 
 #files { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 #files li {
@@ -250,6 +252,11 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
         <span id="drop-hint">or click to choose — JPG, PNG, HEIC, SVG, PDF</span>
       </div>
       <input id="picker" type="file" multiple hidden>
+      <button class="btn secondary" id="camera-btn" type="button" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        Take a photo
+      </button>
+      <input id="camera" type="file" accept="image/*" capture="environment" hidden>
       <ul id="files" aria-label="Selected files"></ul>
     </section>
 
@@ -415,6 +422,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
     shading: "none", styleCtrl: null, styleTimer: null, styleSeq: 0 };
 
   const drop = $("#drop"), picker = $("#picker"), list = $("#files");
+  const touch = matchMedia("(pointer: coarse)").matches;
   const gallery = $("#gallery"), empty = $("#empty"), notices = $("#notices");
   const status = $("#status"), statusText = $("#status-text"), dl = $("#download");
   const thr = $('[name="threshold"]'), thrAuto = $("#thr-auto"), simp = $('[name="simplify"]');
@@ -460,6 +468,21 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
   for (const ev of ["dragenter", "dragover"]) drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); });
   for (const ev of ["dragleave", "drop"]) drop.addEventListener(ev, () => drop.classList.remove("over"));
   drop.addEventListener("drop", (e) => { e.preventDefault(); e.stopPropagation(); addFiles(e.dataTransfer.files); });
+  // Phones open the camera straight from the "capture" input; the photo then
+  // joins the file list like any other. Each camera shot is called image.jpg on
+  // iOS, so it gets a timestamped name (which also names the notebook).
+  const camera = $("#camera"), cameraBtn = $("#camera-btn");
+  cameraBtn.hidden = !touch;
+  // There is nothing to drop files from on a phone.
+  if (touch) drop.querySelector("strong").textContent = "Choose files";
+  cameraBtn.addEventListener("click", () => camera.click());
+  camera.addEventListener("change", () => {
+    const stamp = new Date().toLocaleString("sv-SE").slice(0, 16).replace(":", ".");
+    addFiles([...camera.files].map((f, i) => new File(
+      [f], `Photo ${stamp}${i ? ` (${i + 1})` : ""}.${f.name.split(".").pop() || "jpg"}`,
+      { type: f.type, lastModified: f.lastModified })));
+    camera.value = "";
+  });
   // Dropping anywhere on the page should not navigate away.
   window.addEventListener("dragover", (e) => e.preventDefault());
   window.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer?.files.length) addFiles(e.dataTransfer.files); });
@@ -766,7 +789,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
       $("#source-link").hidden = false;
     }
     if (l.demo_url) setupDemo(l.demo_url);
-    $("#drop-hint").textContent = `or click to choose — JPG, PNG, HEIC, SVG, PDF · up to ${Math.round(l.max_upload_mb)} MB`;
+    $("#drop-hint").textContent = `${touch ? "" : "or click to choose — "}JPG, PNG, HEIC, SVG, PDF · up to ${Math.round(l.max_upload_mb)} MB`;
   }).catch(() => {});
 })();
 </script>
