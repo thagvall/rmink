@@ -84,8 +84,8 @@ def page(lang: str) -> Path:
     return path
 
 
-# Frame of the video shown in the share image (the tablet editing scene).
-SHOT_AT = 38.5
+# Frame of the video shown in the share image (the portrait in every shading style).
+SHOT_AT = 62.5
 PLAY_OVERLAY = """
   const v = document.querySelector('#demo video');
   v.pause(); v.muted = true; v.removeAttribute('controls'); v.preload = 'auto';
