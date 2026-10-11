@@ -13,7 +13,7 @@ import typer
 from rmink import api
 from rmink.devices import all_devices
 from rmink.geometry.transform import Fit
-from rmink.options import ConvertOptions, FillMode, Mode, PenChoice
+from rmink.options import ConvertOptions, FillMode, Mode, PenChoice, Shading
 from rmink.support import support_url
 
 app = typer.Typer(
@@ -29,6 +29,9 @@ Colors = Annotated[str, typer.Option(help="auto | mono | number of colour cluste
 PenOpt = Annotated[PenChoice, typer.Option(help="Tablet pen used for the strokes")]
 Width = Annotated[float, typer.Option(help="Outline/hatch pen width in device px")]
 FillOpt = Annotated[FillMode, typer.Option(help="How filled areas are drawn")]
+ShadingOpt = Annotated[Shading, typer.Option(help="Grey tones for photos and images")]
+Density = Annotated[float, typer.Option(help="Shading density (1 = normal)")]
+Contrast = Annotated[float, typer.Option(help="Shading contrast (1 = normal)")]
 FitOpt = Annotated[Fit, typer.Option(help="page: fit page | width: fit width | none: true size")]
 Margin = Annotated[float, typer.Option(help="Page margin in mm")]
 Threshold = Annotated[str, typer.Option(help="auto or a 0-255 ink threshold for rasters")]
@@ -61,6 +64,9 @@ def convert(
     pen: PenOpt = PenChoice.fineliner,
     width: Width = 2.0,
     fill: FillOpt = FillMode.hatch,
+    shading: ShadingOpt = Shading.none,
+    shade_density: Density = 1.0,
+    shade_contrast: Contrast = 1.0,
     fit: FitOpt = Fit.page,
     margin: Margin = 5.0,
     threshold: Threshold = "auto",
@@ -76,8 +82,9 @@ def convert(
     """Convert inputs into one .rmdoc notebook (one page per image / PDF page)."""
     _setup_logging(verbose)
     opts = _options(
-        device=device, mode=mode, colors=colors, pen=pen, width=width, fill=fill, fit=fit,
-        margin_mm=margin, threshold=threshold, simplify=simplify, thick_px=thick_px,
+        device=device, mode=mode, colors=colors, pen=pen, width=width, fill=fill, shading=shading,
+        shade_density=shade_density, shade_contrast=shade_contrast, fit=fit, margin_mm=margin,
+        threshold=threshold, simplify=simplify, thick_px=thick_px,
         max_points=max_points, pages=pages, name=name, compress=compress, seed=seed,
     )  # fmt: skip
     try:
@@ -103,8 +110,12 @@ def preview(
     device: Device = "rm2",
     mode: ModeOpt = Mode.auto,
     colors: Colors = "auto",
+    pen: PenOpt = PenChoice.fineliner,
     width: Width = 2.0,
     fill: FillOpt = FillMode.hatch,
+    shading: ShadingOpt = Shading.none,
+    shade_density: Density = 1.0,
+    shade_contrast: Contrast = 1.0,
     fit: FitOpt = Fit.page,
     threshold: Threshold = "auto",
     simplify: Simplify = 0.6,
@@ -114,7 +125,8 @@ def preview(
     """Render what the converted ink will look like, without writing a notebook."""
     _setup_logging(verbose)
     opts = _options(
-        device=device, mode=mode, colors=colors, width=width, fill=fill, fit=fit,
+        device=device, mode=mode, colors=colors, pen=pen, width=width, fill=fill,
+        shading=shading, shade_density=shade_density, shade_contrast=shade_contrast, fit=fit,
         threshold=threshold, simplify=simplify, pages=pages,
     )  # fmt: skip
     rendered = api.render(inputs, opts)

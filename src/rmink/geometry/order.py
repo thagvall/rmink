@@ -120,5 +120,7 @@ def enforce_budget(strokes: list[Stroke], max_points: int, start_tol: float) -> 
                 s.points = s.points[keep]
                 if s.widths is not None:
                     s.widths = s.widths[keep]
+                if s.pressures is not None:
+                    s.pressures = s.pressures[keep]
         total = sum(len(s) for s in strokes)
     return strokes

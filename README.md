@@ -45,8 +45,16 @@ rmink calibrate -d pro                           # ruler page for checking scale
 
 Useful options: `--mode auto|vector|centerline|outline`,
 `--colors auto|mono|N`, `--pen fineliner|ballpoint|marker|pencil`,
-`--fill hatch|outline|none`, `--threshold auto|0-255`, `--simplify <px>`,
-`--max-points <n>`. Run `rmink convert --help` for the full list.
+`--width <px>`, `--fill hatch|outline|none`, `--threshold auto|0-255`,
+`--simplify <px>`, `--max-points <n>`.
+
+**Shading.** Photos and portraits can keep their grey tones:
+`--shading stipple` (dots, denser where darker), `halftone` (a dot screen with
+growing dots), `hatch` (lines, closer where darker), `crosshatch` (more line
+directions where darker) or `pencil` (pencil strokes whose pressure follows the
+tone). Tune with `--shade-density` and `--shade-contrast`. The web UI shows a
+small preview of every style side by side, so you can pick one before you
+download. Run `rmink convert --help` for the full list.
 
 ### Web UI
 
@@ -98,6 +106,7 @@ input ─► ingest ─┬─ vector (PDF→SVG with text as paths, SVG) ─► 
                        colour clustering (CIELAB k-means) → device palette
                        per component: thin → skeleton graph → centerline strokes (+ width)
                                       thick → contours + hatching
+                       optional shading: tone map → dots / dot screen / hatching / pencil pressure
         ─► simplify (RDP), smooth (Chaikin), chain, reading order, point budget
         ─► .rm v6 via rmscene ─► .rmdoc (content/metadata/thumbnails)
 ```

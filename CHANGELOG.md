@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Shading: photos and portraits can keep their grey tones as stippling, a halftone dot screen, hatching, cross-hatching or pencil strokes whose pressure follows the tone (`--shading`, `--shade-density`, `--shade-contrast`; the same options in the web UI and the MCP tools).
+- Web UI: a "Shading" strip shows the first photo in every style side by side; click one to preview and download it.
+- Web UI: pen and line thickness are now visible next to the other options (thickness was not settable before).
+- `rmink preview` takes `--pen`; the MCP tools take `pen` and `width`.
+- Strokes can carry per-point pressure; the preview draws pencil lighter at low pressure.
+
 ## 2.0.6 — 2026-10-10
 
 - Web UI: link previews. The start page has a title, a description and a share image (`/og.jpg`), so a link to rmink on LinkedIn and other sites shows a card instead of a bare "rmink".

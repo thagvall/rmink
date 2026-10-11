@@ -57,8 +57,16 @@ def hatch_mask(mask: np.ndarray, spacing: float) -> list[np.ndarray]:
 
 
 def _join_scanlines(
-    rows: list[list[tuple[float, float]]], y_start: float, spacing: float
+    rows: list[list[tuple[float, float]]],
+    y_start: float,
+    spacing: float,
+    max_jump: float | None = None,
 ) -> list[np.ndarray]:
+    """Join spans on consecutive rows into zig-zags.
+
+    ``max_jump`` limits how far the connecting segment may run sideways, so
+    spans of very different length are not joined by a long diagonal.
+    """
     done: list[list[tuple[float, float]]] = []
     # (points, last span, whether the path currently ends on the span's right side)
     open_paths: list[tuple[list[tuple[float, float]], tuple[float, float], bool]] = []
@@ -70,7 +78,9 @@ def _join_scanlines(
             match = None
             for j, (b0, b1) in enumerate(row):
                 if j not in used and b0 <= a1 and b1 >= a0:
-                    match = j
+                    jump = abs(b1 - a1) if on_right else abs(b0 - a0)
+                    if max_jump is None or jump <= max_jump:
+                        match = j
                     break
             if match is None:
                 done.append(path)

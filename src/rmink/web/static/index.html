@@ -186,6 +186,22 @@ details[open] summary { margin-bottom: 10px; }
 }
 .empty svg { width: 120px; height: auto; opacity: .7; }
 .loading #gallery { opacity: .5; transition: opacity .2s; }
+#preview { min-width: 0; }
+#styles { margin-top: 12px; min-width: 0; }
+#styles .head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+#styles h2 { font-size: 14px; margin: 0; }
+#styles .head span { color: var(--muted); font-size: 12px; }
+#style-cards { display: grid; grid-template-columns: repeat(6, minmax(92px, 1fr)); gap: 8px; margin: 8px 0; overflow-x: auto; padding-bottom: 4px; }
+.style-card {
+  border: 2px solid var(--line); border-radius: 8px; padding: 0; background: #fff; cursor: pointer;
+  overflow: hidden; font: inherit; color: #1d1d1b; text-align: left;
+}
+.style-card img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover; object-position: center; }
+.style-card .cap { display: block; padding: 4px 6px; font-size: 12px; font-weight: 600; background: var(--surface); color: var(--ink); }
+.style-card .cap small { display: block; font-weight: 400; color: var(--muted); font-size: 11px; }
+.style-card[aria-pressed="true"] { border-color: var(--accent); }
+.style-card.pending img { opacity: .4; }
+#styles .row { max-width: 520px; }
 
 dialog { border: 0; padding: 0; background: none; max-width: 96vw; max-height: 96vh; }
 dialog::backdrop { background: rgb(0 0 0 / .7); }
@@ -280,6 +296,19 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
           </label>
         </div>
 
+        <div class="row">
+          <label class="field"><span>Pen</span>
+            <select name="pen">
+              <option value="fineliner">Fineliner</option>
+              <option value="ballpoint">Ballpoint</option>
+              <option value="marker">Marker</option>
+              <option value="pencil">Pencil</option>
+            </select>
+          </label>
+          <label class="field"><span>Thickness <output id="width-out">2 px</output></span>
+            <input type="range" name="width" min="1" max="10" step="0.5" value="2">
+          </label>
+        </div>
         <details>
           <summary>Fine tuning</summary>
           <fieldset>
@@ -290,19 +319,9 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
             <label class="field"><span>Simplify <output id="simp-out">0.6 px</output></span>
               <input type="range" name="simplify" min="0" max="3" step="0.1" value="0.6">
             </label>
-            <div class="row">
-              <label class="field"><span>Pen</span>
-                <select name="pen">
-                  <option value="fineliner">Fineliner</option>
-                  <option value="ballpoint">Ballpoint</option>
-                  <option value="marker">Marker</option>
-                  <option value="pencil">Pencil</option>
-                </select>
-              </label>
-              <label class="field"><span>PDF pages</span>
-                <input type="text" name="pages" placeholder="all, e.g. 1-3,7" inputmode="numeric">
-              </label>
-            </div>
+            <label class="field"><span>PDF pages</span>
+              <input type="text" name="pages" placeholder="all, e.g. 1-3,7" inputmode="numeric">
+            </label>
           </fieldset>
         </details>
       </fieldset>
@@ -341,6 +360,21 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
       <a id="nudge-link" target="_blank" rel="noopener">Support</a>
       <button class="icon-btn" id="nudge-close" aria-label="Don't show again">×</button>
     </p>
+    <div id="styles" hidden>
+      <div class="head">
+        <h2>Shading</h2>
+        <span>Grey tones for photos. Pick a style to preview it below.</span>
+      </div>
+      <div id="style-cards" role="group" aria-label="Shading style"></div>
+      <div class="row">
+        <label class="field"><span>Density <output id="dens-out">1.0×</output></span>
+          <input type="range" name="shade_density" min="0.4" max="2.5" step="0.1" value="1">
+        </label>
+        <label class="field"><span>Contrast <output id="cont-out">1.0×</output></span>
+          <input type="range" name="shade_contrast" min="0.5" max="2" step="0.1" value="1">
+        </label>
+      </div>
+    </div>
     <div id="gallery">
       <div class="empty" id="empty">
         <div>
@@ -377,7 +411,8 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
 <script>
 (() => {
   const $ = (s, el = document) => el.querySelector(s);
-  const state = { files: [], device: "rm2", devices: [], ctrl: null, timer: null, seq: 0 };
+  const state = { files: [], device: "rm2", devices: [], ctrl: null, timer: null, seq: 0,
+    shading: "none", styleCtrl: null, styleTimer: null, styleSeq: 0 };
 
   const drop = $("#drop"), picker = $("#picker"), list = $("#files");
   const gallery = $("#gallery"), empty = $("#empty"), notices = $("#notices");
@@ -475,8 +510,8 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
     }
   }
 
-  async function formData(includeName) {
-    const files = await Promise.all(state.files.map(prepared));
+  async function formData(includeName, onlyFirst = false) {
+    const files = await Promise.all((onlyFirst ? state.files.slice(0, 1) : state.files).map(prepared));
     const total = files.reduce((a, f) => a + f.size, 0);
     if (state.maxUpload && total > state.maxUpload) {
       throw new Error(
@@ -492,6 +527,8 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
       if (v) fd.append(n, v);
     }
     fd.append("simplify", simp.value);
+    for (const n of ["width", "shade_density", "shade_contrast"]) fd.append(n, $(`[name="${n}"]`).value);
+    if (!onlyFirst) fd.append("shading", state.shading);
     fd.append("threshold", thrAuto.checked ? "auto" : thr.value);
     if (includeName) {
       const name = $('[name="name"]').value.trim();
@@ -509,9 +546,56 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
     return `${res.status} ${res.statusText}`;
   }
 
-  function schedule(delay = 500) {
+  function schedule(delay = 500, styles = true) {
     clearTimeout(state.timer);
     state.timer = setTimeout(preview, delay);
+    if (styles) {
+      clearTimeout(state.styleTimer);
+      state.styleTimer = setTimeout(previewStyles, delay + 300);
+    }
+  }
+
+  // One small preview per shading style, for the first file, so styles can
+  // be compared before choosing.
+  const STYLE_NAMES = { none: "None", stipple: "Dots", halftone: "Halftone", hatch: "Hatching", crosshatch: "Cross-hatch", pencil: "Pencil" };
+  const isImage = (f) => !/\.(pdf|svg)$/i.test(f.name);
+  function markStyles() {
+    for (const b of $("#style-cards").children) b.setAttribute("aria-pressed", String(b.dataset.style === state.shading));
+  }
+  async function previewStyles() {
+    state.styleCtrl?.abort();
+    const box = $("#styles");
+    if (!state.files.length || !isImage(state.files[0])) {
+      box.hidden = true;
+      if (state.shading !== "none") { state.shading = "none"; schedule(0, false); }
+      return;
+    }
+    const ctrl = state.styleCtrl = new AbortController();
+    const seq = ++state.styleSeq;
+    for (const c of $("#style-cards").children) c.classList.add("pending");
+    try {
+      const res = await fetch("/api/preview-styles", { method: "POST", body: await formData(false, true), signal: ctrl.signal });
+      if (!res.ok) throw new Error(await errorText(res));
+      const data = await res.json();
+      if (seq !== state.styleSeq) return;
+      box.hidden = data.styles.length === 0;
+      $("#style-cards").replaceChildren(...data.styles.map((st) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "style-card";
+        b.dataset.style = st.style;
+        b.innerHTML = `<img alt=""><span class="cap"><span></span><small></small></span>`;
+        b.querySelector("img").src = st.image;
+        b.querySelector(".cap > span").textContent = STYLE_NAMES[st.style] || st.style;
+        b.querySelector("small").textContent = `${fmtNum(st.strokes)} strokes`;
+        b.onclick = () => { state.shading = st.style; markStyles(); schedule(0, false); };
+        return b;
+      }));
+      markStyles();
+    } catch (e) {
+      if (e.name === "AbortError") return;
+      box.hidden = true;
+    }
   }
 
   async function preview() {
@@ -612,6 +696,10 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
   });
   thr.addEventListener("input", () => { $("#thr-out").textContent = thr.value; schedule(); });
   simp.addEventListener("input", () => { $("#simp-out").textContent = `${simp.value} px`; schedule(); });
+  const fmtX = (v) => `${Number(v).toFixed(1)}×`;
+  $('[name="width"]').addEventListener("input", (e) => { $("#width-out").textContent = `${e.target.value} px`; schedule(); });
+  $('[name="shade_density"]').addEventListener("input", (e) => { $("#dens-out").textContent = fmtX(e.target.value); schedule(); });
+  $('[name="shade_contrast"]').addEventListener("input", (e) => { $("#cont-out").textContent = fmtX(e.target.value); schedule(); });
   for (const n of ["mode", "colors", "fill", "fit", "pen"]) $(`[name="${n}"]`).addEventListener("change", () => schedule(0));
   $('[name="pages"]').addEventListener("input", () => schedule(800));
 

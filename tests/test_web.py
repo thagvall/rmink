@@ -118,3 +118,27 @@ def test_index_has_link_preview_tags(client):
     assert "{{base}}" not in html
     r = client.get("/og.jpg")
     assert r.status_code == 200 and r.headers["content-type"] == "image/jpeg"
+
+
+def test_preview_styles_and_shading(client, tmp_path):
+    from PIL import Image
+
+    img = tmp_path / "ramp.png"
+    Image.linear_gradient("L").resize((300, 400)).convert("RGB").save(img)
+    r = client.post("/api/preview-styles", files=[_upload(img)], data={"width": "3"})
+    assert r.status_code == 200, r.text
+    styles = r.json()["styles"]
+    assert [s["style"] for s in styles][:2] == ["none", "stipple"]
+    assert all(s["image"].startswith("data:image/png;base64,") for s in styles)
+
+    r = client.post(
+        "/api/preview",
+        files=[_upload(img)],
+        data={"shading": "hatch", "width": "3", "pen": "pencil"},
+    )
+    assert r.status_code == 200, r.text
+    # Hatching joins lines into a few long zig-zags, so count points.
+    assert r.json()["pages"][0]["points"] > 200
+    assert (
+        client.post("/api/preview", files=[_upload(img)], data={"shading": "x"}).status_code == 422
+    )

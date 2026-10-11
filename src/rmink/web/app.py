@@ -23,13 +23,14 @@ from starlette.background import BackgroundTask
 from rmink import api
 from rmink.devices import all_devices
 from rmink.ingest import IMAGE_SUFFIXES, parse_page_ranges
-from rmink.options import ConvertOptions
+from rmink.options import ConvertOptions, Shading
 from rmink.package.rmdoc import repair_rmdoc
 from rmink.support import demo_url, source_url, support_url
 
 _STATIC = Path(__file__).parent / "static"
 _ALLOWED = IMAGE_SUFFIXES | {".pdf", ".svg"}
 _PREVIEW_WIDTH = 720
+_STYLE_WIDTH = 320
 
 # Module level so FastAPI can resolve the (string) annotations.
 Files = Annotated[list[UploadFile], File()]
@@ -59,6 +60,12 @@ class Limits:
 def _safe_stem(name: str) -> str:
     stem = Path(name or "notebook").stem
     return re.sub(r"[^\w\- .]+", "", stem).strip() or "notebook"
+
+
+def _data_url(image) -> str:
+    buf = io.BytesIO()
+    image.save(buf, "PNG", optimize=True)
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
 
 def create_app(limits: Limits | None = None) -> FastAPI:
@@ -203,11 +210,16 @@ def create_app(limits: Limits | None = None) -> FastAPI:
         threshold: Opt = None,
         simplify: Opt = None,
         pen: Opt = None,
+        width: Opt = None,
+        shading: Opt = None,
+        shade_density: Opt = None,
+        shade_contrast: Opt = None,
         pages: Opt = None,
     ) -> dict:
         opts = _options(
             device=device, mode=mode, colors=colors, fill=fill, fit=fit,
-            threshold=threshold, simplify=simplify, pen=pen, pages=pages,
+            threshold=threshold, simplify=simplify, pen=pen, width=width, shading=shading,
+            shade_density=shade_density, shade_contrast=shade_contrast, pages=pages,
         )  # fmt: skip
         with tempfile.TemporaryDirectory(prefix="rmink-") as tmp:
             paths = await _save_uploads(files, Path(tmp))
@@ -220,18 +232,57 @@ def create_app(limits: Limits | None = None) -> FastAPI:
         ):
             thumb = img.copy()
             thumb.thumbnail((_PREVIEW_WIDTH, _PREVIEW_WIDTH * 4))
-            buf = io.BytesIO()
-            thumb.save(buf, "PNG", optimize=True)
             out_pages.append(
                 {
                     # Strip the "000_" upload prefix from labels.
                     "label": re.sub(r"^\d{3}_", "", label),
                     "strokes": len(page.strokes),
                     "points": page.point_count,
-                    "image": "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode(),
+                    "image": _data_url(thumb),
                 }
             )
         return {"device": rendered.device.key, "pages": out_pages, "warnings": rendered.warnings}
+
+    @app.post("/api/preview-styles")
+    async def preview_styles(
+        files: Files,
+        device: Opt = None,
+        mode: Opt = None,
+        colors: Opt = None,
+        fill: Opt = None,
+        fit: Opt = None,
+        threshold: Opt = None,
+        simplify: Opt = None,
+        pen: Opt = None,
+        width: Opt = None,
+        shade_density: Opt = None,
+        shade_contrast: Opt = None,
+    ) -> dict:
+        """The first file's first page once per shading style, as small images.
+        Vector files (PDF/SVG) have no shading and give an empty list."""
+        opts = _options(
+            device=device, mode=mode, colors=colors, fill=fill, fit=fit, threshold=threshold,
+            simplify=simplify, pen=pen, width=width, shade_density=shade_density,
+            shade_contrast=shade_contrast, pages="1",
+        )  # fmt: skip
+        with tempfile.TemporaryDirectory(prefix="rmink-") as tmp:
+            paths = await _save_uploads(files[:1], Path(tmp))
+            if paths[0].suffix.lower() in (".pdf", ".svg"):
+                return {"styles": []}
+            previews = await _run(api.style_previews, paths[0], opts, list(Shading))
+        styles = []
+        for p in previews:
+            thumb = p.image.copy()
+            thumb.thumbnail((_STYLE_WIDTH, _STYLE_WIDTH * 4))
+            styles.append(
+                {
+                    "style": p.style.value,
+                    "strokes": p.strokes,
+                    "points": p.points,
+                    "image": _data_url(thumb),
+                }
+            )
+        return {"styles": styles}
 
     @app.post("/api/convert")
     async def convert(
@@ -245,6 +296,10 @@ def create_app(limits: Limits | None = None) -> FastAPI:
         threshold: Opt = None,
         simplify: Opt = None,
         pen: Opt = None,
+        width: Opt = None,
+        shading: Opt = None,
+        shade_density: Opt = None,
+        shade_contrast: Opt = None,
         pages: Opt = None,
     ) -> FileResponse:
         tmp = Path(tempfile.mkdtemp(prefix="rmink-"))
@@ -253,7 +308,8 @@ def create_app(limits: Limits | None = None) -> FastAPI:
             notebook = _safe_stem(name) if name else _safe_stem(files[0].filename)
             opts = _options(
                 name=notebook, device=device, mode=mode, colors=colors, fill=fill, fit=fit,
-                threshold=threshold, simplify=simplify, pen=pen, pages=pages,
+                threshold=threshold, simplify=simplify, pen=pen, width=width, shading=shading,
+                shade_density=shade_density, shade_contrast=shade_contrast, pages=pages,
             )  # fmt: skip
             _check_pages(paths, opts.pages)
             out = tmp / f"{notebook}.rmdoc"

@@ -37,6 +37,10 @@ If the `rmink` MCP server is connected, prefer its tools (`preview_ink`,
    - Too many points / jagged → `--simplify 1.2`
    - Thick marker strokes traced as outlines → raise `--thick-px`
    - Fills look like stripes you don't want → `--fill outline` or `--fill none`
+   - Photo or portrait that should keep its grey tones → `--shading stipple`,
+     `halftone`, `hatch`, `crosshatch` or `pencil`; `--shade-density 0.6` for fewer
+     dots/lines, `--shade-contrast 1.4` for punchier shadows
+   - Pen and line width: `--pen fineliner|ballpoint|marker|pencil`, `--width 3`
 4. **Convert**:
    ```bash
    rmink convert INPUT... -d pro -o notebook.rmdoc --name "My notes" --preview notebook.png

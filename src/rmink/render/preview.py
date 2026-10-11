@@ -15,6 +15,12 @@ from rmscene.scene_stream import SceneLineItemBlock, read_blocks
 from rmink.devices import COLOR_PALETTE, DeviceProfile
 
 _HIGHLIGHT_ALPHA = 90
+_PENCILS = {
+    si.Pen.PENCIL_1,
+    si.Pen.PENCIL_2,
+    si.Pen.MECHANICAL_PENCIL_1,
+    si.Pen.MECHANICAL_PENCIL_2,
+}
 _PALETTE_RGB = {e.color: e.rgb for e in COLOR_PALETTE}
 
 
@@ -45,20 +51,29 @@ def render_rm(rm_bytes: bytes, device: DeviceProfile, height: int | None = None)
     for ln in lines:
         rgb = _rgb(ln)
         highlight = si.Pen.is_highlighter(ln.tool) or ln.tool == si.Pen.SHADER
-        target = odraw if highlight else draw
+        pencil = ln.tool in _PENCILS
+        target = odraw if highlight or pencil else draw
         fill = (*rgb, _HIGHLIGHT_ALPHA) if highlight else rgb
         pts = [(p.x / s + device.width / 2, p.y / s) for p in ln.points]
-        if len(pts) == 1:
-            r = max(ln.points[0].width / 8 / s, 0.5)
+        widths = [pt.width / 4 / s for pt in ln.points]
+        if pencil:
+            # The tablet's pencil is grainy and lighter at low pressure.
+            fills = [(*rgb, int(40 + 0.75 * pt.pressure)) for pt in ln.points]
+        else:
+            fills = [fill] * len(pts)
+        extent = max(abs(pts[-1][0] - pts[0][0]), abs(pts[-1][1] - pts[0][1]))
+        if len(pts) == 1 or (len(pts) == 2 and extent < widths[0]):
+            # A dot.
+            r = max(widths[0] / 2, 0.5)
             x, y = pts[0]
-            target.ellipse((x - r, y - r, x + r, y + r), fill=fill)
+            target.ellipse((x - r, y - r, x + r, y + r), fill=fills[0])
             continue
-        for (p0, p1), pt in zip(zip(pts, pts[1:], strict=False), ln.points, strict=False):
-            w = max(round(pt.width / 4 / s), 1)
-            target.line((p0, p1), fill=fill, width=w)
+        for (p0, p1), w_px, f in zip(zip(pts, pts[1:], strict=False), widths, fills, strict=False):
+            w = max(round(w_px), 1)
+            target.line((p0, p1), fill=f, width=w)
             if w > 2:
                 r = w / 2
-                target.ellipse((p1[0] - r, p1[1] - r, p1[0] + r, p1[1] + r), fill=fill)
+                target.ellipse((p1[0] - r, p1[1] - r, p1[0] + r, p1[1] + r), fill=f)
 
     img.paste(overlay, (0, 0), overlay)
     return img

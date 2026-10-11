@@ -39,7 +39,7 @@ LAYER_ID = CrdtId(0, 11)
 NULL_ID = CrdtId(0, 0)
 FIRST_ITEM_COUNTER = 16
 
-# Pressure/speed are not meaningful for converted ink; use plausible constants.
+# Speed is not meaningful for converted ink; pressure is unless a stroke sets it.
 _PRESSURE = 200
 _SPEED = 100
 
@@ -60,12 +60,17 @@ def _line_points(stroke: Stroke, device: DeviceProfile) -> list[si.Point]:
     widths = stroke.widths if stroke.widths is not None else np.full(len(pts), stroke.width)
     # v2 points store width * 4 as uint16.
     widths_q = np.clip(np.round(widths * device.ink_scale * 4), 1, 65535).astype(int)
+    pressures = (
+        np.clip(np.round(stroke.pressures), 0, 255).astype(int)
+        if stroke.pressures is not None
+        else np.full(len(pts), _PRESSURE)
+    )
 
     return [
         si.Point(
-            x=float(x), y=float(y), speed=_SPEED, direction=int(a), width=int(w), pressure=_PRESSURE
+            x=float(x), y=float(y), speed=_SPEED, direction=int(a), width=int(w), pressure=int(p)
         )
-        for x, y, a, w in zip(xs, ys, directions, widths_q, strict=True)
+        for x, y, a, w, p in zip(xs, ys, directions, widths_q, pressures, strict=True)
     ]
 
 

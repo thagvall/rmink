@@ -20,6 +20,7 @@ class Stroke:
     pen: Pen = Pen.FINELINER_2
     color: PenColor = PenColor.BLACK
     rgba: tuple[int, int, int, int] | None = None
+    pressures: np.ndarray | None = None  # optional per-point pressure (N,), 0-255
 
     def __post_init__(self) -> None:
         self.points = np.asarray(self.points, dtype=np.float32).reshape(-1, 2)
@@ -27,6 +28,10 @@ class Stroke:
             self.widths = np.asarray(self.widths, dtype=np.float32).reshape(-1)
             if len(self.widths) != len(self.points):
                 raise ValueError("widths must have one entry per point")
+        if self.pressures is not None:
+            self.pressures = np.asarray(self.pressures, dtype=np.float32).reshape(-1)
+            if len(self.pressures) != len(self.points):
+                raise ValueError("pressures must have one entry per point")
 
     def __len__(self) -> int:
         return len(self.points)

@@ -40,6 +40,15 @@ class PenChoice(StrEnum):
         }[self.value]
 
 
+class Shading(StrEnum):
+    none = "none"  # black-and-white ink only
+    stipple = "stipple"  # dots, denser where the source is darker
+    halftone = "halftone"  # dot grid, bigger dots where the source is darker
+    hatch = "hatch"  # parallel lines, closer together where darker
+    crosshatch = "crosshatch"  # more line directions where darker
+    pencil = "pencil"  # pencil lines whose pressure follows the tone
+
+
 class ConvertOptions(BaseModel):
     device: str = Field("rm2", description="rm2 | pure | pro | move")
     mode: Mode = Mode.auto
@@ -51,6 +60,13 @@ class ConvertOptions(BaseModel):
     pen: PenChoice = PenChoice.fineliner
     width: float = Field(2.0, gt=0, description="Pen width for outlines/hatching, device px")
     fill: FillMode = FillMode.hatch
+    shading: Shading = Field(
+        Shading.none,
+        description="Grey tones for photos: none | stipple | halftone | hatch | "
+        "crosshatch | pencil",
+    )
+    shade_density: float = Field(1.0, gt=0, le=3, description="Shading density (1 = normal)")
+    shade_contrast: float = Field(1.0, gt=0, le=3, description="Shading contrast (1 = normal)")
     fit: Fit = Fit.page
     margin_mm: float = Field(5.0, ge=0)
     threshold: str = Field("auto", description="'auto' or a 0-255 gray level for ink")
