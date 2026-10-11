@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.1 — 2026-10-11
+
+- Web UI on phones: a "Take a photo" button opens the camera, and the photo joins the file list like any other upload. It is named by date and time, because iOS calls every camera shot image.jpg.
+- Web UI on phones: the upload area says "Choose files" instead of "Drop files here".
+
 ## 2.1.0 — 2026-10-11
 
 - Shading: photos and portraits can keep their grey tones as stippling, a halftone dot screen, hatching, cross-hatching or pencil strokes whose pressure follows the tone (`--shading`, `--shade-density`, `--shade-contrast`; the same options in the web UI and the MCP tools).
