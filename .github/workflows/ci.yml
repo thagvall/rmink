@@ -1,5 +1,9 @@
 name: CI
-on: [push, pull_request]
+on:
+  push:
+    # Branches only: a release tag points at a commit CI already tested on main.
+    branches: ["**"]
+  pull_request:
 jobs:
   test:
     strategy:
