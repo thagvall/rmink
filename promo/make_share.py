@@ -86,6 +86,10 @@ def page(lang: str) -> Path:
 
 # Frame of the video shown in the share image (the portrait in every shading style).
 SHOT_AT = 62.5
+# Where the play button sits, as fractions of the video frame: right of the
+# title, so it does not cover any of the portraits.
+PLAY_AT = (0.87, 0.117)
+PLAY_SIZE = 96
 PLAY_OVERLAY = """
   const v = document.querySelector('#demo video');
   v.pause(); v.muted = true; v.removeAttribute('controls'); v.preload = 'auto';
@@ -95,9 +99,10 @@ PLAY_OVERLAY = """
   v.pause();
   document.activeElement.blur();
   const play = document.createElement('div');
-  play.innerHTML = '<svg viewBox="0 0 100 100" width="120" height="120"><circle cx="50" cy="50" r="48" fill="rgba(29,29,27,.82)"/><path d="M40 30 L72 50 L40 70 Z" fill="#fff"/></svg>';
+  const [fx, fy, size] = %s;
+  play.innerHTML = `<svg viewBox="0 0 100 100" width="${size}" height="${size}"><circle cx="50" cy="50" r="48" fill="rgba(29,29,27,.82)"/><path d="M40 30 L72 50 L40 70 Z" fill="#fff"/></svg>`;
   const r = v.getBoundingClientRect();
-  Object.assign(play.style, { position: 'fixed', left: (r.left + r.width / 2 - 60) + 'px', top: (r.top + r.height / 2 - 60) + 'px', zIndex: 99 });
+  Object.assign(play.style, { position: 'fixed', left: (r.left + r.width * fx - size / 2) + 'px', top: (r.top + r.height * fy - size / 2) + 'px', zIndex: 99 });
   v.closest('dialog').appendChild(play);
 """
 
@@ -111,7 +116,7 @@ def site_shot(lang: str, dest: Path) -> Path:
         page = browser.new_page(viewport={"width": 1600, "height": 836}, device_scale_factor=0.75)
         page.goto(f"{SITE}/?demo={lang}")
         page.wait_for_selector("#demo[open]")
-        page.evaluate("async () => {" + PLAY_OVERLAY % SHOT_AT + "}")
+        page.evaluate("async () => {" + PLAY_OVERLAY % (SHOT_AT, [*PLAY_AT, PLAY_SIZE]) + "}")
         page.wait_for_timeout(800)
         png = page.screenshot()
         browser.close()
