@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.0 — 2026-10-24
+
+- Web UI: "Send to reMarkable" uploads the notebook straight to the reMarkable Cloud, so it syncs to the tablet without USB. It uses [rmapi](https://github.com/ddvk/rmapi) (set `RMINK_RMAPI` or have `rmapi` on the PATH; the button is hidden otherwise). The first time it asks for a one-time code from my.remarkable.com; the connection is kept only in the browser. Notebooks land in *My files*, and a taken name gets `_2`, `_3` and so on.
+
 ## 2.1.1 — 2026-10-11
 
 - Web UI on phones: a "Take a photo" button opens the camera, and the photo joins the file list like any other upload. It is named by date and time, because iOS calls every camera shot image.jpg.
