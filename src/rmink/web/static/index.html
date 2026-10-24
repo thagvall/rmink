@@ -637,8 +637,13 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
       }));
       markStyles();
     } catch (e) {
-      if (e.name === "AbortError") return;
-      box.hidden = true;
+      if (e.name === "AbortError" || seq !== state.styleSeq) return;
+      // Say why instead of hiding the strip; phones are slow enough to hit timeouts.
+      box.hidden = false;
+      $("#style-cards").replaceChildren(Object.assign(document.createElement("p"), {
+        className: "notice err", style: "grid-column: 1 / -1",
+        textContent: `Could not make the shading previews: ${e.message}`,
+      }));
     }
   }
 

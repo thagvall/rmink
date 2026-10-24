@@ -139,10 +139,11 @@ def extract_raster(
     palette: tuple[PaletteEntry, ...],
     clusters: int | None,
     opts: ConvertOptions,
+    oversample: float = _OVERSAMPLE,
 ) -> list[Stroke]:
     rgb = src.image
-    # Resample so one mask pixel is 1/_OVERSAMPLE device pixel.
-    factor = min(placement.scale * _OVERSAMPLE, _MAX_UPSAMPLE)
+    # Resample so one mask pixel is 1/oversample device pixel.
+    factor = min(placement.scale * oversample, _MAX_UPSAMPLE)
     if abs(factor - 1) > 0.05:
         h, w = rgb.shape[:2]
         size = (max(1, round(w * factor)), max(1, round(h * factor)))

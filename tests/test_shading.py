@@ -11,8 +11,8 @@ from rmink.extract.shade import MAX_SHADE_STROKES, shade
 from rmink.extract.tone import tone_map
 from rmink.model import Page, Stroke
 from rmink.options import ConvertOptions, Shading
-from rmink.render.preview import read_lines
-from rmink.writer.rm_v6 import write_page
+from rmink.render.preview import read_lines, render_lines, render_rm
+from rmink.writer.rm_v6 import page_lines, write_page
 
 
 def _ramp(w=600, h=200) -> np.ndarray:
@@ -106,3 +106,14 @@ def test_style_previews(tmp_path, examples):
     assert [p.style for p in previews] == list(Shading)
     assert all(p.image.size[0] == get_device("rm2").width for p in previews)
     assert api.style_previews(examples["svg"], ConvertOptions()) == []
+
+
+def test_rendering_lines_matches_the_written_file(tmp_path):
+    # Style previews skip the .rm round trip; the picture must not change.
+    src = tmp_path / "ramp.png"
+    Image.fromarray(_ramp()).save(src)
+    device = get_device("rm2")
+    page = api.render([src], ConvertOptions(shading="pencil")).document.pages[0]
+    direct = np.asarray(render_lines(page_lines(page, device), device, page.height), float)
+    stored = render_rm(write_page(page, device, uuid.uuid4()), device, page.height)
+    assert np.abs(direct - np.asarray(stored, float)).mean() < 0.5

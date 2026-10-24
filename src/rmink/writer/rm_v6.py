@@ -122,6 +122,15 @@ def page_blocks(page: Page, device: DeviceProfile, author_uuid: UUID) -> Iterato
         counter += 1
 
 
+def page_lines(page: Page, device: DeviceProfile) -> list[si.Line]:
+    """The lines ``write_page`` would store, without serialising them."""
+    return [
+        b.item.value
+        for b in page_blocks(page, device, UUID(int=0))
+        if isinstance(b, SceneLineItemBlock)
+    ]
+
+
 def write_page(page: Page, device: DeviceProfile, author_uuid: UUID) -> bytes:
     buf = io.BytesIO()
     write_blocks(buf, page_blocks(page, device, author_uuid))

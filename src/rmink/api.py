@@ -21,10 +21,13 @@ from rmink.ingest import RasterSource, Source, VectorSource, load
 from rmink.model import Document, Page, Stroke
 from rmink.options import ConvertOptions, ConvertResult, FillMode, Mode, PageStats, Shading
 from rmink.package.rmdoc import RmdocPage, UuidFactory, write_rmdoc
-from rmink.render.preview import contact_sheet, render_rm, thumbnail_png
-from rmink.writer.rm_v6 import write_page
+from rmink.render.preview import contact_sheet, render_lines, render_rm, thumbnail_png
+from rmink.writer.rm_v6 import page_lines, write_page
 
 log = logging.getLogger(__name__)
+
+# Style thumbnails extract lines at device resolution instead of 2x.
+_STYLE_OVERSAMPLE = 1.0
 
 
 @dataclass
@@ -85,7 +88,11 @@ def _raster_placement(src: RasterSource, device: DeviceProfile, opts: ConvertOpt
 
 
 def _raster_lines(
-    src: RasterSource, placement: Placement, device: DeviceProfile, opts: ConvertOptions
+    src: RasterSource,
+    placement: Placement,
+    device: DeviceProfile,
+    opts: ConvertOptions,
+    oversample: float | None = None,
 ) -> list[Stroke]:
     palette, clusters = _palette(device, opts.colors)
     # Photographed black ink reads as grey; gray is only offered when it is
@@ -94,7 +101,8 @@ def _raster_lines(
     if opts.shading != Shading.none and opts.fill == FillMode.hatch:
         # Shading draws the dark areas; even hatching would hide it.
         opts = opts.model_copy(update={"fill": FillMode.outline})
-    return extract_raster(src, placement, device, raster_palette, clusters, opts)
+    extra = {} if oversample is None else {"oversample": oversample}
+    return extract_raster(src, placement, device, raster_palette, clusters, opts, **extra)
 
 
 def source_to_page(src: Source, device: DeviceProfile, opts: ConvertOptions) -> Page:
@@ -141,14 +149,17 @@ def style_previews(
         return []
     styles = styles or list(Shading)
     placement = _raster_placement(src, device, opts)
-    plain = _raster_lines(src, placement, device, opts.model_copy(update={"shading": Shading.none}))
+    # Lines at device resolution instead of 2x: half the time, and the
+    # thumbnails are far too small to show the difference.
+    plain = _raster_lines(
+        src, placement, device, opts.model_copy(update={"shading": Shading.none}), _STYLE_OVERSAMPLE
+    )
     if opts.fill == FillMode.hatch:
         shaded = opts.model_copy(update={"shading": Shading.stipple})
-        lines = _raster_lines(src, placement, device, shaded)
+        lines = _raster_lines(src, placement, device, shaded, _STYLE_OVERSAMPLE)
     else:
         lines = plain
     tone = device_tone(src, placement, opts.shade_contrast)
-    author = UuidFactory(0)()
     out = []
     for style in styles:
         style_opts = opts.model_copy(update={"shading": style})
@@ -159,7 +170,9 @@ def style_previews(
         )
         strokes = enforce_budget(reading_order(strokes), opts.max_points, opts.simplify)
         page = Page(device.width, placement.page_height, strokes)
-        image = render_rm(write_page(page, device, author), device, page.height)
+        # Straight from the lines: writing and re-reading the .rm file took two
+        # thirds of the time, and the main preview already round-trips the writer.
+        image = render_lines(page_lines(page, device), device, page.height)
         out.append(StylePreview(style, image, len(page.strokes), page.point_count))
     return out
 

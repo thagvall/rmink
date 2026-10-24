@@ -39,7 +39,12 @@ def _rgb(line: si.Line) -> tuple[int, int, int]:
 
 
 def render_rm(rm_bytes: bytes, device: DeviceProfile, height: int | None = None) -> Image.Image:
-    lines = read_lines(rm_bytes)
+    return render_lines(read_lines(rm_bytes), device, height)
+
+
+def render_lines(
+    lines: list[si.Line], device: DeviceProfile, height: int | None = None
+) -> Image.Image:
     s = device.ink_scale
     max_y = max((p.y for ln in lines for p in ln.points), default=0) / s
     h = max(height or device.height, int(max_y) + 1)
