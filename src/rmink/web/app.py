@@ -23,9 +23,10 @@ from starlette.background import BackgroundTask
 from rmink import api
 from rmink.devices import all_devices
 from rmink.ingest import IMAGE_SUFFIXES, parse_page_ranges
-from rmink.options import ConvertOptions, Shading
+from rmink.options import ConvertOptions, ConvertResult, Shading
 from rmink.package.rmdoc import repair_rmdoc
 from rmink.support import demo_url, source_url, support_url
+from rmink.web import cloud
 
 _STATIC = Path(__file__).parent / "static"
 _ALLOWED = IMAGE_SUFFIXES | {".pdf", ".svg"}
@@ -164,6 +165,8 @@ def create_app(limits: Limits | None = None) -> FastAPI:
             "support_url": support_url(),
             "source_url": source_url(),
             "demo_url": demo_url(),
+            "cloud": cloud.find_rmapi() is not None,
+            "cloud_connect_url": cloud.CONNECT_URL,
         }
 
     @app.post("/api/repair")
@@ -284,6 +287,20 @@ def create_app(limits: Limits | None = None) -> FastAPI:
             )
         return {"styles": styles}
 
+    async def _build(files: list[UploadFile], name: str | None, **kw) -> tuple[Path, ConvertResult]:
+        """Convert uploads into one notebook in a new temp dir the caller removes."""
+        tmp = Path(tempfile.mkdtemp(prefix="rmink-"))
+        try:
+            paths = await _save_uploads(files, tmp)
+            notebook = _safe_stem(name) if name else _safe_stem(files[0].filename)
+            opts = _options(name=notebook, **kw)
+            _check_pages(paths, opts.pages)
+            out = tmp / f"{notebook}.rmdoc"
+            return tmp, await _run(api.convert, paths, out, opts)
+        except BaseException:
+            shutil.rmtree(tmp, ignore_errors=True)
+            raise
+
     @app.post("/api/convert")
     async def convert(
         files: Files,
@@ -302,21 +319,11 @@ def create_app(limits: Limits | None = None) -> FastAPI:
         shade_contrast: Opt = None,
         pages: Opt = None,
     ) -> FileResponse:
-        tmp = Path(tempfile.mkdtemp(prefix="rmink-"))
-        try:
-            paths = await _save_uploads(files, tmp)
-            notebook = _safe_stem(name) if name else _safe_stem(files[0].filename)
-            opts = _options(
-                name=notebook, device=device, mode=mode, colors=colors, fill=fill, fit=fit,
-                threshold=threshold, simplify=simplify, pen=pen, width=width, shading=shading,
-                shade_density=shade_density, shade_contrast=shade_contrast, pages=pages,
-            )  # fmt: skip
-            _check_pages(paths, opts.pages)
-            out = tmp / f"{notebook}.rmdoc"
-            result = await _run(api.convert, paths, out, opts)
-        except BaseException:
-            shutil.rmtree(tmp, ignore_errors=True)
-            raise
+        tmp, result = await _build(
+            files, name, device=device, mode=mode, colors=colors, fill=fill, fit=fit,
+            threshold=threshold, simplify=simplify, pen=pen, width=width, shading=shading,
+            shade_density=shade_density, shade_contrast=shade_contrast, pages=pages,
+        )  # fmt: skip
         headers = {"X-Rmink-Warnings": str(len(result.warnings))}
         return FileResponse(
             result.path,
@@ -327,5 +334,57 @@ def create_app(limits: Limits | None = None) -> FastAPI:
             headers=headers,
             background=BackgroundTask(shutil.rmtree, tmp, ignore_errors=True),
         )
+
+    def _require_cloud() -> None:
+        if not cloud.find_rmapi():
+            raise HTTPException(503, "Sending to reMarkable is not set up on this server")
+
+    @app.post("/api/cloud/connect")
+    async def cloud_connect(code: Annotated[str, Form()]) -> dict:
+        _require_cloud()
+        try:
+            token = await anyio.to_thread.run_sync(cloud.connect, code)
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        except cloud.CloudError as e:
+            raise HTTPException(502, str(e)) from e
+        return {"token": token}
+
+    @app.post("/api/cloud/send")
+    async def cloud_send(
+        files: Files,
+        token: Annotated[str, Form()],
+        name: Opt = None,
+        device: Opt = None,
+        mode: Opt = None,
+        colors: Opt = None,
+        fill: Opt = None,
+        fit: Opt = None,
+        threshold: Opt = None,
+        simplify: Opt = None,
+        pen: Opt = None,
+        width: Opt = None,
+        shading: Opt = None,
+        shade_density: Opt = None,
+        shade_contrast: Opt = None,
+        pages: Opt = None,
+    ) -> dict:
+        _require_cloud()
+        tmp, result = await _build(
+            files, name, device=device, mode=mode, colors=colors, fill=fill, fit=fit,
+            threshold=threshold, simplify=simplify, pen=pen, width=width, shading=shading,
+            shade_density=shade_density, shade_contrast=shade_contrast, pages=pages,
+        )  # fmt: skip
+        try:
+            sent = await anyio.to_thread.run_sync(cloud.put, result.path, token)
+        except cloud.CloudAuthError as e:
+            raise HTTPException(401, str(e)) from e
+        except cloud.CloudExistsError as e:
+            raise HTTPException(409, str(e)) from e
+        except cloud.CloudError as e:
+            raise HTTPException(502, str(e)) from e
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+        return {"name": sent, "warnings": len(result.warnings)}
 
     return app

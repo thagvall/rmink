@@ -77,6 +77,13 @@ finishes.
 *Settings → Storage → USB web interface*, open <http://10.11.99.1> and drag the
 `.rmdoc` in (100 MB limit). Alternatively, drag it into the reMarkable desktop app.
 
+**Or send it through the reMarkable Cloud:** if
+[rmapi](https://github.com/ddvk/rmapi) is installed (or `RMINK_RMAPI` points at
+it), the web UI shows a *Send to reMarkable* button. The first time, it asks
+for a one-time code from <https://my.remarkable.com/device/browser/connect>;
+the connection is remembered in your browser. Notebooks land in the root of
+*My files*.
+
 If a Mac turned the download into a folder or a `.zip` and the tablet will not
 import it, run `rmink repair` on it, or use *Repair a notebook* in the web UI.
 

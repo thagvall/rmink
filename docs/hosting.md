@@ -43,6 +43,14 @@ open (`/?demo`, `/?demo=sv`). Regenerate them with
 - Uploaded files only live in the function's temporary storage while the
   request runs.
 
+**Send to reMarkable:** the Linux build of
+[rmapi](https://github.com/ddvk/rmapi) is committed as
+`deploy/vercel/bin/rmapi` (run `deploy/vercel/fetch-rmapi.sh` to change the
+pinned version) and bundled through `includeFiles` in `vercel.json`. The
+server keeps no accounts: connecting turns the user's one-time code into a
+device token that is stored only in their browser and sent along with each
+upload, where rmapi uses it from a per-request temp config.
+
 ## Docker (any server)
 
 ```bash

@@ -8,6 +8,9 @@ with environment variables:
 - ``RMINK_MAX_PAGES`` (default 40): pages per request after page selection
 - ``RMINK_TIMEOUT_S`` (default 120): conversion time limit per request
 - ``RMINK_CONCURRENCY`` (default 2): conversions running at the same time
+- ``RMINK_RMAPI``: path to rmapi (github.com/ddvk/rmapi) for the
+  "Send to reMarkable" button; by default ``rmapi`` on the PATH. Without it
+  the button is hidden.
 """
 
 from rmink.web.app import create_app

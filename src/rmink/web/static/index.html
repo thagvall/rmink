@@ -158,6 +158,13 @@ details[open] summary { margin-bottom: 10px; }
 }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn.secondary { background: none; color: var(--ink); border: 1px solid var(--line); }
+#send { margin-top: 8px; }
+.cloud { font-size: 13px; color: var(--muted); margin-top: 8px; }
+.cloud form { display: flex; gap: 8px; margin: 8px 0 4px; }
+.cloud form input { flex: 1; min-width: 0; }
+.cloud form .btn { width: auto; }
+.cloud p { margin: 6px 0 0; }
+.link-btn { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
 
 #status { display: flex; align-items: center; gap: 10px; min-height: 24px; color: var(--muted); font-size: 13px; flex-wrap: wrap; }
 .spinner { width: 14px; height: 14px; border: 2px solid var(--line); border-top-color: var(--accent);
@@ -340,6 +347,19 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
           <input type="text" name="name" placeholder="From the first file">
         </label>
         <button class="btn" id="download" disabled>Download .rmdoc</button>
+        <button class="btn secondary" id="send" type="button" disabled hidden>Send to reMarkable</button>
+        <div class="cloud" id="cloud" hidden>
+          <div id="cloud-connect" hidden>
+            Get a one-time code at <a id="cloud-code-link" target="_blank" rel="noopener">my.remarkable.com</a>
+            and enter it here:
+            <form id="cloud-form">
+              <input type="text" name="code" maxlength="8" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="abcdefgh" aria-label="One-time code" required>
+              <button class="btn" type="submit">Connect</button>
+            </form>
+            <p>The connection is kept in this browser only and passed along with each upload; the server never stores it.</p>
+          </div>
+          <p id="cloud-connected" hidden>Connected to reMarkable Cloud · <button class="link-btn" id="cloud-disconnect" type="button">Disconnect</button></p>
+        </div>
         <div class="help">
           Copy it to the tablet:
           <ol>
@@ -424,7 +444,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
   const drop = $("#drop"), picker = $("#picker"), list = $("#files");
   const touch = matchMedia("(pointer: coarse)").matches;
   const gallery = $("#gallery"), empty = $("#empty"), notices = $("#notices");
-  const status = $("#status"), statusText = $("#status-text"), dl = $("#download");
+  const status = $("#status"), statusText = $("#status-text"), dl = $("#download"), send = $("#send");
   const thr = $('[name="threshold"]'), thrAuto = $("#thr-auto"), simp = $('[name="simplify"]');
 
   const fmtSize = (b) => b > 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1e3)) + " kB";
@@ -452,6 +472,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
       return li;
     }));
     dl.disabled = state.files.length === 0;
+    send.disabled = state.files.length === 0;
   }
 
   function addFiles(fileList) {
@@ -678,6 +699,70 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
     }
   });
 
+  // Send to reMarkable Cloud. The device token from connecting lives only in
+  // this browser's localStorage and goes along with each upload.
+  const cloudKey = "rmink.cloudToken";
+  const cloudForm = $("#cloud-form");
+  function showCloud(connecting = false) {
+    const token = store.get(cloudKey);
+    $("#cloud").hidden = !token && !connecting;
+    $("#cloud-connect").hidden = !!token;
+    $("#cloud-connected").hidden = !token;
+    if (connecting && !token) cloudForm.code.focus();
+  }
+  async function sendToCloud() {
+    const token = store.get(cloudKey);
+    if (!token) return showCloud(true);
+    send.disabled = true;
+    const label = send.textContent;
+    send.textContent = "Sending…";
+    try {
+      const fd = await formData(true);
+      fd.append("token", token);
+      const res = await fetch("/api/cloud/send", { method: "POST", body: fd });
+      if (res.status === 401) {
+        store.remove(cloudKey);
+        showCloud(true);
+      }
+      if (!res.ok) throw new Error(await errorText(res));
+      const { name } = await res.json();
+      setNotices();
+      setStatus(`Sent “${name}” to your reMarkable. It appears when the tablet syncs.`);
+      maybeNudge();
+    } catch (e) {
+      setNotices([], e.message);
+    } finally {
+      send.textContent = label;
+      send.disabled = state.files.length === 0;
+    }
+  }
+  send.addEventListener("click", sendToCloud);
+  cloudForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = $("button", cloudForm);
+    btn.disabled = true;
+    try {
+      const fd = new FormData();
+      fd.append("code", cloudForm.code.value.trim());
+      const res = await fetch("/api/cloud/connect", { method: "POST", body: fd });
+      if (!res.ok) throw new Error(await errorText(res));
+      store.set(cloudKey, (await res.json()).token);
+      cloudForm.reset();
+      setNotices();
+      showCloud();
+      if (state.files.length) sendToCloud();
+    } catch (err) {
+      setNotices([], err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+  $("#cloud-disconnect").addEventListener("click", () => {
+    store.remove(cloudKey);
+    showCloud();
+    setStatus("Disconnected. To revoke access fully, remove the device at my.remarkable.com.");
+  });
+
   $("#zoom").addEventListener("click", (e) => e.currentTarget.close());
 
   async function saveResponse(res, fallbackName) {
@@ -732,6 +817,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+    remove(k) { try { localStorage.removeItem(k); } catch {} },
   };
   function maybeNudge() {
     if (!state.supportUrl || store.get("rmink.nudge.dismissed") === "1") return;
@@ -789,6 +875,11 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
       $("#source-link").hidden = false;
     }
     if (l.demo_url) setupDemo(l.demo_url);
+    if (l.cloud) {
+      send.hidden = false;
+      $("#cloud-code-link").href = l.cloud_connect_url;
+      showCloud();
+    }
     $("#drop-hint").textContent = `${touch ? "" : "or click to choose — "}JPG, PNG, HEIC, SVG, PDF · up to ${Math.round(l.max_upload_mb)} MB`;
   }).catch(() => {});
 })();
