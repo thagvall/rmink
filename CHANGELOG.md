@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.4.1 — 2026-10-27
+
+- `/rounds`: the file browser opens in the `rmink` folder, and "Välj anteckningsbok" on a drawing opens that drawing's own folder.
+- `/rounds`: only a wrong key returns to the key prompt. An expired reMarkable connection is now shown as an error instead of logging out in a loop.
+- `/rounds`: a slow listing of a folder you already left no longer replaces the folder you opened.
+
 ## 2.4.0 — 2026-10-27
 
 - Revision rounds are filed like a drawing folder on a building project:

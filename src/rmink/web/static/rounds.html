@@ -65,6 +65,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
     <label for="secret">Nyckel</label>
     <input id="secret" type="password" autocomplete="current-password">
     <div class="row"><button class="primary" id="save" type="button">Fortsätt</button></div>
+    <p class="error" id="loginError" hidden>Fel nyckel. Den ska vara samma som RMINK_ROUNDS_SECRET på servern.</p>
     <p class="muted">Bara för ägaren. Nyckeln sparas i den här webbläsaren.</p>
   </section>
 
@@ -123,8 +124,10 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
 
   async function api(url, opts = {}) {
     const r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), "X-Rmink-Secret": secret || "" } });
-    if (r.status === 401) { store.del("rmink.roundsSecret"); secret = null; show(); throw new Error("Fel nyckel eller utgången koppling"); }
     const body = await r.json().catch(() => ({}));
+    // Only a wrong key logs out; an expired reMarkable connection is also a 401
+    // but must stay on screen, or the page loops back to the key prompt.
+    if (r.status === 401 && body.detail === "Fel nyckel") { store.del("rmink.roundsSecret"); secret = null; $("#loginError").hidden = false; show(); throw new Error("Fel nyckel"); }
     if (!r.ok) throw new Error(body.detail || `Fel ${r.status}`);
     return body;
   }
@@ -175,7 +178,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
       } else {
         // Saved before rmink kept track of where revisions go.
         const b = el("button", null, "Välj anteckningsbok"); b.type = "button";
-        b.onclick = () => { browse("/"); $("#pick").scrollIntoView({ behavior: "smooth" }); };
+        b.onclick = () => { browse(`${INBOX}/${d.name.replace(/[\/*?[\]\\]/g, "-")}`); $("#pick").scrollIntoView({ behavior: "smooth" }); };
         actions.appendChild(b);
       }
       actions.appendChild(status);
@@ -206,15 +209,20 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
 
   $("#browse").addEventListener("click", () => {
     if (browsing) { browsing = false; $("#browse").textContent = "Annan anteckningsbok…"; load(INBOX); }
-    else browse("/");
+    else browse(INBOX);
   });
 
+  let loading = 0;
   async function load(p) {
+    const ticket = ++loading;
     path = p; chosen = null; $("#run").disabled = true; crumbs();
     const list = $("#list");
     list.innerHTML = '<p class="muted">Hämtar…</p>';
     try {
       const { entries, missing } = await api(`/api/rounds/documents?path=${encodeURIComponent(p)}`);
+      if (ticket !== loading) return; // a later folder was opened meanwhile
+      // A drawing without its own folder yet: show the rmink folder instead.
+      if (missing && browsing && p !== INBOX) return load(INBOX);
       list.innerHTML = "";
       // In the rmink folder, folders are drawings; only loose notebooks are new sketches.
       const shown = browsing ? entries : entries.filter((e) => !e.folder);
@@ -233,6 +241,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
         list.appendChild(b);
       }
     } catch (err) {
+      if (ticket !== loading) return;
       list.innerHTML = ""; list.appendChild(el("p", "error", err.message));
     }
   }
