@@ -1,0 +1,1256 @@
+<title>Skiss till ritning</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a drafting table. Tablets play the story; a margin column says who
+   is working and what they see. */
+:root {
+  --bg: #eceeea;
+  --surface: #ffffff;
+  --ink: #16191b;
+  --muted: #586064;
+  --rule: #cfd4ce;
+  --accent: #2546b8;
+  --accent-soft: #dfe5f8;
+  --mark: #a33a9c;
+  --group: #d3352c;
+  --ok: #2c7a45;
+  --paper: #f8f8f5;
+  --bezel: #2b2e30;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111416; --surface: #1a1e20; --ink: #e7eae6; --muted: #9ba3a5; --rule: #2d3336;
+    --accent: #8aa4ff; --accent-soft: #1f2a4d; --mark: #d985d2; --group: #ff6a5e; --ok: #6cc58a;
+    --paper: #f3f3ef; --bezel: #050607; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111416; --surface: #1a1e20; --ink: #e7eae6; --muted: #9ba3a5; --rule: #2d3336;
+  --accent: #8aa4ff; --accent-soft: #1f2a4d; --mark: #d985d2; --group: #ff6a5e; --ok: #6cc58a;
+  --paper: #f3f3ef; --bezel: #050607; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 64px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 64px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 800; font-stretch: 72%; letter-spacing: -0.01em; line-height: 1.02; }
+h2 { font-size: 1.6rem; font-weight: 700; font-stretch: 80%; }
+h3 { font-size: 1.08rem; font-weight: 700; }
+p { margin: 0; }
+.eyebrow { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+header { display: grid; gap: 14px; max-width: 760px; }
+header p.lede { font-size: 1.12rem; color: var(--muted); max-width: 64ch; }
+header .arrow { color: var(--accent); }
+.toc { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 0.92rem; }
+.toc a { color: var(--accent); }
+
+/* Stage 1: one tablet beside the panel */
+.stage { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 36px; align-items: start; }
+@media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); gap: 24px; } }
+.device { display: grid; gap: 14px; justify-items: center; }
+.tablet {
+  width: 100%; max-width: 560px; background: var(--bezel); border-radius: 22px; padding: 22px 18px 30px;
+  box-shadow: 0 18px 40px -22px rgba(0,0,0,.45);
+}
+.screen { background: var(--paper); border-radius: 4px; overflow: hidden; position: relative; }
+.screen svg { display: block; width: 100%; height: auto; }
+.docbar {
+  display: flex; justify-content: space-between; gap: 8px; padding: 7px 12px; font-family: var(--mono);
+  font-size: 0.72rem; color: #4a5054; border-bottom: 1px solid #e2e2dc; background: #fbfbf9;
+}
+.docbar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.docbar span:last-child { color: #7b8286; text-align: right; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; width: 100%; }
+button { font: inherit; cursor: pointer; }
+.btn {
+  border: 1px solid var(--rule); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 7px 16px; font-weight: 600; font-size: 0.92rem; display: inline-flex; gap: 8px; align-items: center;
+}
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.btn:focus-visible, .chip:focus-visible, .seg button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; color: var(--muted); padding: 7px 14px; font-weight: 600; font-size: 0.88rem; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.steps { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.chip {
+  border: 1px solid var(--rule); background: var(--surface); color: var(--muted); border-radius: 6px;
+  font-family: var(--mono); font-size: 0.74rem; padding: 4px 8px; display: inline-flex; gap: 6px; align-items: center;
+}
+.chip b { font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+.chip[aria-current="step"] { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+
+/* Panels */
+.panel { display: grid; gap: 22px; min-width: 0; }
+.pipeline { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.actor {
+  border: 1px solid var(--rule); border-radius: 8px; padding: 8px 6px; text-align: center; background: var(--surface);
+  font-size: 0.82rem; font-weight: 600; color: var(--muted); transition: background .3s, color .3s, border-color .3s;
+}
+.actor small { display: block; font-family: var(--mono); font-weight: 400; font-size: 0.68rem; color: var(--muted); }
+.actor.on { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+.stepnum { font-family: var(--mono); color: var(--accent); font-size: 0.85rem; }
+.copy { display: grid; gap: 10px; align-content: start; }
+.stage .copy { min-height: 9.5em; }
+.copy p { color: var(--muted); max-width: 60ch; }
+.detail { display: grid; gap: 8px; min-width: 0; align-content: start; }
+.row {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: baseline;
+  padding: 7px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--rule);
+  font-size: 0.92rem; transition: border-color .3s, opacity .4s;
+}
+.row.dim { opacity: .45; }
+.row.hot { border-color: var(--group); }
+.row .ids { font-family: var(--mono); font-size: 0.74rem; color: var(--group); white-space: nowrap; }
+.row .ids.mark { color: var(--mark); }
+.row .ids.plain { color: var(--accent); }
+.row .what b { font-weight: 600; }
+.row .what span { color: var(--muted); }
+.ok { color: var(--ok); font-weight: 600; }
+.stat { display: flex; gap: 22px; flex-wrap: wrap; }
+.stat div { display: grid; }
+.stat strong { font-family: var(--display); font-stretch: 75%; font-size: 2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 0.82rem; color: var(--muted); }
+.cmp { overflow-x: auto; }
+.cmp table { border-collapse: collapse; width: 100%; font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+.cmp th, .cmp td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--rule); }
+.cmp th { font-family: var(--mono); font-size: 0.72rem; font-weight: 500; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.cmp td:not(:first-child), .cmp th:not(:first-child) { text-align: right; }
+.cmp td.win { color: var(--ok); font-weight: 600; }
+
+/* Stage 2: two tablets side by side, panel below */
+.stage2 { display: grid; gap: 22px; }
+.duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.duo > div { display: grid; justify-items: center; min-width: 0; }
+.duo .tablet { max-width: 470px; padding: 16px 12px 22px; border-radius: 18px; }
+.duo-label { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); text-align: center; margin-top: 8px; }
+@media (max-width: 560px) { .duo { gap: 10px; } .duo .tablet { padding: 8px 6px 12px; border-radius: 12px; } .duo .docbar { font-size: 0.6rem; padding: 4px 6px; } }
+.panel.wide { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px 36px; }
+.panel.wide .pipeline { grid-column: 1 / -1; }
+@media (max-width: 860px) { .panel.wide { grid-template-columns: minmax(0, 1fr); } }
+.phone-duo { grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr); align-items: center; }
+.phone {
+  width: 100%; max-width: 320px; background: var(--bezel); border-radius: 34px; padding: 14px 10px 18px;
+  box-shadow: 0 18px 40px -22px rgba(0,0,0,.45);
+}
+.pbar {
+  display: flex; justify-content: space-between; gap: 6px; font-family: var(--mono); font-size: 0.68rem;
+  color: #4a5054; background: #fbfbf9; padding: 7px 10px; border-radius: 22px 22px 0 0; border-bottom: 1px solid #e2e2dc;
+}
+.pbar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.pbar span:last-child { color: #7b8286; }
+.pview { position: relative; background: #d9d6cf; border-radius: 0 0 22px 22px; overflow: hidden; aspect-ratio: 3 / 4; }
+.pview img { display: block; width: 100%; height: 100%; object-fit: cover; transition: filter .5s, opacity .5s; }
+.pview img.dim { filter: saturate(.6); opacity: .55; }
+.ptoast {
+  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); max-width: calc(100% - 24px);
+  background: #16191b; color: #f3f3ef; font-size: 0.78rem; font-weight: 600; padding: 7px 14px; border-radius: 999px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: opacity .3s;
+}
+.ptoast.shutter { width: 58px; height: 58px; padding: 0; border-radius: 50%; background: #f3f3ef; border: 5px solid #16191b; box-shadow: 0 0 0 3px #f3f3ef; }
+.ptoast:empty { opacity: 0; }
+@media (max-width: 560px) { .phone { border-radius: 18px; padding: 6px 5px 9px; } .pbar { font-size: 0.56rem; padding: 4px 6px; border-radius: 12px 12px 0 0; } .pview { border-radius: 0 0 12px 12px; } .ptoast { font-size: 0.62rem; padding: 4px 8px; } }
+.viewer { width: 100%; max-width: 470px; border-radius: 12px; overflow: hidden; border: 1px solid var(--rule); background: #f4f5f3; box-shadow: 0 18px 40px -22px rgba(0,0,0,.45); }
+.vbar { display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; font-family: var(--mono); font-size: 0.72rem; color: #4a5054; background: #e6e8e4; border-bottom: 1px solid #d3d6d1; }
+.vbar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.vbar span:last-child { color: #7b8286; }
+.vbody { position: relative; aspect-ratio: 1360 / 1500; background: #f4f5f3; }
+.vbody > svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.vbody .empty { position: absolute; inset: 0; display: grid; place-content: center; gap: 10px; justify-items: center; color: #7b8286; font-family: var(--mono); font-size: 0.8rem; text-align: center; padding: 16px; }
+.vbody .files { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.vbody .file { border: 1px solid #c9cdc8; background: #fff; color: #4a5054; border-radius: 6px; padding: 10px 12px; min-width: 64px; }
+.vbody .file b { display: block; color: #16191b; font-size: 0.9rem; }
+.layers { position: absolute; top: 10px; right: 10px; background: rgba(20,23,26,.92); border: 1px solid #3a4046; border-radius: 6px; padding: 6px 8px; display: grid; gap: 2px; font-family: var(--mono); font-size: 0.66rem; color: #d7dadc; }
+.layers label { display: flex; align-items: center; gap: 6px; cursor: pointer; white-space: nowrap; }
+.layers input { margin: 0; accent-color: #8aa4ff; }
+.layers i { width: 10px; height: 3px; display: inline-block; }
+.cadstatus { position: absolute; left: 0; right: 0; bottom: 0; padding: 4px 10px; background: #14171a; color: #9aa1a6; font-family: var(--mono); font-size: 0.66rem; display: flex; justify-content: space-between; gap: 8px; }
+.trio { position: absolute; inset: 0; display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 10px; }
+.trio > div { position: relative; border-radius: 6px; overflow: hidden; border: 1px solid #d3d6d1; }
+.trio > div > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.trio span { position: absolute; left: 6px; top: 4px; font-family: var(--mono); font-size: 0.62rem; color: #7b8286; background: rgba(255,255,255,.8); padding: 0 4px; border-radius: 3px; z-index: 1; }
+pre.snippet { margin: 0; overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; font-family: var(--mono); font-size: 0.74rem; line-height: 1.45; color: var(--muted); }
+.concept { border: 1px dashed var(--rule); border-radius: 10px; padding: 10px 14px; color: var(--muted); font-size: 0.92rem; max-width: 72ch; }
+.concept b { color: var(--ink); }
+
+/* SVG layers */
+.layer { transition: opacity .6s ease; }
+.ink path { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; }
+.box rect { fill: none; stroke: var(--group); stroke-width: 3; }
+.box .tag { fill: var(--group); }
+.box text { fill: #fff; font-family: var(--mono); font-size: 26px; font-weight: 500; }
+.box g { transition: opacity .35s ease; }
+.box.newbox rect { stroke: var(--mark); stroke-dasharray: 10 7; }
+.box.newbox .tag { fill: var(--mark); }
+.box g.hot rect { stroke-width: 7; }
+
+/* Scenarios */
+.scen-head { display: grid; gap: 8px; max-width: 70ch; }
+.scen-head p { color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; padding: 18px; display: grid; gap: 10px; align-content: start; }
+.card .top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.card p { color: var(--muted); font-size: 0.95rem; }
+.card a { color: var(--accent); font-size: 0.9rem; }
+.pill { font-family: var(--mono); font-size: 0.7rem; letter-spacing: .04em; border-radius: 999px; padding: 2px 9px; white-space: nowrap; border: 1px solid currentColor; }
+.pill.built { color: var(--ok); }
+.pill.later { color: var(--muted); }
+.pill.partial { color: var(--accent); }
+.card svg { width: 100%; height: 86px; display: block; }
+.card svg .s { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.card svg .a { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+.card svg .m { fill: none; stroke: var(--mark); stroke-width: 2; stroke-linecap: round; }
+.card svg .g { fill: none; stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 5 4; }
+.card svg text { fill: var(--muted); font-family: var(--mono); font-size: 10px; }
+
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px; }
+.facts ul { margin: 10px 0 0; padding-left: 1.1em; color: var(--muted); display: grid; gap: 6px; }
+.facts code { font-family: var(--mono); font-size: 0.86em; color: var(--ink); }
+footer { color: var(--muted); font-size: 0.86rem; border-top: 1px solid var(--rule); padding-top: 18px; }
+@media (prefers-reduced-motion: reduce) { .layer, .row, .actor, .box g { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">rmink · fas 1 · förslag</span>
+    <h1>Från handskiss <span class="arrow">→</span> ren ritning, i omgångar</h1>
+    <p class="lede">Skissa en 2D-ritning på reMarkable med mått, symboler och en liten legend. rmink och Claude ritar rent den, du markerar på plattan, och nästa revision tar hand om markeringarna. Alla streck nedan är riktig utdata från rmink.</p>
+    <nav class="toc" aria-label="På sidan">
+      <a href="#flode">Skiss till revision 2</a>
+      <a href="#varianter">Varianter A och B</a>
+      <a href="#nedslag">Nedslag i en detalj</a>
+      <a href="#pappersskiss">Pappersskiss via mobilen</a>
+      <a href="#export">Export</a>
+      <a href="#scenarier">Alla scenarier</a>
+    </nav>
+  </header>
+
+  <section class="stage" id="flode" aria-label="Demo: skiss till revision 2">
+    <div class="device">
+      <div class="tablet">
+        <div class="screen">
+          <div class="docbar"><span data-doc="0"></span><span data-layer="0"></span></div>
+          <svg data-svg="0" viewBox="40 120 1360 1500" role="img" aria-label="Plattans skärm"></svg>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn primary" data-role="play" type="button">▶ Spela upp</button>
+        <button class="btn" data-role="prev" type="button" aria-label="Föregående steg">←</button>
+        <button class="btn" data-role="next" type="button" aria-label="Nästa steg">→</button>
+        <div class="seg" role="group" aria-label="Platta">
+          <button type="button" data-dev="rm2" aria-pressed="false">reMarkable 2</button>
+          <button type="button" data-dev="pro" aria-pressed="true">Paper Pro</button>
+        </div>
+      </div>
+      <nav class="steps" data-role="steps" aria-label="Steg"></nav>
+    </div>
+    <div class="panel">
+      <div class="pipeline">
+        <div class="actor" data-a="tablet">Platta<small>du</small></div>
+        <div class="actor" data-a="cloud">Moln<small>synk</small></div>
+        <div class="actor" data-a="rmink">rmink<small>geometri</small></div>
+        <div class="actor" data-a="claude">Claude<small>tolkning</small></div>
+      </div>
+      <div class="copy">
+        <span class="stepnum" data-role="stepnum"></span>
+        <h2 data-role="title"></h2>
+        <p data-role="text"></p>
+      </div>
+      <div class="detail" data-role="detail"></div>
+    </div>
+  </section>
+
+  <section class="stage2" id="varianter" aria-label="Demo: varianter A och B">
+    <div class="scen-head">
+      <span class="eyebrow">Scenario 5 · koncept</span>
+      <h2>Varianter A och B</h2>
+      <p>Samma altan, två sätt att bära bjälklaget. Claude tar fram båda från samma ritningsmodell, och de hamnar som två sidor i samma anteckningsbok. Du väljer genom att rita på plattan.</p>
+      <p class="concept"><b>Inte byggt än.</b> Varianterna är gjorda för hand i ritningsmodellen. Sidorna, spannen och vilka streck som räknas som nya kommer ändå från rminks riktiga renderare och gruppering.</p>
+    </div>
+    <div class="duo">
+      <div>
+        <div class="tablet">
+          <div class="screen">
+            <div class="docbar"><span data-doc="0"></span><span data-layer="0"></span></div>
+            <svg data-svg="0" viewBox="40 120 1360 1500" role="img" aria-label="Sida med variant A"></svg>
+          </div>
+        </div>
+        <div class="duo-label">Sida 1 · A</div>
+      </div>
+      <div>
+        <div class="tablet">
+          <div class="screen">
+            <div class="docbar"><span data-doc="1"></span><span data-layer="1"></span></div>
+            <svg data-svg="1" viewBox="40 120 1360 1500" role="img" aria-label="Sida med variant B"></svg>
+          </div>
+        </div>
+        <div class="duo-label">Sida 2 · B</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn primary" data-role="play" type="button">▶ Spela upp</button>
+      <button class="btn" data-role="prev" type="button" aria-label="Föregående steg">←</button>
+      <button class="btn" data-role="next" type="button" aria-label="Nästa steg">→</button>
+      <div class="seg" role="group" aria-label="Platta">
+        <button type="button" data-dev="rm2" aria-pressed="false">reMarkable 2</button>
+        <button type="button" data-dev="pro" aria-pressed="true">Paper Pro</button>
+      </div>
+    </div>
+    <nav class="steps" data-role="steps" aria-label="Steg"></nav>
+    <div class="panel wide">
+      <div class="pipeline">
+        <div class="actor" data-a="tablet">Platta<small>du</small></div>
+        <div class="actor" data-a="cloud">Moln<small>synk</small></div>
+        <div class="actor" data-a="rmink">rmink<small>geometri</small></div>
+        <div class="actor" data-a="claude">Claude<small>tolkning</small></div>
+      </div>
+      <div class="copy">
+        <span class="stepnum" data-role="stepnum"></span>
+        <h2 data-role="title"></h2>
+        <p data-role="text"></p>
+      </div>
+      <div class="detail" data-role="detail"></div>
+    </div>
+  </section>
+
+  <section class="stage2" id="nedslag" aria-label="Demo: nedslag i en detalj">
+    <div class="scen-head">
+      <span class="eyebrow">Scenario 4 · koncept</span>
+      <h2>Nedslag i en detalj</h2>
+      <p>Ringa in ett hörn på översikten, så får du en detaljsida i större skala där pelaren och väggarna har sina riktiga mått. Där fortsätter diskussionen, och översikten får en markering som pekar på detaljen. Revisionerna följer fas för fas.</p>
+      <p class="concept"><b>Inte byggt än.</b> Detaljsidan är gjord för hand i ritningsmodellen. Sidorna och vilka streck som räknas som nya kommer ändå från rminks riktiga renderare och gruppering.</p>
+    </div>
+    <div class="duo">
+      <div>
+        <div class="tablet">
+          <div class="screen">
+            <div class="docbar"><span data-doc="0"></span><span data-layer="0"></span></div>
+            <svg data-svg="0" viewBox="40 120 1360 1500" role="img" aria-label="Översiktssidan"></svg>
+          </div>
+        </div>
+        <div class="duo-label">Sida 1 · översikt</div>
+      </div>
+      <div>
+        <div class="tablet">
+          <div class="screen">
+            <div class="docbar"><span data-doc="1"></span><span data-layer="1"></span></div>
+            <svg data-svg="1" viewBox="40 120 1360 1500" role="img" aria-label="Detaljsidan"></svg>
+          </div>
+        </div>
+        <div class="duo-label">Sida 2 · detalj A</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn primary" data-role="play" type="button">▶ Spela upp</button>
+      <button class="btn" data-role="prev" type="button" aria-label="Föregående steg">←</button>
+      <button class="btn" data-role="next" type="button" aria-label="Nästa steg">→</button>
+      <div class="seg" role="group" aria-label="Platta">
+        <button type="button" data-dev="rm2" aria-pressed="false">reMarkable 2</button>
+        <button type="button" data-dev="pro" aria-pressed="true">Paper Pro</button>
+      </div>
+    </div>
+    <nav class="steps" data-role="steps" aria-label="Steg"></nav>
+    <div class="panel wide">
+      <div class="pipeline">
+        <div class="actor" data-a="tablet">Platta<small>du</small></div>
+        <div class="actor" data-a="cloud">Moln<small>synk</small></div>
+        <div class="actor" data-a="rmink">rmink<small>geometri</small></div>
+        <div class="actor" data-a="claude">Claude<small>tolkning</small></div>
+      </div>
+      <div class="copy">
+        <span class="stepnum" data-role="stepnum"></span>
+        <h2 data-role="title"></h2>
+        <p data-role="text"></p>
+      </div>
+      <div class="detail" data-role="detail"></div>
+    </div>
+  </section>
+
+  <section class="stage2" id="pappersskiss" aria-label="Demo: pappersskiss">
+    <div class="scen-head">
+      <span class="eyebrow">Scenario 6 · delvis byggt</span>
+      <h2>Pappersskiss via mobilen</h2>
+      <p>Alla har inte plattan med sig. En skiss på papper från ett möte fotas med mobilen i webbappen och går in i samma tolkning som skisserna från plattan. Den rena ritningen hamnar på plattan, och därifrån fortsätter omgångarna som vanligt.</p>
+      <p class="concept"><b>Delvis byggt.</b> Kameraknappen, fotokonverteringen och Send to reMarkable finns redan i webbappen, och bläcket nedan kommer från just den konverteringen. Tolkningen till en ren ritning finns i dag via Claude och MCP. I webbappen är den fas 2.</p>
+    </div>
+    <div class="duo phone-duo">
+      <div>
+        <div class="phone">
+          <div class="pbar"><span data-doc="0"></span><span data-layer="0"></span></div>
+          <div class="pview">
+            <img data-role="photo" alt="Foto av en blyertsskiss på papper: ett förråd 3000 × 2400 med dörr och fönster">
+            <div class="ptoast" data-role="toast"></div>
+          </div>
+        </div>
+        <div class="duo-label">Mobilen · rmink.vercel.app</div>
+      </div>
+      <div>
+        <div class="tablet">
+          <div class="screen">
+            <div class="docbar"><span data-doc="1"></span><span data-layer="1"></span></div>
+            <svg data-svg="0" viewBox="40 190 1360 1500" role="img" aria-label="Plattans skärm"></svg>
+          </div>
+        </div>
+        <div class="duo-label">Plattan</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn primary" data-role="play" type="button">▶ Spela upp</button>
+      <button class="btn" data-role="prev" type="button" aria-label="Föregående steg">←</button>
+      <button class="btn" data-role="next" type="button" aria-label="Nästa steg">→</button>
+      <div class="seg" role="group" aria-label="Platta">
+        <button type="button" data-dev="rm2" aria-pressed="false">reMarkable 2</button>
+        <button type="button" data-dev="pro" aria-pressed="true">Paper Pro</button>
+      </div>
+    </div>
+    <nav class="steps" data-role="steps" aria-label="Steg"></nav>
+    <div class="panel wide">
+      <div class="pipeline">
+        <div class="actor" data-a="phone">Mobil<small>kamera</small></div>
+        <div class="actor" data-a="rmink">rmink<small>foto till bläck</small></div>
+        <div class="actor" data-a="claude">Claude<small>tolkning</small></div>
+        <div class="actor" data-a="tablet">Platta<small>du</small></div>
+      </div>
+      <div class="copy">
+        <span class="stepnum" data-role="stepnum"></span>
+        <h2 data-role="title"></h2>
+        <p data-role="text"></p>
+      </div>
+      <div class="detail" data-role="detail"></div>
+    </div>
+  </section>
+
+  <section class="stage2" id="export" aria-label="Demo: export">
+    <div class="scen-head">
+      <span class="eyebrow">Scenario 7 · delvis byggt</span>
+      <h2>Export och delning</h2>
+      <p>Ritningen är data, så den kan lämna plattan i flera format: SVG att dela direkt, PDF att skriva ut i skala och DXF att öppna i CAD. Alla tre kommer ur samma ritningsmodell som revisionerna.</p>
+      <p class="concept"><b>Delvis byggt.</b> SVG-exporten finns och bilden till höger i steg 2 är dess riktiga utdata. PDF och DXF är nästa steg. Arket och CAD-vyn är ritade ur samma modell för att visa hur de skulle se ut.</p>
+    </div>
+    <div class="duo">
+      <div>
+        <div class="tablet">
+          <div class="screen">
+            <div class="docbar"><span data-doc="0"></span><span data-layer="0"></span></div>
+            <svg data-svg="0" viewBox="40 120 1360 1500" role="img" aria-label="Plattans skärm"></svg>
+          </div>
+        </div>
+        <div class="duo-label">Plattan</div>
+      </div>
+      <div>
+        <div class="viewer">
+          <div class="vbar"><span data-doc="1"></span><span data-layer="1"></span></div>
+          <div class="vbody" data-role="viewer"></div>
+        </div>
+        <div class="duo-label" data-role="vlabel">Mottagaren</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn primary" data-role="play" type="button">▶ Spela upp</button>
+      <button class="btn" data-role="prev" type="button" aria-label="Föregående steg">←</button>
+      <button class="btn" data-role="next" type="button" aria-label="Nästa steg">→</button>
+      <div class="seg" role="group" aria-label="Platta">
+        <button type="button" data-dev="rm2" aria-pressed="false">reMarkable 2</button>
+        <button type="button" data-dev="pro" aria-pressed="true">Paper Pro</button>
+      </div>
+    </div>
+    <nav class="steps" data-role="steps" aria-label="Steg"></nav>
+    <div class="panel wide">
+      <div class="pipeline">
+        <div class="actor" data-a="tablet">Platta<small>du</small></div>
+        <div class="actor" data-a="rmink">rmink<small>export</small></div>
+        <div class="actor" data-a="claude">Claude<small>på begäran</small></div>
+        <div class="actor" data-a="share">Mottagare<small>webb, skrivare, CAD</small></div>
+      </div>
+      <div class="copy">
+        <span class="stepnum" data-role="stepnum"></span>
+        <h2 data-role="title"></h2>
+        <p data-role="text"></p>
+      </div>
+      <div class="detail" data-role="detail"></div>
+    </div>
+  </section>
+
+  <section style="display:grid; gap:22px" id="scenarier">
+    <div class="scen-head">
+      <span class="eyebrow">Scenarier</span>
+      <h2>Åtta sätt att använda det</h2>
+      <p>Demon överst visar scenario 1, 3 och 8, med en legend från scenario 2. Scenario 4 till 7 visas i egna animeringar ovan. Alla bygger på samma modell: ritningen sparas som data mellan omgångarna, så varje revision vet vad den förra innehöll.</p>
+    </div>
+    <div class="grid" id="scenarios"></div>
+  </section>
+
+  <section class="facts">
+    <div>
+      <h3>Färg och gråskala</h3>
+      <ul>
+        <li><b>Paper Pro och Move:</b> varje kategori får en egen färg. El är röd, VVS blå, ändringar gröna och kommentarer magenta.</li>
+        <li><b>rm2 och Paper Pure:</b> samma kategorier skiljs åt med heldragen, streckad, prickad eller streckprickad linje och med olika tjocklek.</li>
+        <li>Byt platta under demon för att se skillnaden.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Vem gör vad</h3>
+      <ul>
+        <li><b>Claude</b> läser handskrift och avgör vad varje grupp är: vägg, mått, symbol eller anmärkning.</li>
+        <li><b>rmink</b> sköter geometrin. Det räknar om linjer och cirklar, rätar upp hörn, kontrollerar måtten och ritar.</li>
+        <li>Tolkningen körs i användarens egen Claude, så rmink förblir gratis.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Att verifiera på plattan</h3>
+      <ul>
+        <li>Behåller plattan rminks streck-id:n efter synk? Det krävs för att bara de nya strecken ska plockas upp.</li>
+        <li>Går lagret <code>Kommentarer</code> att välja och rita i?</li>
+        <li>Hur väl läses riktiga handskrivna mått som <code>45°</code> och <code>Ø110</code>?</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>rmink är gratis och öppen källkod. Skissen, markeringarna, varianterna, detaljen och fotot i demon är syntetiska, liksom PDF-arket och DXF-filen i exportdemon. Grupperna, måttkontrollen, renritningarna och vilka streck som räknas som nya kommer från rmink 2.2.1 med fas 1-koden.</footer>
+</div>
+
+<script>
+const DATA = __DATA__;
+const DATA2 = __DATA2__;
+const NS = "http://www.w3.org/2000/svg";
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let device = "pro";
+const players = [];
+
+function el(tag, attrs, parent) {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+
+function inkLayer(svg, paths) {
+  const g = el("g", { class: "layer ink", opacity: 0 }, svg);
+  for (const p of paths) {
+    el("path", { d: p.d, "stroke-width": Math.max(p.w * 1.4, 2), pathLength: 1, "data-c": p.c, "data-m": p.m }, g);
+  }
+  return g;
+}
+
+// One layer per tablet colour mode; .cur is the one for the chosen tablet.
+function dual(svg, byDevice) {
+  return { pro: inkLayer(svg, byDevice.pro), rm2: inkLayer(svg, byDevice.rm2), get cur() { return this[device]; } };
+}
+
+function boxLayer(svg, groups, extra) {
+  const g = el("g", { class: "layer box " + (extra || ""), opacity: 0 }, svg);
+  for (const gr of groups) {
+    const [x0, y0, x1, y1] = gr.b;
+    const item = el("g", { "data-id": gr.id, opacity: 0 }, g);
+    el("rect", { x: x0 - 6, y: y0 - 6, width: x1 - x0 + 12, height: y1 - y0 + 12, rx: 4 }, item);
+    const label = String(gr.id);
+    const w = 18 + label.length * 16;
+    const wide = x1 - x0 > 4 * Math.max(y1 - y0, 1);
+    const tall = y1 - y0 > 4 * Math.max(x1 - x0, 1);
+    const tx = wide ? (x0 + x1) / 2 - w / 2 : tall ? x1 + 10 : x0 - 6;
+    const ty = wide ? y0 - 40 : tall ? (y0 + y1) / 2 - 17 : y0 - 40;
+    el("rect", { class: "tag", x: tx, y: ty, width: w, height: 32, rx: 4 }, item);
+    el("text", { x: tx + 9, y: ty + 24 }, item).textContent = label;
+  }
+  return g;
+}
+
+function stats(items) {
+  return `<div class="stat">${items.map(([n, l]) => `<div><strong>${n}</strong><span>${l}</span></div>`).join("")}</div>`;
+}
+function row(ids, what, cls) {
+  return `<div class="row"><span class="ids ${cls || ""}">${ids}</span><span class="what">${what}</span></div>`;
+}
+
+class Player {
+  constructor(root, steps, start, build) {
+    this.root = root;
+    this.steps = steps;
+    this.step = start;
+    this.playing = false;
+    this.timers = [];
+    this.L = build([...root.querySelectorAll("svg[data-svg]")]);
+    const flat = v => (v instanceof Element ? [v] : v.pro ? [v.pro, v.rm2] : Object.values(v).flatMap(flat));
+    this.all = Object.values(this.L).flatMap(flat);
+    const q = r => root.querySelector(`[data-role="${r}"]`);
+    this.ui = { play: q("play"), steps: q("steps"), stepnum: q("stepnum"), title: q("title"), text: q("text"), detail: q("detail") };
+    this.ui.play.addEventListener("click", () => this.toggle());
+    q("prev").addEventListener("click", () => { this.stop(); this.go(this.step - 1, true); });
+    q("next").addEventListener("click", () => { this.stop(); this.go(this.step + 1, true); });
+    steps.forEach((s, k) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip";
+      b.innerHTML = `<b>${k + 1}</b>${s.chip || s.title}`;
+      b.addEventListener("click", () => { this.stop(); this.go(k, true); });
+      this.ui.steps.appendChild(b);
+    });
+  }
+  later(fn, ms) { this.timers.push(setTimeout(fn, ms)); }
+  clear() { while (this.timers.length) clearTimeout(this.timers.pop()); }
+  set(g, opacity, mode, span) {
+    // mode: "draw" animates strokes in, "show" shows them at once, "hide" hides them.
+    g.setAttribute("opacity", opacity);
+    const items = g.classList.contains("box") ? [...g.children] : [...g.querySelectorAll("path")];
+    const step = (span || 2600) / Math.max(items.length, 1);
+    items.forEach((n, i) => {
+      const isBox = n.tagName === "g";
+      n.style.transition = "none";
+      if (mode === "hide") { if (isBox) n.setAttribute("opacity", 0); else n.style.strokeDashoffset = 1; return; }
+      if (mode === "show" || reduce) { if (isBox) n.setAttribute("opacity", 1); else n.style.strokeDashoffset = 0; return; }
+      if (isBox) {
+        n.setAttribute("opacity", 0);
+        this.later(() => { n.style.transition = ""; n.setAttribute("opacity", 1); }, i * step);
+      } else {
+        n.style.strokeDashoffset = 1;
+        void n.getBoundingClientRect();
+        const dur = Math.min(520, Math.max(160, step * 6));
+        n.style.transition = `stroke-dashoffset ${dur}ms ease-out ${Math.round(i * step)}ms`;
+        n.style.strokeDashoffset = 0;
+      }
+    });
+  }
+  paint() {
+    const attr = device === "pro" ? "data-c" : "data-m";
+    this.root.querySelectorAll(".ink path").forEach(p => p.setAttribute("stroke", p.getAttribute(attr)));
+    this.root.querySelectorAll("[data-dev]").forEach(b => b.setAttribute("aria-pressed", b.dataset.dev === device));
+  }
+  go(i, animate) {
+    this.clear();
+    this.step = Math.max(0, Math.min(this.steps.length - 1, i));
+    const s = this.steps[this.step];
+    this.all.forEach(g => this.set(g, 0, "hide"));
+    this.ui.stepnum.textContent = `Steg ${this.step + 1} av ${this.steps.length}`;
+    this.ui.title.textContent = s.title;
+    this.ui.text.textContent = s.text;
+    this.ui.detail.innerHTML = s.detail();
+    s.doc.forEach(([name, layer], k) => {
+      this.root.querySelector(`[data-doc="${k}"]`).textContent = name;
+      this.root.querySelector(`[data-layer="${k}"]`).textContent = layer;
+    });
+    this.root.querySelectorAll(".actor").forEach(a => a.classList.toggle("on", s.actors.includes(a.dataset.a)));
+    this.ui.steps.querySelectorAll(".chip").forEach((c, k) => {
+      if (k === this.step) c.setAttribute("aria-current", "step"); else c.removeAttribute("aria-current");
+    });
+    this.paint();
+    s.run.call(this, animate);
+    if (this.playing) {
+      this.later(() => (this.step < this.steps.length - 1 ? this.go(this.step + 1, true) : this.stop()), s.hold || 5600);
+    }
+  }
+  stop() { this.playing = false; this.ui.play.textContent = "▶ Spela upp"; }
+  toggle() {
+    if (this.playing) { this.stop(); this.clear(); return; }
+    this.playing = true;
+    this.ui.play.textContent = "❚❚ Pausa";
+    this.go(this.step === this.steps.length - 1 ? 0 : this.step, true);
+  }
+}
+
+document.querySelectorAll("[data-dev]").forEach(b => b.addEventListener("click", () => {
+  device = b.dataset.dev;
+  players.forEach(p => { p.stop(); p.go(p.step, false); });
+}));
+
+/* ---------- Demo 1: sketch to revision 2 ---------- */
+const C = DATA.check.dimensions;
+const scale = DATA.check.scale_units_per_px.toFixed(2).replace(".", ",");
+const MEANING = [
+  { ids: [4, 6, 8, 15], what: "<b>Väggar V1–V4</b> <span>· bärande, linjerna räknas om till raka</span>" },
+  { ids: [5, 2], what: "<b>Mått 4800</b> <span>· måttlinje + handskrivet tal</span>" },
+  { ids: [9, 11], what: "<b>Mått 3600</b> <span>· lodrätt, läses nedifrån</span>" },
+  { ids: [3, 7, 16, 14], what: "<b>Pelare P1–P4</b> <span>· symbolen från legenden</span>" },
+  { ids: [10], what: "<b>Brunn B1</b> <span>· blå cirkel = VVS</span>" },
+  { ids: [13, 12], what: "<b>Eluttag med ledning</b> <span>· röd penna = el</span>" },
+  { ids: [17, 18, 19, 20, 21], what: "<b>Legend</b> <span>· pelare 90×90, brunn, el</span>" },
+  { ids: [1], what: "<b>Rubrik</b> <span>· “ALTAN”</span>" },
+];
+function hot(layer, ids) {
+  layer.querySelectorAll("g[data-id]").forEach(n => n.classList.toggle("hot", ids.includes(+n.dataset.id)));
+}
+
+const STEPS1 = [
+  {
+    title: "Skissa på plattan", chip: "Skissa", actors: ["tablet"], doc: [["Altan · sida 1", "Lager 1"]],
+    text: "Du ritar fritt med pennan: väggar, två mått, pelare i hörnen, en brunn och ett eluttag. I hörnet skriver du vad symbolerna betyder. På Paper Pro kan pennfärgen redan säga något: blått för VVS, rött för el.",
+    run(a) { this.set(this.L.sketch, 1, a ? "draw" : "show", 3200); },
+    detail: () => stats([[DATA.counts.sketch, "streck"], ["3", "pennfärger"], ["1", "sida"]]),
+  },
+  {
+    title: "Synka och läs in", chip: "Synka", actors: ["tablet", "cloud", "rmink"], doc: [["Altan · sida 1", "Lager 1"]],
+    text: "Plattan synkar till reMarkable Cloud. rmink hämtar anteckningsboken och läser varje streck tillbaka: punkter, penna, färg, lager och ett id som följer strecket.",
+    run() { this.set(this.L.sketch, 1, "show"); },
+    detail: () => stats([[DATA.counts.sketch, "streck inlästa"], ["1", "lager"], [DATA.counts.sketch, "streck-id:n"]]),
+  },
+  {
+    title: "Gruppera och räkna om", chip: "Gruppera", actors: ["rmink"], doc: [["Altan · sida 1", "rmink: grupper"]],
+    text: "rmink delar upp skissen i numrerade grupper. Långa streck räknas om till linjer och cirklar med exakta koordinater. Handskrift, pilspetsar och små symboler hålls ihop i en grupp som Claude får läsa av i bilden.",
+    run(a) { this.set(this.L.sketch, 0.55, "show"); this.set(this.L.groups, 1, a ? "draw" : "show", 2200); },
+    detail() {
+      const n = s => DATA.groups.filter(g => g.shape === s).length;
+      return stats([[DATA.groups.length, "grupper"], [n("line"), "linjer"], [n("circle"), "cirkel"], [n("mark"), "text och symboler"]]);
+    },
+  },
+  {
+    title: "Claude tolkar", actors: ["claude"], doc: [["Altan · sida 1", "rmink: grupper"]], hold: 6800,
+    text: "Claude ser den numrerade bilden och grupplistan, och avgör vad varje grupp är. Koordinaterna tas från rminks anpassning, så Claude behöver aldrig gissa en position ur bilden. Legenden i hörnet styr vad symbolerna betyder.",
+    run(a) {
+      this.set(this.L.sketch, 0.55, "show"); this.set(this.L.groups, 1, "show");
+      const rows = [...this.ui.detail.querySelectorAll(".row")];
+      if (!a || reduce) return;
+      rows.forEach(r => r.classList.add("dim"));
+      MEANING.forEach((m, i) => this.later(() => {
+        rows.forEach((r, k) => r.classList.toggle("hot", k === i));
+        rows[i].classList.remove("dim");
+        hot(this.L.groups, m.ids);
+      }, 300 + i * 650));
+      this.later(() => { rows.forEach(r => r.classList.remove("hot")); hot(this.L.groups, []); }, 300 + MEANING.length * 650 + 400);
+    },
+    detail: () => MEANING.map(m => row(m.ids.map(i => "#" + i).join(" "), m.what)).join(""),
+  },
+  {
+    title: "Ren ritning, revision 1", chip: "Ren ritning", actors: ["rmink", "cloud", "tablet"], doc: [["Altan r1 · sida 1", "Ritning r1 · Kommentarer"]],
+    text: "rmink rätar upp linjerna, sätter ihop hörnen och ritar med riktiga pennstreck. Ritningen får måttlinjer med pilar, symboler, en förklaringsruta och ett revisionsblock. Den nya anteckningsboken landar på plattan, med originalskissen kvar som sida 2.",
+    run(a) {
+      this.set(this.L.sketch, a ? 0.12 : 0, "show");
+      if (a) this.later(() => this.set(this.L.sketch, 0, "show"), 2400);
+      this.set(this.L.clean1.cur, 1, a ? "draw" : "show", 3000);
+    },
+    detail: () => C.map(r => row(r.text, `<b>${r.drawn_px} px ritat</b> <span>· ${r.consistent ? '<span class="ok">stämmer</span>' : "avviker"} med skalan</span>`)).join("")
+      + row("skala", `<b>${scale} mm per px</b> <span>· räknat ur de skrivna måtten. Avvikande mått flaggas så att Claude kan fråga.</span>`),
+  },
+  {
+    title: "Markera på plattan", chip: "Markera", actors: ["tablet"], doc: [["Altan r1 · sida 1", "Lager: Kommentarer"]],
+    text: "I lagret Kommentarer ringar du in pelaren i hörnet och skriver “FLYTTA 200?”. Brunnen ska bort, så den kryssas över. Mer än så behövs inte.",
+    run(a) { this.set(this.L.clean1.cur, 1, "show"); this.set(this.L.marks, 1, a ? "draw" : "show", 2600); },
+    detail: () => stats([["3", "markeringar"], ["1", "lager"]]),
+  },
+  {
+    title: "Bara det nya plockas upp", chip: "Bara det nya", actors: ["cloud", "rmink", "claude"], doc: [["Altan r1 · sida 1", "rmink: nya streck"]],
+    text: "rmink vet vilka streck det själv skrev i r1 och filtrerar bort dem. Kvar blir bara dina markeringar. Claude kopplar varje markering till ett element: krysset är en ändring, ringen med texten en fråga.",
+    run(a) { this.set(this.L.clean1.cur, 0.3, "show"); this.set(this.L.marks, 1, "show"); this.set(this.L.newb, 1, a ? "draw" : "show", 1400); },
+    detail: () => stats([[DATA.counts.known, "egna streck bortfiltrerade"], [DATA.counts.new, "nya grupper"]])
+      + row("#1 #2", "<b>Kryss över B1</b> <span>· ändring: brunnen stryks</span>", "mark")
+      + row("#4 #3", "<b>Ring kring P3 + “FLYTTA 200?”</b> <span>· fråga: öppen anmärkning 1</span>", "mark"),
+  },
+  {
+    title: "Revision 2", actors: ["rmink", "cloud", "tablet"], doc: [["Altan r2 · sida 1", "Ritning r2 · Kommentarer"]],
+    text: "Brunnen är borta, även ur legenden. Frågan om P3 är anmärkning 1, med en numrerad ring på ritningen och i listan. Ändringsloggen visar vad som hänt mellan revisionerna. Nästa omgång börjar här.",
+    run(a) { this.set(this.L.clean2.cur, 1, a ? "draw" : "show", 3000); },
+    detail: () => row("r1", "<b>Renritad från skiss</b> <span>· Förslag</span>", "plain")
+      + row("r2", "<b>Brunn B1 struken, P3 under diskussion</b> <span>· Granskning</span>", "plain"),
+  },
+];
+
+players.push(new Player(document.getElementById("flode"), STEPS1, 0, ([svg]) => ({
+  sketch: inkLayer(svg, DATA.sketch),
+  groups: boxLayer(svg, DATA.groups),
+  clean1: dual(svg, DATA.clean1),
+  marks: inkLayer(svg, DATA.marks),
+  newb: boxLayer(svg, DATA.newGroups, "newbox"),
+  clean2: dual(svg, DATA.clean2),
+})));
+
+/* ---------- Demo 2: variants A and B ---------- */
+const V = DATA2.compare;
+const mm = v => v.toLocaleString("sv-SE") + " mm";
+const part = (src, key) => ({ pro: src.pro[key], rm2: src.rm2[key] });
+const STEPS2 = [
+  {
+    title: "Utgångsläge: revision 2", chip: "Utgångsläge", actors: ["claude"],
+    doc: [["Altan r2 · sida 1", "Ritning r2"], ["Altan r2 · sida 1", "Ritning r2"]],
+    text: "Ritningen r2 är klar, men bjälklaget saknas. Du frågar Claude om bärlinorna ska gå längs eller tvärs, och ber om båda varianterna att jämföra på plattan.",
+    run() { this.set(this.L.baseA.cur, 1, "show"); this.set(this.L.baseB.cur, 1, "show"); },
+    detail: () => row("fråga", "<b>“Visa bärlina längs och tvärs som två sidor.”</b> <span>· i Claude, med rmink kopplat</span>", "plain")
+      + row("r2", "<b>4 väggar, 4 pelare, 1 eluttag</b> <span>· anmärkning 1 om P3 är fortfarande öppen</span>", "plain"),
+  },
+  {
+    title: "Två varianter ur samma modell", chip: "Två varianter", actors: ["claude", "rmink"], hold: 6200,
+    doc: [["Altan r3 varianter · sida 1", "Alternativ A"], ["Altan r3 varianter · sida 2", "Alternativ B"]],
+    text: "Claude kopierar ritningsmodellen två gånger och lägger till bärlinor på olika sätt. rmink ritar båda. Bara det som skiljer sig från r2 tillkommer på sidorna: linjer, pelare, mått, legend och logg.",
+    run(a) {
+      for (const k of ["A", "B"]) {
+        this.set(this.L[k].same.cur, 1, "show");
+        this.set(this.L[k].new.cur, 1, a ? "draw" : "show", 2600);
+      }
+    },
+    detail: () => row("A", `<b>1 bärlina längs, mittpelare P5</b> <span>· spann ${mm(V.A.span)}</span>`, "plain")
+      + row("B", `<b>2 bärlinor tvärs, inga nya pelare</b> <span>· spann ${mm(V.B.span)}</span>`, "plain")
+      + row("ändrat", `<b>${DATA2.A.pro.new.length} och ${DATA2.B.pro.new.length} nya streck</b> <span>· resten av sidorna är identiska med r2</span>`),
+  },
+  {
+    title: "Jämför", actors: ["rmink"],
+    doc: [["Altan r3 varianter · sida 1", "Alternativ A"], ["Altan r3 varianter · sida 2", "Alternativ B"]],
+    text: "Eftersom båda varianterna är data går de att räkna på. Spann och balklängd tas ur modellen med samma skala som måtten, så jämförelsen bygger på det du skrev i skissen.",
+    run() { for (const k of ["A", "B"]) { this.set(this.L[k].same.cur, 1, "show"); this.set(this.L[k].new.cur, 1, "show"); } },
+    detail: () => `<div class="cmp"><table>
+        <tr><th></th><th>A · längs</th><th>B · tvärs</th></tr>
+        <tr><td>Bärlinor</td><td>${V.A.beams}</td><td>${V.B.beams}</td></tr>
+        <tr><td>Nya pelare</td><td>${V.A.posts}</td><td class="win">${V.B.posts}</td></tr>
+        <tr><td>Största spann</td><td>${mm(V.A.span)}</td><td class="win">${mm(V.B.span)}</td></tr>
+        <tr><td>Balklängd totalt</td><td class="win">${mm(V.A.beam_mm)}</td><td>${mm(V.B.beam_mm)}</td></tr>
+      </table></div>`,
+  },
+  {
+    title: "Välj på plattan", chip: "Välj", actors: ["tablet"],
+    doc: [["Altan r3 varianter · sida 1", "Lager: Kommentarer"], ["Altan r3 varianter · sida 2", "Lager: Kommentarer"]],
+    text: "Du bläddrar mellan sidorna, kryssar över A och sätter en bock med “KÖR B” på B. Inga knappar, bara pennan.",
+    run(a) {
+      for (const k of ["A", "B"]) { this.set(this.L[k].same.cur, 1, "show"); this.set(this.L[k].new.cur, 1, "show"); }
+      this.set(this.L.marksA, 1, a ? "draw" : "show", 1600);
+      if (a) this.later(() => this.set(this.L.marksB, 1, "draw", 1800), 1700); else this.set(this.L.marksB, 1, "show");
+    },
+    detail: () => stats([["2", "sidor"], ["2", "markeringar"]]),
+  },
+  {
+    title: "Valet plockas upp", chip: "Valet", actors: ["cloud", "rmink", "claude"],
+    doc: [["Altan r3 varianter · sida 1", "rmink: nya streck"], ["Altan r3 varianter · sida 2", "rmink: nya streck"]],
+    text: "Som i granskningsrundan filtrerar rmink bort sina egna streck på båda sidorna. Claude läser det som är kvar: ett kryss över hela A och en bock med text på B.",
+    run(a) {
+      for (const k of ["A", "B"]) { this.set(this.L[k].same.cur, 0.3, "show"); this.set(this.L[k].new.cur, 0.3, "show"); }
+      this.set(this.L.marksA, 1, "show"); this.set(this.L.marksB, 1, "show");
+      this.set(this.L.newA, 1, a ? "draw" : "show", 900); this.set(this.L.newB, 1, a ? "draw" : "show", 900);
+    },
+    detail: () => stats([[DATA2.known.A + DATA2.known.B, "egna streck bortfiltrerade"], [DATA2.newA.length + DATA2.newB.length, "nya grupper"]])
+      + row("A #1 #2", "<b>Kryss över hela sidan</b> <span>· förkasta variant A</span>", "mark")
+      + row("B #1 #2", "<b>Bock + “KÖR B”</b> <span>· välj variant B</span>", "mark"),
+  },
+  {
+    title: "Revision 3: B gäller", chip: "Revision 3", actors: ["rmink", "cloud", "tablet"], hold: 6200,
+    doc: [["Altan r3 varianter · sida 1", "förkastad"], ["Altan r3 · sida 1", "Ritning r3 · Kommentarer"]],
+    text: "Variant B blir revision 3 med fasen Beslut. Loggen säger att B valdes och A förkastades, så det går att se varför ritningen ser ut som den gör. A finns kvar i varianthäftet om frågan kommer upp igen.",
+    run(a) {
+      this.set(this.L.A.same.cur, 0.18, "show"); this.set(this.L.A.new.cur, 0.18, "show"); this.set(this.L.marksA, 0.18, "show");
+      this.set(this.L.final.same.cur, 1, "show");
+      this.set(this.L.final.new.cur, 1, a ? "draw" : "show", 1800);
+    },
+    detail: () => row("r2", "<b>Brunn B1 struken</b> <span>· Granskning</span>", "plain")
+      + row("r3", "<b>Variant B vald, A förkastad</b> <span>· Beslut</span>", "plain"),
+  },
+];
+
+players.push(new Player(document.getElementById("varianter"), STEPS2, 0, ([a, b]) => ({
+  baseA: dual(a, DATA2.base),
+  baseB: dual(b, DATA2.base),
+  A: { same: dual(a, part(DATA2.A, "same")), new: dual(a, part(DATA2.A, "new")) },
+  B: { same: dual(b, part(DATA2.B, "same")), new: dual(b, part(DATA2.B, "new")) },
+  final: { same: dual(b, part(DATA2.final, "same")), new: dual(b, part(DATA2.final, "new")) },
+  marksA: inkLayer(a, DATA2.marksA),
+  marksB: inkLayer(b, DATA2.marksB),
+  newA: boxLayer(a, DATA2.newA, "newbox"),
+  newB: boxLayer(b, DATA2.newB, "newbox"),
+})));
+
+/* ---------- Demo 3: detail view ---------- */
+const DATA3 = __DATA3__;
+const PHASES = [
+  ["r1", "Renritad från skiss", "Förslag"],
+  ["r2", "Brunn B1 struken", "Granskning"],
+  ["r3", "Variant B vald, A förkastad", "Beslut"],
+  ["r4", "Detalj A vid P3", "Detaljering"],
+  ["r5", "Vinkelbeslag i detalj A, typ öppen", "Detaljering"],
+];
+const phaseRows = n => PHASES.slice(0, n).map(([r, w, f]) => row(r, `<b>${w}</b> <span>· ${f}</span>`, "plain")).join("");
+const STEPS3 = [
+  {
+    title: "Peka ut ett hörn", chip: "Peka ut", actors: ["tablet"],
+    doc: [["Altan r3 · sida 1", "Lager: Kommentarer"], ["Altan r3 · sida 2", "tom"]],
+    text: "På r3 vill du diskutera hur pelaren P3 möter väggarna. Du ringar in hörnet och skriver “DETALJ” bredvid. Sida 2 är tom.",
+    run(a) { this.set(this.L.ov3.cur, 1, "show"); this.set(this.L.marks1, 1, a ? "draw" : "show", 1600); },
+    detail: () => phaseRows(3),
+  },
+  {
+    title: "Nedslaget tolkas", chip: "Tolkas", actors: ["cloud", "rmink", "claude"],
+    doc: [["Altan r3 · sida 1", "rmink: nya streck"], ["Altan r3 · sida 2", "tom"]],
+    text: "rmink filtrerar bort sina egna streck och hittar ringen och ordet. Claude ser vilka element ringen omsluter och förstår att det är ett nedslag, inte en ändring.",
+    run(a) { this.set(this.L.ov3.cur, 0.3, "show"); this.set(this.L.marks1, 1, "show"); this.set(this.L.new1, 1, a ? "draw" : "show", 900); },
+    detail: () => stats([[DATA3.known.ov, "egna streck bortfiltrerade"], [DATA3.new1.length, "nya grupper"]])
+      + row("#2", "<b>Ring kring P3</b> <span>· omsluter pelaren P3 och väggändarna V2 och V3</span>", "mark")
+      + row("#1", "<b>“DETALJ”</b> <span>· gör en detaljvy av det inringade</span>", "mark"),
+  },
+  {
+    title: "Detaljsidan skapas", chip: "Detaljsida", actors: ["claude", "rmink", "tablet"], hold: 6400,
+    doc: [["Altan r4 · sida 1", "Ritning r4"], ["Altan r4 · sida 2", "Detalj A · Kommentarer"]],
+    text: "Claude bygger detaljen i riktiga millimeter: pelaren 90 × 90 och väggarna 45 mm. rmink ritar den i skala 1:5 på en egen sida. Översikten får en streckad ring med bokstaven A som pekar på detaljen.",
+    run(a) {
+      this.set(this.L.ov4.same.cur, 1, "show");
+      this.set(this.L.ov4.new.cur, 1, a ? "draw" : "show", 1200);
+      if (a) this.later(() => this.set(this.L.det4.cur, 1, "draw", 3000), 900); else this.set(this.L.det4.cur, 1, "show");
+    },
+    detail: () => row("skala", `<b>${DATA3.scale}</b> <span>· utsnitt ${DATA3.cut_mm} × ${DATA3.cut_mm} mm runt P3</span>`, "plain")
+      + row("mått", "<b>Pelare 90, vägg 45</b> <span>· ritade i sin riktiga storlek, inte uppskalade från skissen</span>", "plain")
+      + row("länk", "<b>Ring A på översikten</b> <span>· detalj och översikt delar samma ritningsmodell</span>", "plain"),
+  },
+  {
+    title: "Skissa vidare i detaljen", chip: "Skissa vidare", actors: ["tablet"],
+    doc: [["Altan r4 · sida 1", "Ritning r4"], ["Altan r4 · sida 2", "Lager: Kommentarer"]],
+    text: "I detaljen finns plats för det som inte syns på översikten. Du ritar ett vinkelbeslag i innerhörnet, drar en pil och skriver “VINKELBESLAG?”.",
+    run(a) {
+      this.set(this.L.ov4.same.cur, 1, "show"); this.set(this.L.ov4.new.cur, 1, "show");
+      this.set(this.L.det4.cur, 1, "show"); this.set(this.L.marks2, 1, a ? "draw" : "show", 2200);
+    },
+    detail: () => stats([["3", "markeringar"], ["1", "lager"]]),
+  },
+  {
+    title: "Det nya plockas upp", chip: "Det nya", actors: ["cloud", "rmink", "claude"],
+    doc: [["Altan r4 · sida 1", "Ritning r4"], ["Altan r4 · sida 2", "rmink: nya streck"]],
+    text: "Samma sak som på översikten: rmink känner igen sina egna streck på detaljsidan och lämnar resten åt Claude. Vinkeln blir ett beslag, frågetecknet en öppen fråga.",
+    run(a) {
+      this.set(this.L.ov4.same.cur, 1, "show"); this.set(this.L.ov4.new.cur, 1, "show");
+      this.set(this.L.det4.cur, 0.3, "show"); this.set(this.L.marks2, 1, "show");
+      this.set(this.L.new2, 1, a ? "draw" : "show", 1200);
+    },
+    detail: () => stats([[DATA3.known.det, "egna streck bortfiltrerade"], [DATA3.new2.length, "nya grupper"]])
+      + row("#3", "<b>L-form i innerhörnet</b> <span>· vinkelbeslag VB1, ritas rent</span>", "mark")
+      + row("#1 #2 #4", "<b>Pil + “VINKELBESLAG?”</b> <span>· fråga: vilket beslag, dimension och skruv</span>", "mark"),
+  },
+  {
+    title: "Revision 5, fas för fas", chip: "Revision 5", actors: ["rmink", "cloud", "tablet"], hold: 6400,
+    doc: [["Altan r5 · sida 1", "Ritning r5"], ["Altan r5 · sida 2", "Detalj A · Kommentarer"]],
+    text: "Beslaget är inritat i grönt som en ändring, och frågan om typ är anmärkning 1 på detaljsidan. Översiktens logg får en rad. Varje revision har sin fas, så historiken går att läsa från förslag till detaljering.",
+    run(a) {
+      this.set(this.L.ov5.same.cur, 1, "show"); this.set(this.L.ov5.new.cur, 1, a ? "draw" : "show", 900);
+      this.set(this.L.det5.same.cur, 1, "show"); this.set(this.L.det5.new.cur, 1, a ? "draw" : "show", 2400);
+    },
+    detail: () => phaseRows(5),
+  },
+];
+
+players.push(new Player(document.getElementById("nedslag"), STEPS3, 0, ([a, b]) => ({
+  ov3: dual(a, DATA3.ov3),
+  ov4: { same: dual(a, part(DATA3.ov4, "same")), new: dual(a, part(DATA3.ov4, "new")) },
+  ov5: { same: dual(a, part(DATA3.ov5, "same")), new: dual(a, part(DATA3.ov5, "new")) },
+  marks1: inkLayer(a, DATA3.marks1),
+  new1: boxLayer(a, DATA3.new1, "newbox"),
+  det4: dual(b, DATA3.det4),
+  det5: { same: dual(b, part(DATA3.det5, "same")), new: dual(b, part(DATA3.det5, "new")) },
+  marks2: inkLayer(b, DATA3.marks2),
+  new2: boxLayer(b, DATA3.new2, "newbox"),
+})));
+
+/* ---------- Demo 4: paper sketch through the phone ---------- */
+const DATA4 = __DATA4__;
+const MEANING4 = [
+  { ids: [4, 9, 11, 16, 18], what: "<b>Väggar</b> <span>· två hörn kom som sammanhängande polylinjer</span>" },
+  { ids: [6, 7, 8, 10], what: "<b>Fönster</b> <span>· dubbellinje i övre väggen</span>" },
+  { ids: [15, 16], what: "<b>Dörr</b> <span>· dörrblad och slagbåge</span>" },
+  { ids: [2, 3], what: "<b>Mått 3000</b> <span>· måttlinje + tal</span>" },
+  { ids: [13, 14], what: "<b>Mått 2400</b> <span>· lodrätt</span>" },
+  { ids: [1, 19, 21, 22], what: "<b>Text</b> <span>· “FÖRRÅD”, “DÖRR 9X21”, “TAKLUTNING 15°”</span>" },
+  { ids: [5, 12, 17, 20], what: "<b>Småbitar</b> <span>· korsningar i blyertsen, ignoreras</span>" },
+];
+const C4 = DATA4.check.dimensions;
+function phone(p, toast, opts) {
+  const t = p.root.querySelector('[data-role="toast"]');
+  t.textContent = toast || "";
+  t.classList.toggle("shutter", !!(opts && opts.shutter));
+  p.root.querySelector('[data-role="photo"]').classList.toggle("dim", !!(opts && opts.dim));
+}
+const STEPS4 = [
+  {
+    title: "Skiss på papper", chip: "Papper", actors: ["phone"],
+    doc: [["Kamera", ""], ["Plattan", "ingen anteckningsbok än"]],
+    text: "På ett möte vid förrådet ritar ni med blyerts på ett vanligt papper: väggar, dörr, fönster, två mått och taklutningen. Plattan ligger kvar hemma.",
+    run() { phone(this, "", { shutter: true }); },
+    detail: () => row("papper", "<b>A4, blyerts</b> <span>· skala ungefär 1:20, fotat lite snett i ojämnt ljus</span>", "plain"),
+  },
+  {
+    title: "Fota i webbappen", chip: "Fota", actors: ["phone"],
+    doc: [["rmink.vercel.app", "Take a photo"], ["Plattan", "ingen anteckningsbok än"]],
+    text: "I rmink på mobilen trycker du på “Take a photo”. Bilden hamnar i fillistan med datum och tid som namn, precis som i dag.",
+    run() { phone(this, "Photo 2026-10-27 14.12.jpg"); },
+    detail: () => row("finns", "<b>Kameraknappen</b> <span>· i webbappen sedan 2.1.1</span>", "plain"),
+  },
+  {
+    title: "Bläck ur fotot", chip: "Bläck", actors: ["rmink"],
+    doc: [["rmink.vercel.app", "Förhandsvisning"], ["Förhandsvisning", "bläck ur fotot"]],
+    text: "rminks fotokonvertering hittar blyertsstrecken och gör om dem till pennstreck. Bordet, skuggan och papperskanten blir inte bläck. Det här är rminks riktiga utdata för fotot till vänster.",
+    run(a) { phone(this, "Konverterar…", { dim: true }); this.set(this.L.ink, 1, a ? "draw" : "show", 2600); },
+    detail: () => stats([[DATA4.ink.length, "streck"], [DATA4.inkPoints, "punkter"], ["0", "streck från bordet"]])
+      + row("finns", "<b>Foto till bläck</b> <span>· samma konvertering som för handskrift i dag</span>", "plain"),
+  },
+  {
+    title: "Gruppera och tolka", chip: "Tolka", actors: ["rmink", "claude"], hold: 6800,
+    doc: [["rmink.vercel.app", "Förhandsvisning"], ["Förhandsvisning", "rmink: grupper"]],
+    text: "Strecken grupperas som för en skiss från plattan. Ett foto ger lite stökigare grupper: hörn som hänger ihop och små bitar där blyertsen korsar sig. Claude sorterar ut vad som är vägg, öppning, mått och text, och hoppar över småbitarna.",
+    run(a) {
+      phone(this, "Rita rent · fas 2", { dim: true });
+      this.set(this.L.ink, 0.55, "show"); this.set(this.L.groups, 1, "show");
+      const rows = [...this.ui.detail.querySelectorAll(".row")];
+      if (!a || reduce) return;
+      rows.forEach(r => r.classList.add("dim"));
+      MEANING4.forEach((m, i) => this.later(() => {
+        rows.forEach((r, k) => r.classList.toggle("hot", k === i));
+        rows[i].classList.remove("dim");
+        hot(this.L.groups, m.ids);
+      }, 300 + i * 750));
+      this.later(() => { rows.forEach(r => r.classList.remove("hot")); hot(this.L.groups, []); }, 300 + MEANING4.length * 750 + 400);
+    },
+    detail: () => MEANING4.map(m => row(m.ids.map(i => "#" + i).join(" "), m.what)).join(""),
+  },
+  {
+    title: "Ren ritning", actors: ["rmink"],
+    doc: [["rmink.vercel.app", "Förhandsvisning"], ["Förråd r1 · sida 1", "Ritning r1 · Kommentarer"]],
+    text: "Fotot var taget lite snett, men linjerna rätas upp och hörnen sätts ihop. Dörren får sin slagbåge, fönstret sin dubbellinje, och taklutningen följer med som text. Måtten kontrolleras mot varandra som vanligt.",
+    run(a) {
+      phone(this, "Send to reMarkable", { dim: true });
+      this.set(this.L.ink, a ? 0.15 : 0, "show");
+      if (a) this.later(() => this.set(this.L.ink, 0, "show"), 2400);
+      this.set(this.L.clean.cur, 1, a ? "draw" : "show", 2800);
+    },
+    detail: () => C4.map(r => row(r.text, `<b>${r.drawn_px} px ritat</b> <span>· ${r.consistent ? '<span class="ok">stämmer</span>' : "avviker"} med skalan</span>`)).join(""),
+  },
+  {
+    title: "På plattan", chip: "Plattan", actors: ["tablet"],
+    doc: [["rmink.vercel.app", "Skickad"], ["Förråd r1 · sida 1", "Ritning r1 · Kommentarer"]],
+    text: "Ritningen landar på plattan med fotots bläck som sida 2. Därifrån går det som skisserna från plattan: markera, få nästa revision, prova varianter eller gör ett nedslag.",
+    run() { phone(this, "Skickad till reMarkable ✓"); this.set(this.L.clean.cur, 1, "show"); },
+    detail: () => row("finns", "<b>Send to reMarkable</b> <span>· i webbappen sedan 2.2.0</span>", "plain")
+      + row("nästa", '<b>Granskningsrunda</b> <span>· <a href="#flode">som i demon överst</a></span>', "plain"),
+  },
+];
+
+players.push(new Player(document.getElementById("pappersskiss"), STEPS4, 0, ([svg]) => ({
+  ink: inkLayer(svg, DATA4.ink),
+  groups: boxLayer(svg, DATA4.groups),
+  clean: dual(svg, DATA4.clean),
+})));
+document.querySelector('#pappersskiss [data-role="photo"]').src = DATA4.photo;
+
+/* ---------- Demo 5: export ---------- */
+const DATA5 = __DATA5__;
+const ACI = { 7: "#e8e8e8", 3: "#4ec94e", 1: "#ff5a52", 8: "#8a8f94", 6: "#e070e0" };
+const PRINT = { VAGG: "#111", BARLINA: "#2a8a3e", EL: "#c8322b", MATT: "#777", PELARE: "#111", DETALJ: "#777", TEXT: "#111", KOMMENTAR: "#a33a9c" };
+const LAYER_ACI = Object.fromEntries(DATA5.layers.map(l => [l.n, l.c]));
+const kb = n => (n / 1000).toLocaleString("sv-SE", { maximumFractionDigits: 1 }) + " kB";
+
+// Draws the export entities (millimetres, y up) into an SVG group.
+// map: [x, y] mm -> [x, y] in the target viewBox; s: mm per viewBox unit.
+function drawEntities(g, map, s, colour, widths) {
+  const w = l => widths[l] || widths._;
+  const path = (parent, l, d) => el("path", { d, stroke: colour(l), "stroke-width": w(l), pathLength: 1 }, parent);
+  const seg = (parent, l, a, b) => path(parent, l, `M${map(a)} L${map(b)}`);
+  const ring = (parent, l, [cx, cy], r, n) => {
+    const pts = [];
+    for (let i = 0; i <= n; i++) { const t = i / n * Math.PI * 2; pts.push(map([cx + r * Math.cos(t), cy + r * Math.sin(t)])); }
+    path(parent, l, "M" + pts.join(" L"));
+  };
+  const text = (parent, l, [x, y], size, str, extra) => {
+    const [tx, ty] = map([x, y]);
+    el("text", { x: tx, y: ty, fill: colour(l), "font-size": size / s, ...(extra ? extra(tx, ty) : {}) }, parent).textContent = str;
+  };
+  for (const e of DATA5.ents) {
+    const layer = el("g", { "data-layer": e.l }, g);
+    if (e.t === "line") seg(layer, e.l, e.p[0], e.p[1]);
+    if (e.t === "circle") ring(layer, e.l, e.c, e.r, 48);
+    if (e.t === "text") text(layer, e.l, e.p, e.h, e.s);
+    if (e.t === "insert") {
+      const [x, y] = e.p;
+      if (e.b === "PELARE") {
+        const r = 45, c = [[x - r, y - r], [x + r, y - r], [x + r, y + r], [x - r, y + r]];
+        c.forEach((a, i) => seg(layer, e.l, a, c[(i + 1) % 4]));
+        seg(layer, e.l, c[0], c[2]); seg(layer, e.l, c[3], c[1]);
+      } else {
+        ring(layer, e.l, e.p, 60, 24);
+      }
+      if (e.label) text(layer, e.l, [x + 80, y + 80], 110, e.label);
+    }
+    if (e.t === "dim") {
+      const [a2, b2] = e.q;
+      seg(layer, "MATT", a2, b2); seg(layer, "MATT", e.p[0], a2); seg(layer, "MATT", e.p[1], b2);
+      const mid = [(a2[0] + b2[0]) / 2, (a2[1] + b2[1]) / 2];
+      const vertical = Math.abs(b2[0] - a2[0]) < Math.abs(b2[1] - a2[1]);
+      text(layer, "MATT", mid, 130, e.s, (tx, ty) => ({
+        "text-anchor": "middle",
+        transform: vertical ? `rotate(-90 ${tx} ${ty}) translate(0 ${-40 / s})` : `translate(0 ${-40 / s})`,
+      }));
+    }
+  }
+}
+
+function svgView(host) {
+  const svg = el("svg", { viewBox: "40 120 1360 1500" }, host);
+  el("rect", { x: 40, y: 120, width: 1360, height: 1500, fill: "#ffffff" }, svg);
+  const g = inkLayer(svg, DATA5.ov.pro);
+  g.querySelectorAll("path").forEach(p => p.setAttribute("stroke", p.dataset.c));
+  return g;
+}
+
+function pdfView(host) {
+  const svg = el("svg", { viewBox: "-8 -8 313 226" }, host);
+  el("rect", { x: -8, y: -8, width: 313, height: 226, fill: "#c9ccc7" }, svg);
+  el("rect", { x: 0, y: 0, width: 297, height: 210, fill: "#ffffff" }, svg);
+  const g = el("g", { class: "layer ink" }, svg);
+  const map = ([x, y]) => [(40 + x / 25).toFixed(2), (178 - y / 25).toFixed(2)];
+  drawEntities(g, map, 25, l => PRINT[l] || "#111", { VAGG: 0.5, PELARE: 0.35, _: 0.25, MATT: 0.18 });
+  g.querySelectorAll("text").forEach(t => t.setAttribute("font-family", "Archivo, Arial, sans-serif"));
+  const frame = el("g", { class: "layer ink" }, svg);
+  for (const d of ["M10 10 H287 V200 H10 Z", "M240 156 H287", "M240 156 V200", "M240 172 H287", "M240 186 H287", "M40 192 H80", "M40 190 V194", "M60 191 V193", "M80 190 V194"])
+    el("path", { d, stroke: "#111", "stroke-width": d.startsWith("M10") ? 0.5 : 0.25, pathLength: 1 }, frame);
+  const t = (x, y, s, txt, w) => { el("text", { x, y, "font-size": s, fill: "#111", "font-family": "Archivo, Arial, sans-serif", "font-weight": w || 400 }, svg).textContent = txt; };
+  t(243, 166, 6, "ALTAN", 700); t(243, 181, 3.4, "REV 5 · DETALJERING"); t(243, 195, 3.4, "1:25 · A4 · 2026-10-27");
+  t(40, 199, 2.6, "0"); t(78, 199, 2.6, "1 m");
+  return [g, frame];
+}
+
+function cadView(host, withPanel) {
+  host.style.background = "#1b1f23";
+  const svg = el("svg", { viewBox: "-900 -4500 6600 5400", preserveAspectRatio: "xMidYMid meet" }, host);
+  el("rect", { x: -900, y: -4500, width: 6600, height: 5400, fill: "#1b1f23" }, svg);
+  const grid = el("g", {}, svg);
+  for (let x = -0; x <= 5000; x += 1000) {
+    el("path", { d: `M${x} 400 V-4100`, stroke: "#2b3238", "stroke-width": 12 }, grid);
+    el("text", { x: x, y: 650, fill: "#5d666d", "font-size": 150, "text-anchor": "middle", "font-family": "IBM Plex Mono, monospace" }, grid).textContent = x;
+  }
+  for (let y = 0; y <= 4000; y += 1000) {
+    el("path", { d: `M-500 ${-y} H5400`, stroke: "#2b3238", "stroke-width": 12 }, grid);
+    el("text", { x: -560, y: -y + 50, fill: "#5d666d", "font-size": 150, "text-anchor": "end", "font-family": "IBM Plex Mono, monospace" }, grid).textContent = y;
+  }
+  const g = el("g", { class: "layer ink" }, svg);
+  drawEntities(g, ([x, y]) => [x, -y], 1, l => ACI[LAYER_ACI[l]] || "#e8e8e8", { VAGG: 26, _: 16 });
+  g.querySelectorAll("text").forEach(t => t.setAttribute("font-family", "IBM Plex Mono, monospace"));
+  // Crosshair on P3.
+  el("path", { d: "M4800 -260 V260 M4540 0 H5060", stroke: "#8aa4ff", "stroke-width": 10 }, svg);
+  if (withPanel) {
+    const panel = document.createElement("div");
+    panel.className = "layers";
+    panel.innerHTML = DATA5.layers.map(l => `<label><input type="checkbox" checked data-l="${l.n}"><i style="background:${ACI[l.c]}"></i>${l.n} <span style="color:#7b8286">${l.count}</span></label>`).join("");
+    panel.addEventListener("change", ev => {
+      const n = ev.target.dataset.l;
+      svg.querySelectorAll(`[data-layer="${n}"]`).forEach(x => (x.style.display = ev.target.checked ? "" : "none"));
+    });
+    host.appendChild(panel);
+    const st = document.createElement("div");
+    st.className = "cadstatus";
+    st.innerHTML = "<span>P3 · X 4800  Y 0</span><span>enhet mm · raster 50</span>";
+    host.appendChild(st);
+  }
+  return g;
+}
+
+function viewer(p, build) {
+  const host = p.root.querySelector('[data-role="viewer"]');
+  host.innerHTML = "";
+  host.style.background = "";
+  return build(host);
+}
+
+const STEPS5 = [
+  {
+    title: "Senaste revisionen", chip: "Revisionen", actors: ["tablet"],
+    doc: [["Altan r5 · sida 1", "Ritning r5"], ["Export", ""]],
+    text: "Altan r5 ligger på plattan efter granskning, varianter och detaljering. Nu ska den till någon som inte har en reMarkable: en snickare, en granne, en konstruktör.",
+    run() {
+      this.set(this.L.ov.cur, 1, "show");
+      viewer(this, h => { h.innerHTML = `<div class="empty"><span>Välj format</span><div class="files"><div class="file"><b>SVG</b>dela</div><div class="file"><b>PDF</b>skriv ut</div><div class="file"><b>DXF</b>CAD</div></div></div>`; });
+    },
+    detail: () => row("r5", "<b>Altan, Detaljering</b> <span>· 4 väggar, 2 bärlinor, 4 pelare, 1 eluttag, detalj A</span>", "plain"),
+  },
+  {
+    title: "SVG: dela direkt", chip: "SVG", actors: ["rmink", "share"],
+    doc: [["Altan r5 · sida 1", "Ritning r5"], ["Webbläsare", "altan-r5.svg"]],
+    text: "rmink skriver den rena sidan som SVG, samma streck som på plattan och med Paper Pros färger. Den öppnas i alla webbläsare och går att skicka i ett mejl eller en chatt.",
+    run(a) { this.set(this.L.ov.cur, 1, "show"); const g = viewer(this, svgView); this.set(g, 1, a ? "draw" : "show", 2200); },
+    detail: () => stats([[kb(DATA5.svgBytes), "filstorlek"], [DATA5.ov.pro.length, "linjer"]])
+      + row("finns", "<b>rmink draw --svg</b> <span>· eller save_revision med svg_path via MCP</span>", "plain"),
+  },
+  {
+    title: "PDF: skriv ut i skala", chip: "PDF", actors: ["rmink", "share"],
+    doc: [["Altan r5 · sida 1", "Ritning r5"], ["Förhandsvisning", "Altan r5.pdf"]],
+    text: "För utskrift ritas samma modell om i millimeter på ett A4-ark, liggande i skala 1:25, med ram, titelblock och skalstock. Altanens 4800 mm blir 192 mm på papperet.",
+    run(a) { this.set(this.L.ov.cur, 1, "show"); const gs = viewer(this, pdfView); gs.forEach(g => this.set(g, 1, a ? "draw" : "show", 2400)); },
+    detail: () => row("skala", "<b>1:25 på A4 liggande</b> <span>· 4800 × 3600 mm blir 192 × 144 mm</span>", "plain")
+      + row("ark", "<b>Ram, titelblock, skalstock</b> <span>· revision, fas och datum från modellen</span>", "plain")
+      + row("status", "<b>Nästa steg</b> <span>· arket här är ritat ur modellen för att visa idén</span>"),
+  },
+  {
+    title: "DXF: öppna i CAD", chip: "DXF", actors: ["rmink", "share"], hold: 7000,
+    doc: [["Altan r5 · sida 1", "Ritning r5"], ["CAD", "altan-r5.dxf"]],
+    text: "Konstruktören får en DXF med geometrin i riktiga millimeter, räknad ur de handskrivna måtten och låst till ett raster på 50 mm. Varje kategori blir ett eget lager och pelarna ett block. Prova att slå av och på lagren.",
+    run(a) { this.set(this.L.ov.cur, 1, "show"); const g = viewer(this, h => cadView(h, true)); this.set(g, 1, a ? "draw" : "show", 2400); },
+    detail: () => stats([[DATA5.ents.length, "objekt"], [DATA5.layers.length, "lager"], [kb(DATA5.dxfBytes), "filstorlek"]])
+      + `<pre class="snippet">${DATA5.dxfSnippet.replace(/</g, "&lt;")}\n …</pre>`
+      + row("status", "<b>Nästa steg</b> <span>· filen ovan är skriven ur modellen för demon, inte av rmink</span>"),
+  },
+  {
+    title: "Samma modell, tre format", chip: "Sammanfattning", actors: ["tablet", "rmink", "claude", "share"], hold: 6200,
+    doc: [["Altan r5 · sida 1", "Ritning r5"], ["Export", "SVG · PDF · DXF"]],
+    text: "Ingen av filerna är en bild av en bild. Alla tre ritas ur ritningsmodellen, så en ändring på plattan i nästa revision kommer med i alla format. Claude kan göra exporten på begäran: “skicka r5 som PDF till snickaren”.",
+    run() {
+      this.set(this.L.ov.cur, 1, "show");
+      viewer(this, h => {
+        const t = document.createElement("div"); t.className = "trio"; h.appendChild(t);
+        const cell = label => { const c = document.createElement("div"); c.innerHTML = `<span>${label}</span>`; t.appendChild(c); return c; };
+        this.set(svgView(cell("SVG · finns")), 1, "show");
+        pdfView(cell("PDF · nästa steg")).forEach(g => this.set(g, 1, "show"));
+        this.set(cadView(cell("DXF · nästa steg"), false), 1, "show");
+      });
+    },
+    detail: () => `<div class="cmp"><table>
+        <tr><th>Format</th><th>För</th><th>Status</th></tr>
+        <tr><td>SVG</td><td>webb, mejl, chatt</td><td class="win">finns</td></tr>
+        <tr><td>PDF</td><td>utskrift i skala</td><td>nästa steg</td></tr>
+        <tr><td>DXF</td><td>CAD, lager i mm</td><td>nästa steg</td></tr>
+      </table></div>`,
+  },
+];
+
+players.push(new Player(document.getElementById("export"), STEPS5, 0, ([svg]) => ({
+  ov: dual(svg, DATA5.ov),
+})));
+
+/* ---------- Scenario cards ---------- */
+const SCEN = [
+  { t: "Renritning", st: "built", link: "#flode", d: "Handskiss med mått blir en ren ritning: raka linjer, måttkedjor, versaltext och revisionsblock. Skissen finns kvar som sida 2.",
+    g: `<path class="s" d="M14 70 Q40 66 70 71 T112 68"/><path class="s" d="M14 70 L16 20 Q60 23 112 19 L112 68"/><path class="a" d="M150 70 H260 V20 H150 Z"/><path class="g" d="M150 10 H260"/><text x="194" y="8">4800</text><path class="a" d="M122 45 h16 m-5 -5 l5 5 l-5 5"/>` },
+  { t: "Legend styr symbolerna", st: "built", link: "#flode", d: "Skissens egen legend säger vad symbolerna och pilarna betyder. Ritningen får standardsymboler och en ren förklaringsruta.",
+    g: `<rect class="s" x="20" y="22" width="18" height="18"/><path class="s" d="M20 22 l18 18 m0 -18 l-18 18"/><text x="46" y="35">= PELARE</text><circle class="a" cx="29" cy="62" r="9"/><text x="46" y="66">= BRUNN</text><rect class="a" x="170" y="18" width="80" height="56"/><rect class="s" x="163" y="11" width="14" height="14"/><circle class="a" cx="200" cy="45" r="10"/>` },
+  { t: "Granskningsrunda", st: "built", link: "#flode", d: "Ringa in, kryssa eller skriv på revisionen. Bara de nya strecken läses. Tydliga ändringar görs direkt, frågor blir numrerade anmärkningar.",
+    g: `<rect class="s" x="20" y="16" width="110" height="60"/><circle class="m" cx="130" cy="76" r="14"/><path class="m" d="M40 30 l20 20 m0 -20 l-20 20"/><text x="150" y="40">#1 kryss → stryk</text><text x="150" y="58">#2 ring → fråga</text>` },
+  { t: "Faser och nedslag", st: "later", link: "#nedslag", d: "Varje revision har fas och datum: förslag, granskning, beslut. Ett nedslag blir en detaljvy av ett element på en egen sida, där man skissar vidare.",
+    g: `<rect class="s" x="16" y="16" width="100" height="60"/><circle class="g" cx="100" cy="62" r="16"/><path class="g" d="M116 62 L160 46"/><rect class="a" x="160" y="16" width="96" height="60"/><text x="168" y="30">DETALJ A</text>` },
+  { t: "Varianter", st: "later", link: "#varianter", d: "Alternativ A och B från samma modell som separata sidor, t.ex. två balkplaceringar. Markera den som gäller på plattan.",
+    g: `<rect class="s" x="16" y="18" width="100" height="56"/><path class="a" d="M16 46 H116"/><text x="18" y="88">A</text><rect class="s" x="156" y="18" width="100" height="56"/><path class="a" d="M189 18 V74 M222 18 V74"/><text x="158" y="88">B</text><path class="m" d="M232 84 l8 6 l14 -16"/>` },
+  { t: "Pappersskiss", st: "partial", link: "#pappersskiss", d: "Ett foto av en pappersskiss går in i samma tolkning, via kameraknappen i webbappen. Den som inte har plattan till hands kan också vara med.",
+    g: `<rect class="s" x="20" y="14" width="60" height="70" rx="8"/><circle class="s" cx="50" cy="44" r="14"/><path class="a" d="M100 49 h50 m-6 -6 l6 6 l-6 6"/><rect class="a" x="170" y="20" width="86" height="58"/>` },
+  { t: "Export och delning", st: "partial", link: "#export", d: "Den rena sidan som SVG att dela med andra. PDF och DXF för CAD är nästa steg.",
+    g: `<rect class="a" x="20" y="18" width="90" height="60"/><text x="140" y="30">SVG  ✓</text><text x="140" y="52">PDF</text><text x="140" y="74">DXF</text>` },
+  { t: "Med och utan färg", st: "built", link: "#flode", d: "Samma ritning på alla plattor. Paper Pro och Move visar kategorierna i färg, rm2 och Paper Pure med linjetyp och tjocklek. Byt platta i demon.",
+    g: `<path class="s" d="M16 26 H116"/><path class="a" d="M16 46 H116"/><path class="m" d="M16 66 H116"/><path class="s" d="M156 26 H256"/><path class="s" stroke-dasharray="10 6" d="M156 46 H256"/><path class="s" stroke-dasharray="2 6" d="M156 66 H256"/><text x="16" y="88">PAPER PRO</text><text x="156" y="88">RM2 / PURE</text>` },
+];
+document.getElementById("scenarios").innerHTML = SCEN.map((s, i) => `
+  <article class="card">
+    <div class="top"><h3>${i + 1}. ${s.t}</h3><span class="pill ${s.st}">${{ built: "fas 1", partial: "delvis", later: "senare" }[s.st]}</span></div>
+    <svg viewBox="0 0 272 92" aria-hidden="true">${s.g}</svg>
+    <p>${s.d}</p>
+    ${s.link ? `<a href="${s.link}">${s.link === "#flode" ? "Se i demon" : "Se konceptanimeringen"}</a>` : ""}
+  </article>`).join("");
+
+players.forEach(p => p.go(p.step, false));
+
+// A link to a demo (menu, scenario card or #anchor in the address) rewinds it
+// to step 1 and plays it from the start.
+function startDemo(id) {
+  const p = players.find(x => x.root.id === id);
+  if (!p) return;
+  players.forEach(x => { if (x !== p && x.playing) { x.stop(); x.clear(); } });
+  p.stop();
+  p.go(0, false);
+  p.toggle();
+}
+document.addEventListener("click", ev => {
+  const a = ev.target.closest('a[href^="#"]');
+  if (a) startDemo(a.getAttribute("href").slice(1));
+});
+if (location.hash) startDemo(location.hash.slice(1));
+</script>
