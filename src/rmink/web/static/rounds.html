@@ -50,6 +50,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   <header>
     <h1>Revisionsvarv</h1>
     <p class="muted">Markera på plattan, låt den synka, välj anteckningsboken och kör nästa varv. Den nya revisionen skickas till plattan.</p>
+    <p class="muted" id="memory"></p>
   </header>
 
   <section class="card" id="login" hidden>
@@ -87,6 +88,19 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
     del: (k) => { try { localStorage.removeItem(k); } catch {} },
   };
   let secret = store.get("rmink.roundsSecret");
+  // Drawings between rounds live in this browser: the server has no memory.
+  const memory = () => { try { return JSON.parse(store.get("rmink.roundsMemory")) || { drawings: {}, links: {} }; } catch { return { drawings: {}, links: {} }; } };
+  function remember(back) {
+    const m = memory();
+    Object.assign(m.drawings, back.drawings || {});
+    m.links = back.links || m.links;
+    try { localStorage.setItem("rmink.roundsMemory", JSON.stringify(m)); return true; } catch { return false; }
+  }
+  function showMemory() {
+    const n = Object.keys(memory().drawings).length;
+    $("#memory").textContent = n ? `${n} ${n === 1 ? "ritning sparad" : "ritningar sparade"} i den här webbläsaren.` : "Ritningarna sparas i den här webbläsaren mellan varven.";
+  }
+  showMemory();
   let path = "/", chosen = null;
   const device = $("#device");
   device.value = store.get("rmink.roundsDevice") || "rm2";
@@ -154,7 +168,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
     try {
       const r = await api("/api/rounds/run", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ document: chosen, device: device.value }),
+        body: JSON.stringify({ document: chosen, device: device.value, ...memory() }),
       });
       result.innerHTML = "";
       const h = document.createElement("p");
@@ -169,6 +183,12 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
         result.appendChild(q);
       }
       if (r.preview_png) { const img = document.createElement("img"); img.alt = `Revision ${r.revision}`; img.src = "data:image/png;base64," + r.preview_png; result.appendChild(img); }
+      if (r.store && !remember(r.store)) {
+        const w = document.createElement("p"); w.className = "error";
+        w.textContent = "Kunde inte spara ritningen i webbläsaren (privat läge?). Nästa varv börjar om från början.";
+        result.appendChild(w);
+      }
+      showMemory();
       const m = document.createElement("p"); m.className = "muted";
       m.textContent = `${r.seconds} s · ${r.usage.input_tokens + r.usage.cache_read_input_tokens + r.usage.cache_creation_input_tokens} in- och ${r.usage.output_tokens} ut-tokens · ca ${r.usage.usd} USD`;
       result.appendChild(m);

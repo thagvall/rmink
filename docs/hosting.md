@@ -60,9 +60,11 @@ unless these are set under *Settings → Environment Variables*:
   (it is printed into `~/.config/rmink/cloud.toml`)
 - `RMINK_ROUND_EFFORT` (optional): `low`, `medium` (default) or `high`
 
-Drawings are kept between rounds in Upstash Redis: add the **Upstash for
-Redis** integration from the Vercel Marketplace to the project, which sets
-`KV_REST_API_URL` and `KV_REST_API_TOKEN`. The rounds need `rmink[rounds]`
+Drawings are kept between rounds in the browser you run them from (the page
+sends them with each round and stores what comes back), so no database is
+needed; a different phone or a cleared browser starts the drawing over from
+its latest revision. Optionally, the **Upstash for Redis** integration
+(`KV_REST_API_URL`, `KV_REST_API_TOKEN`) keeps them on the server instead. The rounds need `rmink[rounds]`
 in `requirements.txt`. Locally, `rmink round "/Altan r2"` runs the same round
 with drawings in `~/.config/rmink/drawings`.
 

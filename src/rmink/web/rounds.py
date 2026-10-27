@@ -3,8 +3,9 @@
 Owner-only. The router is mounted only when ``RMINK_ROUNDS_SECRET`` and
 ``ANTHROPIC_API_KEY`` are set, and every API call must carry the secret in the
 ``X-Rmink-Secret`` header. The reMarkable connection comes from
-``RMINK_CLOUD_TOKEN`` and drawings are kept in Upstash Redis when its variables
-are set (see :func:`rmink.drawing.store.default_store`).
+``RMINK_CLOUD_TOKEN``. Drawings are kept in the owner's browser: the page sends
+them with each round and stores what comes back. With Upstash Redis configured
+(see :func:`rmink.drawing.store.redis_from_env`) they are kept there instead.
 """
 
 from __future__ import annotations
@@ -43,6 +44,10 @@ def _token() -> str:
 class RunRequest(BaseModel):
     document: str
     device: str = "rm2"
+    # The browser's saved drawings (name slug -> Drawing JSON) and which
+    # notebook belongs to which drawing; ignored when Redis is configured.
+    drawings: dict[str, str] = {}
+    links: dict[str, str] = {}
 
 
 def router() -> APIRouter:
@@ -75,11 +80,12 @@ def router() -> APIRouter:
         _check(x_rmink_secret)
         _token()
         from rmink.drawing.agent import RoundError, run_round
-        from rmink.drawing.store import default_store
+        from rmink.drawing.store import MemoryStore, redis_from_env
 
+        store = redis_from_env() or MemoryStore(req.drawings, req.links)
         try:
             result = await anyio.to_thread.run_sync(
-                lambda: run_round(req.document, req.device, default_store())
+                lambda: run_round(req.document, req.device, store)
             )
         except RoundError as e:
             raise HTTPException(422, str(e)) from e
@@ -87,6 +93,9 @@ def router() -> APIRouter:
             raise HTTPException(401, str(e)) from e
         except cloud.CloudError as e:
             raise HTTPException(502, str(e)) from e
-        return result.to_json()
+        out = result.to_json()
+        if isinstance(store, MemoryStore):
+            out["store"] = {"drawings": store.changed, "links": store.links}
+        return out
 
     return r

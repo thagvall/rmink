@@ -220,12 +220,31 @@ def test_rounds_router(monkeypatch):
     assert r.json()["entries"] == [{"name": "Altan r1", "folder": False, "path": "/Altan r1"}]
 
     import rmink.drawing.agent as agent
+    from rmink.drawing.model import Drawing
+    from rmink.drawing.store import MemoryStore
 
     fake = agent.RoundResult(
         "Altan r2", "Altan", 2, "Klart.", ["Vilken höjd?"], None, 12.0, {"usd": 0.4}
     )
-    monkeypatch.setattr(agent, "run_round", lambda document, device, store: fake)
-    r = client.post(
-        "/api/rounds/run", json={"document": "/Altan r1"}, headers={"X-Rmink-Secret": "s3cret"}
-    )
+    seen = {}
+
+    def fake_round(document, device, store):
+        # Without Redis the drawings come from the browser and go back to it.
+        assert isinstance(store, MemoryStore)
+        seen["previous"] = store.load("Altan")
+        store.save(Drawing(name="Altan", revision=2))
+        store.link("Altan r2", "Altan")
+        return fake
+
+    monkeypatch.setattr(agent, "run_round", fake_round)
+    body = {
+        "document": "/Altan r1",
+        "drawings": {"altan": Drawing(name="Altan", revision=1).model_dump_json()},
+        "links": {"Altan r1": "Altan"},
+    }
+    r = client.post("/api/rounds/run", json=body, headers={"X-Rmink-Secret": "s3cret"})
     assert r.status_code == 200 and r.json()["sent_as"] == "Altan r2"
+    assert seen["previous"].revision == 1
+    back = r.json()["store"]
+    assert Drawing.model_validate_json(back["drawings"]["altan"]).revision == 2
+    assert back["links"] == {"Altan r1": "Altan", "Altan r2": "Altan"}

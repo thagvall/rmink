@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.1 — 2026-10-27
+
+- `/rounds` keeps drawings between rounds in the browser, so a hosted server needs no database. Upstash Redis is still used when it is configured.
+
 ## 2.3.0 — 2026-10-27
 
 - Sketch to clean drawing (experimental, not yet verified on a tablet): read a hand-drawn page back from a notebook or the reMarkable Cloud, let Claude interpret it, and get a clean revision with straight lines, dimension lines, symbols, a legend and a title block. Mark the revision up on the tablet, and the next round picks up only your new marks. Colour tablets show categories in colour; rm2 and Paper Pure use line types. MCP tools: `read_sketch`, `drawing_reference`, `render_drawing_preview`, `save_revision`, `get_drawing`. CLI: `rmink sketch` and `rmink draw`. See `docs/sketch-to-drawing.md`.
