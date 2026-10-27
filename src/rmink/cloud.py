@@ -44,6 +44,10 @@ class CloudExistsError(CloudError):
     """A document with the same name is already in the target folder."""
 
 
+class CloudNotFoundError(CloudError):
+    """The path does not exist in the user's cloud."""
+
+
 def token_path() -> Path:
     from rmink.devices import config_dir
 
@@ -146,6 +150,16 @@ def _check_auth(proc: subprocess.CompletedProcess) -> None:
         raise CloudAuthError("The reMarkable connection has expired; connect again")
 
 
+def _failed(proc: subprocess.CompletedProcess) -> bool:
+    # rmapi reports some command errors on stderr but still exits 0.
+    return proc.returncode != 0 or bool(re.search(r"error", proc.stderr, re.I))
+
+
+def _missing(proc: subprocess.CompletedProcess) -> bool:
+    output = proc.stdout + proc.stderr
+    return "no matches for" in output or "doesn't exist" in output
+
+
 @dataclass(frozen=True)
 class Entry:
     name: str
@@ -158,6 +172,8 @@ def ls(device_token: str, path: str = "/") -> list[Entry]:
         proc = _run(["-ni", "ls", path], home)
     _check_auth(proc)
     if proc.returncode != 0:
+        if _missing(proc):
+            raise CloudNotFoundError(f'"{path}" does not exist')
         raise CloudError("Listing failed: " + _message(proc))
     entries = []
     for line in proc.stdout.splitlines():
@@ -181,23 +197,27 @@ def get(device_token: str, path: str) -> bytes:
         return max(files, key=lambda f: f.stat().st_mtime).read_bytes()
 
 
-def put(path: Path, device_token: str, attempts: int = 20) -> str:
-    """Upload a .rmdoc to the root of the user's cloud; returns the name used.
+def put(
+    path: Path, device_token: str, attempts: int = 20, folder: str = "/", name: str | None = None
+) -> str:
+    """Upload a .rmdoc to ``folder`` (which must exist) in the user's cloud,
+    named ``name`` (default: the file name); returns the name used.
 
     rmapi names the document after the file, so a taken name is retried as
     "name_2", "name_3" and so on.
     """
+    stem = name or path.stem
     with _session(device_token) as home:
         (home / "upload").mkdir()
-        upload = home / "upload" / path.name
+        upload = home / "upload" / f"{stem}{path.suffix}"
         _without_thumbnails(path, upload)
         for n in range(2, attempts + 2):
             try:
-                _put_once(upload, home)
+                _put_once(upload, home, folder)
                 return upload.stem
             except CloudExistsError:
-                upload = upload.rename(upload.with_name(f"{path.stem}_{n}{path.suffix}"))
-    raise CloudExistsError(f'Too many notebooks named "{path.stem}"; pick another name')
+                upload = upload.rename(upload.with_name(f"{stem}_{n}{path.suffix}"))
+    raise CloudExistsError(f'Too many notebooks named "{stem}"; pick another name')
 
 
 def _without_thumbnails(src: Path, dst: Path) -> None:
@@ -209,15 +229,41 @@ def _without_thumbnails(src: Path, dst: Path) -> None:
                 zout.writestr(info, zin.read(info))
 
 
-def _put_once(path: Path, home: Path) -> None:
+def _put_once(path: Path, home: Path, folder: str = "/") -> None:
     # -ni: with a bad token rmapi would otherwise wait for a code on stdin.
-    proc = _run(["-ni", "put", str(path), "/"], home)
+    proc = _run(["-ni", "put", str(path), folder], home)
     _check_auth(proc)
     if "already exists" in proc.stdout + proc.stderr:
         raise CloudExistsError(path.stem)
+    if _missing(proc):
+        raise CloudNotFoundError(f'The folder "{folder}" does not exist')
     # rmapi reports some command errors on stderr but still exits 0.
     if proc.returncode != 0 or "OK" not in proc.stdout:
         raise CloudError("Upload failed: " + _message(proc))
+
+
+def mkdir(device_token: str, path: str) -> None:
+    """Create the folder ``path``; its parent must exist. A folder that is
+    already there counts as created."""
+    with _session(device_token) as home:
+        proc = _run(["-ni", "mkdir", path], home)
+    _check_auth(proc)
+    if "already exists" in proc.stdout + proc.stderr:
+        return
+    if _failed(proc):
+        raise CloudError(f'Could not create "{path}": ' + _message(proc))
+
+
+def mv(device_token: str, src: str, dst: str) -> None:
+    """Move ``src`` to the full path ``dst`` (folder and new name). With the
+    name given, a missing folder is an error instead of a rename to it."""
+    with _session(device_token) as home:
+        proc = _run(["-ni", "mv", src, dst], home)
+    _check_auth(proc)
+    if "already exists" in proc.stdout + proc.stderr:
+        raise CloudExistsError(dst)
+    if _failed(proc):
+        raise CloudError(f'Could not move "{src}": ' + _message(proc))
 
 
 def _read_token(conf: Path) -> str | None:

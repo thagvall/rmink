@@ -3,8 +3,9 @@
 Everything becomes fineliner strokes on two layers: ``Ritning r<N>`` with the
 drawing, and an empty ``Kommentarer`` layer for the next round of markings.
 Colour tablets get each category's colour; greyscale tablets tell categories
-apart by line type and width instead. A title block with the legend, open
-remarks and the change log goes below the drawing.
+apart by line type and width instead. A title block goes below the drawing:
+the legend, the open remarks (each with a line to write the answer on) and the
+change log.
 """
 
 from __future__ import annotations
@@ -269,9 +270,16 @@ def _title_block(pen: _Pen, top: float, open_remarks: list[tuple[int, Annotation
         y += 24
         st_c = pen.style("comment")
         pen.text("ANMÄRKNINGAR", (x0, y), 18, st_c)
+        answer_line = _Style(st_c.color, st_c.rgb, "solid", 1.2)
         for n, ann in open_remarks:
             y += 32
             pen.text(f"{n}. {ann.text}"[:70], (x0, y), 18, st_c)
+            # A line to write the answer on, so it is clear which remark it answers.
+            y += 84
+            pen.text("SVAR:", (x0 + 28, y), 16, st_c)
+            start = x0 + 28 + text_width("SVAR:", 16) + 12
+            pen.paths([np.array([[start, y], [x1, y]])], answer_line)
+            y += 12
     if d.log:
         y += 36
         pen.text("ÄNDRINGAR", (x0, y), 18, st_text)

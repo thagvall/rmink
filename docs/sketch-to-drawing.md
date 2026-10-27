@@ -17,7 +17,7 @@ ritningen och i metadata.
 ## Scenarier
 
 1. **Renritning.** Skissa en altan med handskrivna mått och be Claude "rita rent Altan".
-   - Tillbaka kommer anteckningsboken *Altan r1*: raka linjer, sammanfogade hörn, måttlinjer med
+   - Tillbaka kommer anteckningsboken *Altan r01* i mappen *rmink/Altan*: raka linjer, sammanfogade hörn, måttlinjer med
      pilar, versaltext, legend och revisionsruta.
    - Originalskissen ligger kvar som sida 2.
 2. **Legenddriven symbolik.** En legend i skissen säger vad symbolerna och pilarna betyder.
@@ -116,7 +116,9 @@ Detaljer:
 - **MCP:** `cloud_connect`, `cloud_list`, `read_sketch`, `drawing_reference`,
   `render_drawing_preview`, `save_revision`, `get_drawing`
 - **CLI:** `rmink cloud connect|ls|get|put`, `rmink sketch DOC --overlay groups.png`,
-  `rmink draw drawing.json [--svg] [--send]`
+  `rmink draw drawing.json [--svg] [--send]`, `rmink round NAMN|DOC`
+- **Webb:** `/rounds` (bara för ägaren): ritningskort med **Kör nästa varv**, nya skisser i
+  *rmink* och en bläddrare som reserv
 
 ### Revisioner och markeringar
 
@@ -126,6 +128,34 @@ Detaljer:
 
 Den sparar också id:n på strecken rmink skrev (`sketch.written_ids`). I nästa runda filtrerar
 `read_sketch(..., since_drawing=namn)` bort de strecken. Kvar blir bara användarens markeringar.
+
+Varje öppen anmärkning listas under ANMÄRKNINGAR med en rad märkt SVAR. Det man skriver på raden
+räknas som svaret på just den frågan. Svar bredvid ringen på ritningen gäller också.
+
+### Mappar och namn på plattan
+
+`send_revision` lägger varje revision i ritningens egen mapp:
+
+```
+rmink/
+  Garage                  ← lös anteckningsbok = ny skiss som väntar på varv 1
+  Altan/
+    Altan r03 · 2 frågor  ← den enda att rita på
+    Tidigare/
+      Altan r00 skiss     ← originalskissen
+      Altan r01
+      Altan r02 · 1 fråga
+```
+
+- Namnet är `<ritning> r<NN>`. Två siffror gör att namnordning blir tidsordning. `· N frågor`
+  läggs till när revisionen har öppna anmärkningar, så man ser vilka som väntar på svar.
+- Datumet står i namnrutan bredvid REV.
+- Mappen *rmink/Altan* skapas i första varvet. Skissen döps då om till *Altan r00 skiss*, eftersom
+  rmapi hittar mappar och dokument på namn och mappen ska heta som skissen.
+- Efter varje varv flyttas anteckningsboken som lästes till *Tidigare*. rmink flyttar bara det som
+  ligger i *rmink*. Skisser på andra ställen ligger kvar.
+- Den sparade ritningen minns var senaste revisionen hamnade (`sketch.sent_as`). Därför räcker
+  `rmink round Altan`, och **Kör nästa varv** på /rounds behöver ingen filväljare.
 
 ### Måttkontroll
 
@@ -141,8 +171,7 @@ värt att fråga om.
 - [ ] Visas lagret *Kommentarer* och kan man välja det? Syns *Ritning rN* som ett eget lager som går att dölja?
 - [ ] Har sidor högre än skärmen (titelblocket under ritningen) rätt rullning på alla modeller?
 - [ ] Hur bra läser Claude handskrivna mått som "2400", "45°" och "Ø110" ur översiktsbilden? Testa med riktiga skisser.
-- [ ] Varje revision blir i dag ett nytt dokument. Vore det bättre att lägga till en sida i samma
-      dokument? Det kräver att `put` kan ersätta ett dokument, eller att man laddar upp till en mapp per ritning.
+- [ ] Klarar namn med `·` och å/ä/ö rmapi och synken till plattan? Hur sorterar plattan *Tidigare*?
 
 ## Nästa steg
 

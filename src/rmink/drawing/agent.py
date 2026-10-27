@@ -15,6 +15,7 @@ requires for thinking blocks.
 from __future__ import annotations
 
 import base64
+import datetime
 import io
 import json
 import os
@@ -61,11 +62,15 @@ those coordinates, never estimate coordinates from the picture. Groups of shape 
 (the written number and the line it measures), symbols, the legend if the \
 sketch has one. Set revision 1.
 3. On later rounds, classify each mark: a change (crossed out, redrawn, a new \
-measurement), a question or remark, an answer to an open annotation (writing \
-next to it), or a request for a detail view. Apply clear changes. Keep \
-questions as annotations with status "open". When the user answered an open \
-annotation, apply the answer and set it "accepted" or "rejected". Add one \
-short line per change to `log`, prefixed with the new revision ("r3: ...").
+measurement), a question or remark, an answer to an open annotation, or a \
+request for a detail view. Open annotations are numbered rings on the drawing \
+and listed under ANMÄRKNINGAR below it, each with an answer line ("SVAR:"); \
+writing on or just under the answer line of remark N, or next to ring N, \
+answers remark N (the message lists which annotation each number is). Apply \
+clear changes. Keep questions as annotations with status "open". When the user \
+answered an open annotation, apply the answer and set it "accepted" or \
+"rejected". Add one short line per change to `log`, prefixed with the new \
+revision ("r3: ...").
 4. When something is unclear, do not guess: add an open annotation on the \
 element with a short question. The user answers on paper next round.
 5. Call render_preview with the full Drawing to see it and the measurement \
@@ -138,6 +143,16 @@ def _png(img, max_side: int = 1100) -> bytes:
     return buf.getvalue()
 
 
+def _resolve(document: str, store: Store) -> str:
+    """A bare drawing name ("Altan") means the notebook its last revision was
+    sent as; a cloud path gets its leading slash."""
+    if Path(document).expanduser().is_file():
+        return document
+    if "/" not in document and (saved := store.load(document)) and saved.sketch.sent_as:
+        return saved.sketch.sent_as
+    return document if document.startswith("/") else "/" + document
+
+
 TOOLS = [
     {
         "name": "render_preview",
@@ -175,14 +190,17 @@ def run_round(
     effort: str | None = None,
     send: bool = True,
 ) -> RoundResult:
-    """Run one round on ``document`` (a cloud path like "/Altan r2" or a local
-    .rmdoc). ``client`` is an ``anthropic.Anthropic``; tests pass a fake."""
+    """Run one round on ``document``: a cloud path like "/rmink/Altan/Altan r02",
+    a local .rmdoc, or the name of a saved drawing, which means the notebook
+    its last revision was sent as. ``client`` is an ``anthropic.Anthropic``;
+    tests pass a fake."""
     if client is None:
         import anthropic
 
         client = anthropic.Anthropic()
     started = time.monotonic()
     device = get_device(device_key)
+    document = _resolve(document, store)
     name = store.linked(document) or guess_drawing_name(document)
     previous = store.load(name)
 
@@ -198,6 +216,12 @@ def run_round(
             f'Round {previous.revision + 1} of "{previous.name}". Notebook "{document}". '
             "The groups are only the user's new marks."
         )
+        remarks = [a for a in previous.annotations if a.status == "open"]
+        if remarks:
+            intro += "\nOpen remarks on the page: " + "; ".join(
+                f"{n} = {a.id} {json.dumps(a.text, ensure_ascii=False)}"
+                for n, a in enumerate(remarks, 1)
+            )
         saved = previous.model_dump_json()
     messages: list[dict] = [
         {
@@ -231,9 +255,11 @@ def run_round(
         d = workflow.rectify(d)
         d.name = previous.name if previous else name
         d.revision = previous.revision + 1 if previous else 1
+        d.date = datetime.date.today().isoformat()
         d.sketch.document = document
         d.sketch.page = 1
         d.sketch.device = device.key
+        d.sketch.sent_as = ""
         return d
 
     def preview(d: Drawing) -> bytes:
@@ -255,15 +281,14 @@ def run_round(
                 return "Already saved this round.", True
             with tempfile.TemporaryDirectory() as tmp:
                 rev = workflow.build_revision(
-                    d, Path(tmp) / f"{d.name} r{d.revision}.rmdoc", sketch.page, store=store
+                    d, Path(tmp) / f"{workflow.revision_title(d)}.rmdoc", sketch.page, store=store
                 )
                 sent_as = None
                 if send:
                     token = cloud.load_token()
                     if not token:
                         raise RoundError("rmink är inte kopplat till reMarkable Cloud")
-                    sent_as = cloud.put(rev.path, token)
-                    store.link(sent_as, d.name)
+                    sent_as = workflow.send_revision(rev, token, store)
             state["saved"] = {
                 "drawing": rev.drawing,
                 "sent_as": sent_as,

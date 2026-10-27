@@ -168,7 +168,7 @@ def test_revision_round_trip(sketch, tmp_path):
     assert saved.sketch.written_ids and saved.legend  # legend made from what is used
 
     back = read_rmdoc(rev.path, RM2)
-    assert back.name == "Altan r1" and len(back.pages) == 2
+    assert back.name == "Altan r01" and len(back.pages) == 2
     clean = back.pages[0]
     assert clean.layer_names == ["Ritning r1", COMMENT_LAYER]
     with zipfile.ZipFile(rev.path) as zf:

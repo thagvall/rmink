@@ -295,8 +295,8 @@ def draw(
     rectify: Annotated[bool, typer.Option("--rectify/--no-rectify")] = True,
     send: Annotated[bool, typer.Option(help="Upload to reMarkable Cloud")] = False,
 ) -> None:
-    """Render a Drawing JSON as a clean revision notebook "<name> r<N>"."""
-    from rmink import cloud
+    """Render a Drawing JSON as a clean revision notebook "<name> r<NN>"; --send puts it
+    in rmink/<name>/ in your cloud."""
     from rmink.devices import get_device
     from rmink.drawing import workflow
     from rmink.drawing.render import page_svg, render_drawing
@@ -309,7 +309,7 @@ def draw(
         doc = workflow.open_document(d.sketch.document, get_device(d.sketch.device))
         if 1 <= d.sketch.page <= len(doc.pages):
             sketch_page = doc.pages[d.sketch.page - 1]
-    out = output or drawing.with_name(f"{d.name} r{d.revision}.rmdoc")
+    out = output or drawing.with_name(f"{workflow.revision_title(d)}.rmdoc")
     rev = workflow.build_revision(d, out, sketch_page)
     if svg:
         dev = get_device(d.sketch.device)
@@ -320,12 +320,18 @@ def draw(
             typer.secho(f"warning: {msg}", fg="yellow", err=True)
     typer.echo(str(rev.path))
     if send:
-        typer.echo(f"Sent as {cloud.put(rev.path, _token())!r}")
+        typer.echo(f"Sent as {workflow.send_revision(rev, _token())!r}")
 
 
 @app.command(name="round")
 def round_(
-    document: Annotated[str, typer.Argument(help='Cloud path like "/Altan r2", or a local .rmdoc')],
+    document: Annotated[
+        str,
+        typer.Argument(
+            help='A drawing name ("Altan": its latest revision), a cloud path like '
+            '"/rmink/Garage", or a local .rmdoc'
+        ),
+    ],
     device: Device = "rm2",
     effort: Annotated[str, typer.Option(help="low | medium | high | xhigh | max")] = "medium",
     send: Annotated[bool, typer.Option("--send/--no-send", help="Upload the revision")] = True,
@@ -345,7 +351,7 @@ def round_(
         raise typer.Exit(1) from e
     where = f"sent as {r.sent_as!r}" if r.sent_as else "not sent"
     cost = r.usage["usd"]
-    typer.echo(f"{r.drawing} r{r.revision} ({where}) in {r.seconds:.0f} s, about {cost} USD")
+    typer.echo(f"{r.drawing} r{r.revision:02d} ({where}) in {r.seconds:.0f} s, about {cost} USD")
     typer.echo(r.summary)
     for q in r.open_questions:
         typer.echo(f"  ? {q}")

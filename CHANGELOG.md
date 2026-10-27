@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.4.0 — 2026-10-27
+
+- Revision rounds are filed like a drawing folder on a building project:
+  - each drawing gets its own folder, `rmink/<drawing>/`, holding only the revision to mark up
+  - earlier revisions and the original sketch move to `Tidigare/`
+  - revisions are named `Altan r03 · 2 frågor`: two-digit revision numbers keep name order and time order the same, and the count shows which revisions wait for answers
+  - rmink only moves notebooks that are in the `rmink` folder
+- Every open remark under ANMÄRKNINGAR gets a SVAR line to write the answer on, and the title block shows the revision date.
+- `/rounds` lists your drawings, each with its latest revision, open questions, history and a one-tap "Kör nästa varv". New sketches are picked from the `rmink` folder, with the full file browser as a fallback.
+- `rmink round Altan` runs the next round on the drawing's latest revision. `rmink draw --send` and the MCP tool `save_revision(send=True)` file revisions the same way.
+
 ## 2.3.1 — 2026-10-27
 
 - `/rounds` keeps drawings between rounds in the browser, so a hosted server needs no database. Upstash Redis is still used when it is configured.

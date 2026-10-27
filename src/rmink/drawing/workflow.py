@@ -9,14 +9,22 @@ The steps the MCP server and CLI share:
 2. The interpreter turns the groups into a :class:`Drawing`;
    :func:`rectify` straightens it and :func:`check_dimensions` compares the
    written measurements with the drawn lengths.
-3. :func:`build_revision` writes ``<name> r<N>.rmdoc`` with the clean page
+3. :func:`build_revision` writes the revision notebook with the clean page
    first and the sketch after it, and saves the drawing for the next round.
+4. :func:`send_revision` puts it in the drawing's folder in the cloud:
+
+   rmink/
+     Garage                  a new sketch, waiting for its first round
+     Altan/
+       Altan r03 · 2 frågor  the revision to mark up
+       Tidigare/             earlier revisions (and the sketch), oldest first
 """
 
 from __future__ import annotations
 
 import io
 import json
+import logging
 import math
 import re
 from dataclasses import dataclass
@@ -35,6 +43,32 @@ from rmink.model import Document, Page
 from rmink.package.rmdoc import RmdocPage, UuidFactory, write_rmdoc
 from rmink.render.preview import render_rm, thumbnail_png
 from rmink.writer.rm_v6 import write_page
+
+log = logging.getLogger(__name__)
+
+RMINK_FOLDER = "/rmink"
+ARCHIVE = "Tidigare"
+# rmapi matches paths as glob patterns: rmink keeps these characters out of the
+# names it makes and never moves a notebook whose path has them.
+_GLOB = re.compile(r"[*?\[\]\\]")
+
+
+def safe_name(name: str) -> str:
+    return re.sub(r"[/*?\[\]\\]+", "-", name).strip() or "Ritning"
+
+
+def revision_title(drawing: Drawing) -> str:
+    """'Altan r03 · 2 frågor': the notebook name of a revision. Two digits keep
+    name order and time order the same; the count says it waits for answers."""
+    title = f"{safe_name(drawing.name)} r{drawing.revision:02d}"
+    n = sum(a.status == "open" for a in drawing.annotations)
+    if n:
+        title += f" · {n} {'fråga' if n == 1 else 'frågor'}"
+    return title
+
+
+def drawing_folder(name: str) -> str:
+    return f"{RMINK_FOLDER}/{safe_name(name)}"
 
 
 def drawings_dir() -> Path:
@@ -234,7 +268,7 @@ def build_revision(
         output = output.with_suffix(".rmdoc")
     write_rmdoc(
         output,
-        f"{drawing.name} r{drawing.revision}",
+        revision_title(drawing),
         [
             RmdocPage(data, thumbnail_png(img), p.layers)
             for data, img, p in zip(rm_pages, thumbs, pages, strict=True)
@@ -248,6 +282,61 @@ def build_revision(
     buf = io.BytesIO()
     thumbs[0].save(buf, "PNG", optimize=True)
     return Revision(output, drawing, save_drawing(drawing, store), buf.getvalue())
+
+
+def send_revision(rev: Revision, token: str, store: Store | None = None) -> str:
+    """Upload a revision to its drawing's folder in the reMarkable Cloud and
+    return the cloud path.
+
+    The folder is made on the first round. The drawing is saved again with the
+    path, which the next round reads. The notebook this round read moves to the
+    folder's ``Tidigare``: the previous revision as it is, a new sketch from
+    ``/rmink`` as "<name> r00 skiss" so it sorts first. Notebooks anywhere
+    else are the user's and stay put.
+    """
+    d, store = rev.drawing, store or FileStore()
+    folder = drawing_folder(d.name)
+    read = d.sketch.document
+    parent, _, base = read.rpartition("/")
+    movable = parent in (RMINK_FOLDER, folder) and not _GLOB.search(read)
+    archived_name = f"{safe_name(d.name)} r00 skiss" if parent == RMINK_FOLDER else base
+    if movable and read == folder:
+        # The sketch has the drawing's name; rmapi finds entries by name, so
+        # free it before making the folder.
+        renamed = f"{RMINK_FOLDER}/{archived_name}"
+        cloud.mv(token, read, renamed)
+        read = renamed
+    try:
+        entries = cloud.ls(token, folder)
+    except cloud.CloudNotFoundError:
+        cloud.mkdir(token, RMINK_FOLDER)
+        cloud.mkdir(token, folder)
+        entries = []
+    sent_as = f"{folder}/{cloud.put(rev.path, token, folder=folder, name=revision_title(d))}"
+    d.sketch.sent_as = sent_as
+    store.save(d)
+    store.link(sent_as, d.name)
+
+    if movable:
+        archive = f"{folder}/{ARCHIVE}"
+        try:
+            if not any(e.folder and e.name == ARCHIVE for e in entries):
+                cloud.mkdir(token, archive)
+            store.link(_move_into(token, read, archive, archived_name), d.name)
+        except cloud.CloudError as e:
+            log.warning("Could not move %s to %s: %s", read, archive, e)
+    return sent_as
+
+
+def _move_into(token: str, src: str, folder: str, name: str, attempts: int = 9) -> str:
+    for n in range(1, attempts + 1):
+        dst = f"{folder}/{name}" + (f"_{n}" if n > 1 else "")
+        try:
+            cloud.mv(token, src, dst)
+            return dst
+        except cloud.CloudExistsError:
+            continue
+    raise cloud.CloudExistsError(f'Too many notebooks named "{name}" in {folder}')
 
 
 def drawing_from_json(data: str | dict) -> Drawing:

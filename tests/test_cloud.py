@@ -19,6 +19,7 @@ class FakeRmapi:
         self.uploaded = []
         self.existing = set()
         self.documents = {"Altan": b"PK-fake-rmdoc"}
+        self.folders = {"/"}
 
     def __call__(self, args, input, env, **kw):
         self.calls.append((args, input, env))
@@ -35,6 +36,9 @@ class FakeRmapi:
         elif args[1:3] == ["-ni", "ls"]:
             if token != "tok.en-1":
                 err, code = "missing token, not asking, aborting", 1
+            elif args[3] != "/" and args[3] not in self.folders:
+                name = args[3].rsplit("/", 1)[-1]
+                err, code = f"ERROR: main.go:86: Error:  no matches for '{name}'", 1
             else:
                 out = "[d]\tProjekt\n" + "".join(f"[f]\t{n}\n" for n in self.documents)
         elif args[1:3] == ["-ni", "get"]:
@@ -45,10 +49,24 @@ class FakeRmapi:
                 err, code = "file doesn't exist", 1
             else:
                 (Path(kw["cwd"]) / f"{name}.rmdoc").write_bytes(self.documents[name])
+        elif args[1:3] == ["-ni", "mkdir"]:
+            if args[3] in self.folders:
+                err = "Error: entry already exists"
+            elif (args[3].rsplit("/", 1)[0] or "/") not in self.folders:
+                err = "Error: directory doesn't exist"
+            else:
+                self.folders.add(args[3])
+        elif args[1:3] == ["-ni", "mv"]:
+            if args[4] in self.existing:
+                err = "Error: destination entry already exists"
+            elif args[4].rsplit("/", 1)[0] not in self.folders:
+                err = "Error: directory doesn't exist"
         elif args[1:3] == ["-ni", "put"]:
             path = Path(args[3])
             if token != "tok.en-1":
                 err, code = "missing token, not asking, aborting", 1
+            elif args[4] not in self.folders:
+                err = "Error: directory doesn't exist"
             elif path.stem in self.existing:
                 err = "entry already exists (use --force to recreate)"
             else:
@@ -156,6 +174,35 @@ def test_ls_and_get(rmapi):
         cloud.get("tok.en-1", "/Missing")
     with pytest.raises(cloud.CloudAuthError):
         cloud.ls("expired-token")
+
+
+def test_folders(rmapi, examples, tmp_path):
+    with pytest.raises(cloud.CloudNotFoundError):
+        cloud.ls("tok.en-1", "/rmink")
+    with pytest.raises(cloud.CloudError, match="doesn't exist"):
+        cloud.mkdir("tok.en-1", "/rmink/Altan")
+    cloud.mkdir("tok.en-1", "/rmink")
+    cloud.mkdir("tok.en-1", "/rmink")  # already there counts as made
+    cloud.mkdir("tok.en-1", "/rmink/Altan")
+    assert cloud.ls("tok.en-1", "/rmink/Altan") is not None
+
+    doc = tmp_path / "x.rmdoc"
+    with zipfile.ZipFile(doc, "w") as zf:
+        zf.writestr("a.content", "{}")
+    assert cloud.put(doc, "tok.en-1", folder="/rmink/Altan", name="Altan r01 · 1 fråga") == (
+        "Altan r01 · 1 fråga"
+    )
+    assert rmapi.uploaded[-1] == "Altan r01 · 1 fråga.rmdoc"
+    assert rmapi.calls[-1][0][-1] == "/rmink/Altan"
+    with pytest.raises(cloud.CloudNotFoundError):
+        cloud.put(doc, "tok.en-1", folder="/rmink/Garage")
+
+    cloud.mv("tok.en-1", "/rmink/Altan", "/rmink/Altan/Altan r00 skiss")
+    rmapi.existing.add("/rmink/Altan/Taken")
+    with pytest.raises(cloud.CloudExistsError):
+        cloud.mv("tok.en-1", "/rmink/x", "/rmink/Altan/Taken")
+    with pytest.raises(cloud.CloudError, match="doesn't exist"):
+        cloud.mv("tok.en-1", "/rmink/x", "/rmink/Altan/Tidigare/x")
 
 
 def test_token_storage(tmp_path, monkeypatch):

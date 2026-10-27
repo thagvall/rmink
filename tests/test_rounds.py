@@ -3,11 +3,13 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from rmink import cloud
 from rmink.devices import get_device
 from rmink.drawing import workflow
 from rmink.drawing.agent import RoundError, run_round
 from rmink.drawing.font import text_paths
-from rmink.drawing.render import COMMENT_LAYER
+from rmink.drawing.model import Annotation, Drawing
+from rmink.drawing.render import COMMENT_LAYER, render_drawing
 from rmink.drawing.store import FileStore, RedisStore, guess_drawing_name
 from rmink.ingest.rm import read_rmdoc
 from rmink.model import Page, Stroke
@@ -103,6 +105,22 @@ def test_guess_drawing_name():
     assert guess_drawing_name("/Projekt/Altan r2_2") == "Altan"
     assert guess_drawing_name("/tmp/Altan r1.rmdoc") == "Altan"
     assert guess_drawing_name("Altan") == "Altan"
+    assert guess_drawing_name("/rmink/Altan/Altan r03 · 2 frågor") == "Altan"
+    assert guess_drawing_name("/rmink/Altan/Tidigare/Altan r12 · 1 fråga_2") == "Altan"
+
+
+def test_revision_title():
+    d = Drawing(name="Plan 1/2", revision=3)
+    assert workflow.revision_title(d) == "Plan 1-2 r03"
+    assert workflow.drawing_folder("Plan 1/2") == "/rmink/Plan 1-2"
+    d.annotations = [Annotation(id="a1", kind="note", text="Höjd?")]
+    assert workflow.revision_title(d) == "Plan 1-2 r03 · 1 fråga"
+    d.annotations += [
+        Annotation(id="a2", kind="circle", text="Bredd?"),
+        Annotation(id="a3", kind="cross", text="Klar", status="accepted"),
+    ]
+    d.revision = 12
+    assert workflow.revision_title(d) == "Plan 1-2 r12 · 2 frågor"
 
 
 def test_first_round(sketch, tmp_path):
@@ -185,8 +203,6 @@ def test_redis_store(monkeypatch):
     monkeypatch.setattr(RedisStore, "__init__", lambda self, url, token: None)
     monkeypatch.setattr(RedisStore, "_cmd", cmd)
     store = RedisStore("https://x", "t")
-    from rmink.drawing.model import Drawing
-
     store.save(Drawing(name="Altan", revision=3))
     assert store.load("altan").revision == 3 and store.load("missing") is None
     store.link("/Altan r3", "Altan")
@@ -213,14 +229,18 @@ def test_rounds_router(monkeypatch):
         client.get("/api/rounds/documents", headers={"X-Rmink-Secret": "nope"}).status_code == 401
     )
 
-    from rmink import cloud
-
     monkeypatch.setattr(cloud, "ls", lambda token, path="/": [cloud.Entry("Altan r1", False)])
     r = client.get("/api/rounds/documents", headers={"X-Rmink-Secret": "s3cret"})
     assert r.json()["entries"] == [{"name": "Altan r1", "folder": False, "path": "/Altan r1"}]
 
+    def no_folder(token, path="/"):
+        raise cloud.CloudNotFoundError(path)
+
+    monkeypatch.setattr(cloud, "ls", no_folder)
+    r = client.get("/api/rounds/documents?path=/rmink", headers={"X-Rmink-Secret": "s3cret"})
+    assert r.status_code == 200 and r.json() == {"path": "/rmink", "entries": [], "missing": True}
+
     import rmink.drawing.agent as agent
-    from rmink.drawing.model import Drawing
     from rmink.drawing.store import MemoryStore
 
     fake = agent.RoundResult(
@@ -248,3 +268,159 @@ def test_rounds_router(monkeypatch):
     back = r.json()["store"]
     assert Drawing.model_validate_json(back["drawings"]["altan"]).revision == 2
     assert back["links"] == {"Altan r1": "Altan", "Altan r2": "Altan"}
+
+
+class FakeCloud:
+    """The folders of a reMarkable Cloud, for the calls send_revision makes.
+
+    ``folders`` maps each folder path to the names in it; a name is a folder
+    when its path is a key too. Like rmapi, paths are looked up by name."""
+
+    def __init__(self, monkeypatch, folders, documents=None):
+        self.folders = {k: set(v) for k, v in folders.items()}
+        self.documents = documents or {}
+        self.calls = []
+        self.fail_moves_to = None  # moves to paths containing this fail
+        for name in ("ls", "mkdir", "put", "mv", "get"):
+            monkeypatch.setattr(cloud, name, getattr(self, name))
+        monkeypatch.setenv("RMINK_CLOUD_TOKEN", "tok.en-1")
+
+    @staticmethod
+    def _split(path):
+        parent, _, name = path.rpartition("/")
+        return parent or "/", name
+
+    def ls(self, token, path="/"):
+        if path not in self.folders:
+            raise cloud.CloudNotFoundError(path)
+        base = path.rstrip("/")
+        return [cloud.Entry(n, f"{base}/{n}" in self.folders) for n in self.folders[path]]
+
+    def mkdir(self, token, path):
+        self.calls.append(("mkdir", path))
+        parent, name = self._split(path)
+        if parent not in self.folders:
+            raise cloud.CloudError("directory doesn't exist")
+        if name in self.folders[parent]:
+            return  # a folder that is already there, or a notebook by that name
+        self.folders[parent].add(name)
+        self.folders[path] = set()
+
+    def put(self, path, token, attempts=20, folder="/", name=None):
+        self.calls.append(("put", folder, name))
+        assert folder in self.folders, f"no folder {folder}"
+        stem, n = name or path.stem, 2
+        used = stem
+        while used in self.folders[folder]:
+            used, n = f"{stem}_{n}", n + 1
+        self.folders[folder].add(used)
+        self.documents[f"{folder}/{used}"] = path.read_bytes()
+        return used
+
+    def mv(self, token, src, dst):
+        self.calls.append(("mv", src, dst))
+        if self.fail_moves_to and self.fail_moves_to in dst:
+            raise cloud.CloudError("boom")
+        (sp, sn), (dp, dn) = self._split(src), self._split(dst)
+        if dp not in self.folders:
+            raise cloud.CloudError("directory doesn't exist")
+        if dn in self.folders[dp]:
+            raise cloud.CloudExistsError(dst)
+        self.folders[sp].remove(sn)
+        self.folders[dp].add(dn)
+        self.documents[dst] = self.documents.pop(src, b"")
+
+    def get(self, token, path):
+        return self.documents[path]
+
+
+def _mark_up(rmdoc, tmp_path):
+    """The revision with a ring drawn on it, as the tablet would sync it."""
+    clean = read_rmdoc(rmdoc, RM2).pages[0]
+    t = np.linspace(0, 2 * np.pi, 40)
+    ring = Stroke(
+        np.column_stack([1200 + 50 * np.cos(t), 1000 + 50 * np.sin(t)]), layer=COMMENT_LAYER
+    )
+    marked = Page(clean.width, clean.height, clean.strokes + [ring], clean.layer_names)
+    return _write(tmp_path / "marked.rmdoc", "marked", marked).read_bytes()
+
+
+def test_rounds_file_revisions_in_the_drawing_folder(sketch, tmp_path, monkeypatch):
+    fake = FakeCloud(
+        monkeypatch,
+        {"/": {"rmink"}, "/rmink": {"Altan", "Garage"}},
+        {"/rmink/Altan": sketch.read_bytes()},
+    )
+    store = FileStore(tmp_path / "drawings")
+    with_question = DRAWING | {
+        "annotations": [{"id": "a1", "kind": "circle", "targets": ["V1"], "text": "Höjd?"}]
+    }
+    r = run_round("/rmink/Altan", "rm2", store, client=FakeClient(_turns(with_question)))
+
+    # The sketch had the drawing's name: renamed first, then filed under Tidigare.
+    assert r.sent_as == "/rmink/Altan/Altan r01 · 1 fråga"
+    assert fake.folders["/rmink"] == {"Altan", "Garage"}
+    assert fake.folders["/rmink/Altan"] == {"Altan r01 · 1 fråga", "Tidigare"}
+    assert fake.folders["/rmink/Altan/Tidigare"] == {"Altan r00 skiss"}
+    assert fake.calls[0] == ("mv", "/rmink/Altan", "/rmink/Altan r00 skiss")
+    saved = store.load("Altan")
+    assert saved.sketch.sent_as == r.sent_as and saved.date
+    assert store.linked(r.sent_as) == "Altan"
+
+    # The next round runs on the drawing's name, reads the latest revision and
+    # moves it to Tidigare. The open remark is listed by its number on the page.
+    fake.documents[r.sent_as] = _mark_up(fake.documents[r.sent_as], tmp_path)
+    client = FakeClient(_turns())
+    r2 = run_round("Altan", "rm2", store, client=client)
+    intro = client.requests[0]["messages"][0]["content"][0]["text"]
+    assert "Round 2" in intro and 'Open remarks on the page: 1 = a1 "Höjd?"' in intro
+    assert r2.sent_as == "/rmink/Altan/Altan r02"
+    assert fake.folders["/rmink/Altan"] == {"Altan r02", "Tidigare"}
+    assert fake.folders["/rmink/Altan/Tidigare"] == {"Altan r00 skiss", "Altan r01 · 1 fråga"}
+    assert store.linked("/rmink/Altan/Tidigare/Altan r01 · 1 fråga") == "Altan"
+
+
+def test_notebooks_outside_rmink_stay_put(sketch, tmp_path, monkeypatch):
+    fake = FakeCloud(monkeypatch, {"/": {"Altan"}}, {"/Altan": sketch.read_bytes()})
+    r = run_round("/Altan", "rm2", FileStore(tmp_path / "d"), client=FakeClient(_turns()))
+    assert r.sent_as == "/rmink/Altan/Altan r01"
+    assert fake.folders["/"] == {"Altan", "rmink"}
+    assert not [c for c in fake.calls if c[0] == "mv"]
+    assert ("mkdir", "/rmink") in fake.calls and ("mkdir", "/rmink/Altan") in fake.calls
+
+
+def test_a_failed_move_does_not_fail_the_round(sketch, tmp_path, monkeypatch):
+    fake = FakeCloud(
+        monkeypatch,
+        {"/": {"rmink"}, "/rmink": {"Garage"}},
+        {"/rmink/Garage": sketch.read_bytes()},
+    )
+    fake.fail_moves_to = "/Tidigare/"
+    store = FileStore(tmp_path / "d")
+    r = run_round("/rmink/Garage", "rm2", store, client=FakeClient(_turns()))
+    assert r.sent_as == "/rmink/Garage/Garage r01"
+    assert store.load("Garage").sketch.sent_as == r.sent_as
+    # The sketch was renamed to free the folder name but stays in rmink.
+    assert fake.folders["/rmink"] == {"Garage", "Garage r00 skiss"}
+    assert fake.folders["/rmink/Garage"] == {"Garage r01", "Tidigare"}
+
+
+def test_open_remarks_get_answer_lines():
+    d = Drawing.model_validate(DRAWING)
+    without = render_drawing(d, RM2)
+    d.annotations = [
+        Annotation(id="a1", kind="circle", targets=["V1"], text="Höjd?"),
+        Annotation(id="a2", kind="cross", targets=["M1"], text="Stämmer måttet?"),
+    ]
+    with_remarks = render_drawing(d, RM2)
+    # Rings, badges, the remark texts and a SVAR line under each remark.
+    answer_lines = [
+        s for s in with_remarks.strokes
+        if len(s.points) == 2 and s.points[0][1] == s.points[1][1] and s.width == 1.2
+    ]  # fmt: skip
+    assert len(answer_lines) == 2
+    assert _bottom(with_remarks) - _bottom(without) > 2 * 64
+
+
+def _bottom(page):
+    return max(float(s.points[:, 1].max()) for s in page.strokes)

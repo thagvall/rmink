@@ -123,6 +123,9 @@ class SketchRef(BaseModel):
     # CRDT ids (author, counter) rmink wrote on the clean page it sent; any
     # other stroke on that page was added by the user afterwards.
     written_ids: list[tuple[int, int]] = Field(default_factory=list)
+    # Cloud path the revision was sent as ("/rmink/Altan/Altan r03"): the
+    # notebook the next round reads. Set by rmink after the upload.
+    sent_as: str = ""
 
 
 class Drawing(BaseModel):

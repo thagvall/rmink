@@ -41,9 +41,10 @@ server = MCPServer(
         "lines/circles/polylines, plus an image) -> build a Drawing JSON from the groups, "
         "reusing their fitted coordinates (never estimate coordinates from the image) -> "
         "`render_drawing` to check it and the measurements -> `save_revision` (writes "
-        "'<name> r<N>', optionally sends it to the tablet). In the next round the user marks "
-        "up that revision on the tablet (rings, arrows, crosses, notes, ideally on the "
-        "'Kommentarer' layer): `get_drawing` + `read_sketch` with since_drawing returns only "
+        "'<name> r<NN>', optionally sends it to rmink/<name>/ on the tablet). In the next "
+        "round the user marks up that revision on the tablet (rings, arrows, crosses, notes, "
+        "ideally on the 'Kommentarer' layer, answers on the SVAR line of a remark): "
+        "`get_drawing` + `read_sketch` of its sketch.sent_as with since_drawing returns only "
         "the new marks; turn them into annotations or edits, bump `revision`, add a `log` "
         "line and save again. Read `drawing_reference` once for the JSON format, symbols and "
         "categories."
@@ -245,11 +246,14 @@ def drawing_reference() -> str:
             "notes": [
                 "Coordinates are page pixels of the sketch (origin top-left).",
                 "Set sketch.document/page/device to where the sketch came from.",
+                "sketch.sent_as is set by save_revision(send=True): the notebook to read "
+                "next round. Leave it as it is.",
                 "Dimension text is shown as written; value is the number in unit.",
                 "Legend entries use a symbol kind or 'category:<name>' as key; "
                 "left empty, a legend is made from the symbols and categories used.",
                 "Annotations with status 'open' are drawn as numbered rings and listed "
-                "under ANMÄRKNINGAR; accepted/rejected ones are hidden.",
+                "under ANMÄRKNINGAR, each with a SVAR line for the user's answer; "
+                "accepted/rejected ones are hidden.",
             ],
         }
     )
@@ -292,7 +296,7 @@ def save_revision(
     send: bool = False,
     svg_path: str | None = None,
 ) -> dict:
-    """Write the clean drawing as the notebook "<name> r<revision>" and save the drawing
+    """Write the clean drawing as the notebook "<name> r<NN>" and save the drawing
     for the next round.
 
     Args:
@@ -300,7 +304,9 @@ def save_revision(
         output_path: Where to write the .rmdoc (default: ~/.config/rmink/drawings/).
         rectify: As in render_drawing_preview.
         include_sketch: Add the sketch page (sketch.document/page) after the clean page.
-        send: Upload the notebook to the user's reMarkable Cloud (needs cloud_connect).
+        send: Upload the notebook to rmink/<name>/ in the user's reMarkable Cloud (needs
+            cloud_connect). The notebook the round read moves to rmink/<name>/Tidigare/ when
+            it lies in rmink/.
         svg_path: Also write the clean page as SVG, for sharing.
     """
     d = workflow.drawing_from_json(drawing)
@@ -312,7 +318,7 @@ def save_revision(
         doc = _documents.get(d.sketch.document) or workflow.open_document(d.sketch.document, dev)
         if 1 <= d.sketch.page <= len(doc.pages):
             sketch_page = doc.pages[d.sketch.page - 1]
-    name = f"{d.name} r{d.revision}"
+    name = workflow.revision_title(d)
     output = Path(output_path) if output_path else workflow.drawings_dir() / f"{name}.rmdoc"
     rev = workflow.build_revision(d, output, sketch_page)
     result = {"path": str(rev.path), "saved_drawing": str(rev.saved_to), "name": name}
@@ -323,7 +329,7 @@ def save_revision(
         token = cloud.load_token()
         if not token:
             raise cloud.CloudAuthError("Not connected; call cloud_connect with a one-time code")
-        result["sent_as"] = cloud.put(rev.path, token)
+        result["sent_as"] = workflow.send_revision(rev, token)
     return result
 
 

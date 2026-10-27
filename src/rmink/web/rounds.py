@@ -1,4 +1,5 @@
-"""Revision rounds from the web: pick a notebook, run a round, see the result.
+"""Revision rounds from the web: run the next round of a drawing, or the first
+round of a new sketch in the rmink folder, and see the result.
 
 Owner-only. The router is mounted only when ``RMINK_ROUNDS_SECRET`` and
 ``ANTHROPIC_API_KEY`` are set, and every API call must carry the secret in the
@@ -63,6 +64,9 @@ def router() -> APIRouter:
         token = _token()
         try:
             entries = await anyio.to_thread.run_sync(cloud.ls, token, path)
+        except cloud.CloudNotFoundError:
+            # No rmink folder yet: the page tells the owner to make one.
+            return {"path": path, "entries": [], "missing": True}
         except cloud.CloudAuthError as e:
             raise HTTPException(401, str(e)) from e
         except cloud.CloudError as e:
