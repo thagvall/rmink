@@ -7,7 +7,7 @@ import pytest
 fastapi = pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient  # noqa: E402
 
-from rmink.web import cloud  # noqa: E402
+from rmink import cloud  # noqa: E402
 from rmink.web.app import Limits, create_app  # noqa: E402
 
 
@@ -18,6 +18,7 @@ class FakeRmapi:
         self.calls = []
         self.uploaded = []
         self.existing = set()
+        self.documents = {"Altan": b"PK-fake-rmdoc"}
 
     def __call__(self, args, input, env, **kw):
         self.calls.append((args, input, env))
@@ -31,6 +32,19 @@ class FakeRmapi:
                 conf.write_text("devicetoken: tok.en-1\nusertoken: u\n")
             else:
                 err, code = "failed to create a new device token", 1
+        elif args[1:3] == ["-ni", "ls"]:
+            if token != "tok.en-1":
+                err, code = "missing token, not asking, aborting", 1
+            else:
+                out = "[d]\tProjekt\n" + "".join(f"[f]\t{n}\n" for n in self.documents)
+        elif args[1:3] == ["-ni", "get"]:
+            name = args[3].strip("/")
+            if token != "tok.en-1":
+                err, code = "missing token, not asking, aborting", 1
+            elif name not in self.documents:
+                err, code = "file doesn't exist", 1
+            else:
+                (Path(kw["cwd"]) / f"{name}.rmdoc").write_bytes(self.documents[name])
         elif args[1:3] == ["-ni", "put"]:
             path = Path(args[3])
             if token != "tok.en-1":
@@ -132,3 +146,24 @@ def test_send_reports_rmapi_failure(client, rmapi, examples, monkeypatch):
 
 def test_index_has_send_button(client):
     assert 'id="send"' in client.get("/").text
+
+
+def test_ls_and_get(rmapi):
+    entries = cloud.ls("tok.en-1")
+    assert entries == [cloud.Entry("Projekt", True), cloud.Entry("Altan", False)]
+    assert cloud.get("tok.en-1", "/Altan") == b"PK-fake-rmdoc"
+    with pytest.raises(cloud.CloudError):
+        cloud.get("tok.en-1", "/Missing")
+    with pytest.raises(cloud.CloudAuthError):
+        cloud.ls("expired-token")
+
+
+def test_token_storage(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    monkeypatch.delenv("RMINK_CLOUD_TOKEN", raising=False)
+    assert cloud.load_token() is None
+    path = cloud.save_token("tok.en-1")
+    assert path.stat().st_mode & 0o777 == 0o600
+    assert cloud.load_token() == "tok.en-1"
+    monkeypatch.setenv("RMINK_CLOUD_TOKEN", "from-env")
+    assert cloud.load_token() == "from-env"

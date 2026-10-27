@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Sketch to clean drawing (experimental, not yet verified on a tablet): read a hand-drawn page back from a notebook or the reMarkable Cloud, let Claude interpret it, and get a clean revision with straight lines, dimension lines, symbols, a legend and a title block. Mark the revision up on the tablet, and the next round picks up only your new marks. Colour tablets show categories in colour; rm2 and Paper Pure use line types. MCP tools: `read_sketch`, `drawing_reference`, `render_drawing_preview`, `save_revision`, `get_drawing`. CLI: `rmink sketch` and `rmink draw`. See `docs/sketch-to-drawing.md`.
+- `rmink cloud connect|ls|get|put`, and the MCP tools `cloud_connect` and `cloud_list`. The CLI and MCP server keep the token in `~/.config/rmink/cloud.toml`.
+- Notebooks can have more than one layer per page. Single-layer output is unchanged.
+
 ## 2.2.1 — 2026-10-24
 
 - Web UI: the shading previews are about twice as fast, so they also appear for camera photos in Safari on iPhone. If they still fail, the strip says why instead of disappearing.

@@ -1,4 +1,5 @@
-"""Command line interface: ``rmink convert|preview|inspect|devices|calibrate|mcp``."""
+"""Command line interface: ``rmink convert|preview|inspect|devices|calibrate|mcp``, the
+``rmink cloud`` group, and ``rmink sketch|draw`` for turning sketches into clean drawings."""
 
 from __future__ import annotations
 
@@ -209,6 +210,117 @@ def web(
 
         threading.Timer(1.0, webbrowser.open, args=(url,)).start()
     uvicorn.run(create_app(), host=host, port=port, log_level="warning")
+
+
+cloud_app = typer.Typer(help="reMarkable Cloud: connect, list, download and upload notebooks.")
+app.add_typer(cloud_app, name="cloud")
+
+
+def _token() -> str:
+    from rmink import cloud
+
+    token = cloud.load_token()
+    if not token:
+        typer.secho(f"Not connected; run: rmink cloud connect CODE ({cloud.CONNECT_URL})",
+                    fg="red", err=True)  # fmt: skip
+        raise typer.Exit(1)
+    return token
+
+
+@cloud_app.command("connect")
+def cloud_connect(
+    code: Annotated[str, typer.Argument(help="One-time code from my.remarkable.com")],
+) -> None:
+    """Connect to your reMarkable Cloud and remember the connection."""
+    from rmink import cloud
+
+    typer.echo(f"Connected; token saved in {cloud.save_token(cloud.connect(code))}")
+
+
+@cloud_app.command("ls")
+def cloud_ls(path: Annotated[str, typer.Argument()] = "/") -> None:
+    """List documents and folders."""
+    from rmink import cloud
+
+    for e in cloud.ls(_token(), path):
+        typer.echo(f"{'[d]' if e.folder else '   '} {e.name}")
+
+
+@cloud_app.command("get")
+def cloud_get(
+    path: Annotated[str, typer.Argument(help='Document path, e.g. "/Altan"')],
+    output: Annotated[Path | None, typer.Option("--output", "-o")] = None,
+) -> None:
+    """Download a notebook as .rmdoc."""
+    from rmink import cloud
+
+    dst = output or Path(f"{path.rstrip('/').rsplit('/', 1)[-1]}.rmdoc")
+    dst.write_bytes(cloud.get(_token(), path))
+    typer.echo(str(dst))
+
+
+@cloud_app.command("put")
+def cloud_put(path: Annotated[Path, typer.Argument(exists=True)]) -> None:
+    """Upload a .rmdoc to the root of your cloud."""
+    from rmink import cloud
+
+    typer.echo(f"Sent as {cloud.put(path, _token())!r}")
+
+
+@app.command()
+def sketch(
+    document: Annotated[str, typer.Argument(help='Local .rmdoc or cloud path like "/Altan"')],
+    page: Annotated[int, typer.Option(help="1-based page")] = 1,
+    device: Device = "rm2",
+    since: Annotated[str | None, typer.Option(help="Saved drawing: only newer strokes")] = None,
+    overlay: Annotated[Path | None, typer.Option(help="Write the numbered groups as PNG")] = None,
+) -> None:
+    """Read a hand-drawn page as numbered stroke groups with fitted shapes (JSON)."""
+    from rmink.devices import get_device
+    from rmink.drawing import workflow
+
+    dev = get_device(device)
+    since_d = workflow.load_drawing(since) if since else None
+    sk = workflow.read_sketch(document, page, dev, since_d)
+    if overlay:
+        overlay.write_bytes(sk.overlay_png(dev))
+    typer.echo(json.dumps(sk.summary(), indent=2))
+
+
+@app.command()
+def draw(
+    drawing: Annotated[Path, typer.Argument(exists=True, help="Drawing JSON")],
+    output: Annotated[Path | None, typer.Option("--output", "-o")] = None,
+    svg: Annotated[Path | None, typer.Option(help="Also write the clean page as SVG")] = None,
+    rectify: Annotated[bool, typer.Option("--rectify/--no-rectify")] = True,
+    send: Annotated[bool, typer.Option(help="Upload to reMarkable Cloud")] = False,
+) -> None:
+    """Render a Drawing JSON as a clean revision notebook "<name> r<N>"."""
+    from rmink import cloud
+    from rmink.devices import get_device
+    from rmink.drawing import workflow
+    from rmink.drawing.render import page_svg, render_drawing
+
+    d = workflow.drawing_from_json(drawing.read_text(encoding="utf-8"))
+    if rectify:
+        d = workflow.rectify(d)
+    sketch_page = None
+    if d.sketch.document:
+        doc = workflow.open_document(d.sketch.document, get_device(d.sketch.device))
+        if 1 <= d.sketch.page <= len(doc.pages):
+            sketch_page = doc.pages[d.sketch.page - 1]
+    out = output or drawing.with_name(f"{d.name} r{d.revision}.rmdoc")
+    rev = workflow.build_revision(d, out, sketch_page)
+    if svg:
+        dev = get_device(d.sketch.device)
+        svg.write_text(page_svg(render_drawing(rev.drawing, dev), dev), encoding="utf-8")
+    for row in workflow.check_dimensions(rev.drawing)["dimensions"]:
+        if not row["consistent"]:
+            msg = f"{row['id']} {row['text']!r} is drawn {row['deviation_pct']:+}% off scale"
+            typer.secho(f"warning: {msg}", fg="yellow", err=True)
+    typer.echo(str(rev.path))
+    if send:
+        typer.echo(f"Sent as {cloud.put(rev.path, _token())!r}")
 
 
 @app.command()

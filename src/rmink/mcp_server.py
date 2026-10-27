@@ -8,13 +8,19 @@ Run with ``rmink mcp`` (stdio). Register in Claude Code with::
 from __future__ import annotations
 
 import io
+import json
 import tempfile
 from pathlib import Path
 
 from mcp.server.mcpserver import Image, MCPServer
 
-from rmink import api
-from rmink.devices import all_devices
+from rmink import api, cloud
+from rmink.devices import all_devices, get_device
+from rmink.drawing import workflow
+from rmink.drawing.model import Drawing
+from rmink.drawing.render import page_svg, render_drawing
+from rmink.drawing.symbols import SYMBOLS
+from rmink.model import Document
 from rmink.options import ConvertOptions
 
 server = MCPServer(
@@ -28,8 +34,25 @@ server = MCPServer(
         "Modes: 'auto' (default), 'vector' for PDFs/SVGs, 'centerline' for handwriting and "
         "sketches, 'outline' for logos and solid shapes. The .rmdoc is transferred by the "
         "user via the reMarkable USB web interface (http://10.11.99.1) or the desktop app."
+        "\n\n"
+        "Sketch to clean drawing (the other direction): the user hand-sketches a 2D drawing "
+        "on the tablet (lines, written measurements, symbols, a legend) and gets a clean, "
+        "interpreted revision back. Loop: `read_sketch` (numbered stroke groups with fitted "
+        "lines/circles/polylines, plus an image) -> build a Drawing JSON from the groups, "
+        "reusing their fitted coordinates (never estimate coordinates from the image) -> "
+        "`render_drawing` to check it and the measurements -> `save_revision` (writes "
+        "'<name> r<N>', optionally sends it to the tablet). In the next round the user marks "
+        "up that revision on the tablet (rings, arrows, crosses, notes, ideally on the "
+        "'Kommentarer' layer): `get_drawing` + `read_sketch` with since_drawing returns only "
+        "the new marks; turn them into annotations or edits, bump `revision`, add a `log` "
+        "line and save again. Read `drawing_reference` once for the JSON format, symbols and "
+        "categories."
     ),
 )
+
+# Notebooks read by read_sketch, so save_revision can add the sketch page
+# without downloading it again.
+_documents: dict[str, Document] = {}
 
 
 def _opts(
@@ -163,6 +186,151 @@ def list_devices() -> list[dict]:
 def calibration_sheet(device: str, output_path: str) -> str:
     """Write a ruler/calibration notebook for checking the scale on a real device."""
     return str(api.calibration_sheet(device, Path(output_path)))
+
+
+@server.tool()
+def cloud_connect(code: str) -> str:
+    """Connect rmink to the user's reMarkable Cloud with a one-time code from
+    https://my.remarkable.com/device/browser/connect, and remember the connection."""
+    path = cloud.save_token(cloud.connect(code))
+    return f"Connected; the token is stored in {path}"
+
+
+@server.tool()
+def cloud_list(path: str = "/") -> list[dict]:
+    """List documents and folders in the user's reMarkable Cloud (needs cloud_connect)."""
+    token = cloud.load_token()
+    if not token:
+        raise cloud.CloudAuthError("Not connected; call cloud_connect with a one-time code")
+    return [{"name": e.name, "folder": e.folder} for e in cloud.ls(token, path)]
+
+
+@server.tool()
+def read_sketch(
+    document: str, page: int = 1, device: str = "rm2", since_drawing: str | None = None
+) -> list:
+    """Read a hand-drawn page as numbered stroke groups, with fitted shapes.
+
+    Args:
+        document: Local .rmdoc/.rm path, or a document path in the reMarkable Cloud
+            such as "/Altan".
+        page: 1-based page number.
+        device: rm2 | pure | pro | move — the tablet it was drawn on.
+        since_drawing: Name of a saved drawing; only strokes added after that revision
+            was written are returned (the user's markings on it).
+
+    Returns an image with every group boxed and numbered, and JSON: per group its
+    shape (line, polyline, closed, circle, arc, or "mark" for handwriting, arrowheads and
+    small symbols that you should read from the image), bounding box, pen colour,
+    layer and fitted geometry in page pixels.
+    """
+    dev = get_device(device)
+    since = workflow.load_drawing(since_drawing) if since_drawing else None
+    sketch = workflow.read_sketch(document, page, dev, since)
+    _documents[document] = sketch.document
+    return [
+        Image(data=sketch.overlay_png(dev), format="png"),
+        json.dumps(sketch.summary()),
+    ]
+
+
+@server.tool()
+def drawing_reference() -> str:
+    """The Drawing JSON format, built-in symbols and line categories."""
+    return json.dumps(
+        {
+            "schema": Drawing.model_json_schema(),
+            "symbols": {k: v[0] for k, v in SYMBOLS.items()},
+            "categories": [c.model_dump() for c in Drawing(name="x").categories],
+            "notes": [
+                "Coordinates are page pixels of the sketch (origin top-left).",
+                "Set sketch.document/page/device to where the sketch came from.",
+                "Dimension text is shown as written; value is the number in unit.",
+                "Legend entries use a symbol kind or 'category:<name>' as key; "
+                "left empty, a legend is made from the symbols and categories used.",
+                "Annotations with status 'open' are drawn as numbered rings and listed "
+                "under ANMÄRKNINGAR; accepted/rejected ones are hidden.",
+            ],
+        }
+    )
+
+
+@server.tool()
+def render_drawing_preview(drawing: dict, rectify: bool = True) -> list:
+    """Render a Drawing as it will look on the tablet, and check the measurements.
+
+    Args:
+        drawing: Drawing JSON (see drawing_reference).
+        rectify: Snap nearly horizontal/vertical lines and join endpoints that almost meet.
+
+    Returns the preview image and JSON with the (rectified) drawing and a measurement
+    check: the common scale and dimensions whose drawn length disagrees with it by more
+    than 10 % (worth asking the user about).
+    """
+    d = workflow.drawing_from_json(drawing)
+    if rectify:
+        d = workflow.rectify(d)
+    dev = get_device(d.sketch.device)
+    page = render_drawing(d, dev)
+    from rmink.render.preview import render_lines
+    from rmink.writer.rm_v6 import page_lines
+
+    img = render_lines(page_lines(page, dev), dev, page.height)
+    img.thumbnail((1200, 1200))
+    buf = io.BytesIO()
+    img.save(buf, "PNG")
+    report = {"measurements": workflow.check_dimensions(d), "drawing": d.model_dump(mode="json")}
+    return [Image(data=buf.getvalue(), format="png"), json.dumps(report)]
+
+
+@server.tool()
+def save_revision(
+    drawing: dict,
+    output_path: str | None = None,
+    rectify: bool = True,
+    include_sketch: bool = True,
+    send: bool = False,
+    svg_path: str | None = None,
+) -> dict:
+    """Write the clean drawing as the notebook "<name> r<revision>" and save the drawing
+    for the next round.
+
+    Args:
+        drawing: Drawing JSON (see drawing_reference).
+        output_path: Where to write the .rmdoc (default: ~/.config/rmink/drawings/).
+        rectify: As in render_drawing_preview.
+        include_sketch: Add the sketch page (sketch.document/page) after the clean page.
+        send: Upload the notebook to the user's reMarkable Cloud (needs cloud_connect).
+        svg_path: Also write the clean page as SVG, for sharing.
+    """
+    d = workflow.drawing_from_json(drawing)
+    if rectify:
+        d = workflow.rectify(d)
+    dev = get_device(d.sketch.device)
+    sketch_page = None
+    if include_sketch and d.sketch.document:
+        doc = _documents.get(d.sketch.document) or workflow.open_document(d.sketch.document, dev)
+        if 1 <= d.sketch.page <= len(doc.pages):
+            sketch_page = doc.pages[d.sketch.page - 1]
+    name = f"{d.name} r{d.revision}"
+    output = Path(output_path) if output_path else workflow.drawings_dir() / f"{name}.rmdoc"
+    rev = workflow.build_revision(d, output, sketch_page)
+    result = {"path": str(rev.path), "saved_drawing": str(rev.saved_to), "name": name}
+    if svg_path:
+        Path(svg_path).write_text(page_svg(render_drawing(rev.drawing, dev), dev))
+        result["svg"] = svg_path
+    if send:
+        token = cloud.load_token()
+        if not token:
+            raise cloud.CloudAuthError("Not connected; call cloud_connect with a one-time code")
+        result["sent_as"] = cloud.put(rev.path, token)
+    return result
+
+
+@server.tool()
+def get_drawing(name: str) -> dict:
+    """The saved Drawing JSON of the latest revision of ``name``."""
+    return workflow.load_drawing(name).model_dump(mode="json")
 
 
 def main() -> None:

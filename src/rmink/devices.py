@@ -83,9 +83,13 @@ _BUILTIN: dict[str, DeviceProfile] = {
 }
 
 
-def _config_path() -> Path:
+def config_dir() -> Path:
     base = os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config"
-    return Path(base) / "rmink" / "devices.toml"
+    return Path(base) / "rmink"
+
+
+def _config_path() -> Path:
+    return config_dir() / "devices.toml"
 
 
 @cache

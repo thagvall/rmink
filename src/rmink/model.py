@@ -21,6 +21,8 @@ class Stroke:
     color: PenColor = PenColor.BLACK
     rgba: tuple[int, int, int, int] | None = None
     pressures: np.ndarray | None = None  # optional per-point pressure (N,), 0-255
+    layer: str = "Layer 1"  # name of the tablet layer the stroke is on
+    id: tuple[int, int] | None = None  # (author, counter) CrdtId when read from a .rm file
 
     def __post_init__(self) -> None:
         self.points = np.asarray(self.points, dtype=np.float32).reshape(-1, 2)
@@ -42,10 +44,18 @@ class Page:
     width: int  # device px
     height: int  # device px; may exceed the screen height for tall content
     strokes: list[Stroke] = field(default_factory=list)
+    # Layers to create in this order, including empty ones for the user to draw on.
+    layer_names: list[str] = field(default_factory=list)
 
     @property
     def point_count(self) -> int:
         return sum(len(s) for s in self.strokes)
+
+    @property
+    def layers(self) -> list[str]:
+        """``layer_names`` followed by any other layer the strokes use."""
+        names = dict.fromkeys([*self.layer_names, *(s.layer for s in self.strokes)])
+        return list(names) or ["Layer 1"]
 
 
 @dataclass

@@ -20,13 +20,12 @@ from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import ValidationError
 from starlette.background import BackgroundTask
 
-from rmink import api
+from rmink import api, cloud
 from rmink.devices import all_devices
 from rmink.ingest import IMAGE_SUFFIXES, parse_page_ranges
 from rmink.options import ConvertOptions, ConvertResult, Shading
 from rmink.package.rmdoc import repair_rmdoc
 from rmink.support import demo_url, source_url, support_url
-from rmink.web import cloud
 
 _STATIC = Path(__file__).parent / "static"
 _ALLOWED = IMAGE_SUFFIXES | {".pdf", ".svg"}

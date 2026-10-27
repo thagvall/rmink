@@ -1,9 +1,12 @@
 """Send notebooks to the reMarkable Cloud with rmapi (github.com/ddvk/rmapi).
 
-The server keeps no accounts. Connecting turns the one-time code from
+The web server keeps no accounts. Connecting turns the one-time code from
 my.remarkable.com into a device token that goes back to the browser, which
 sends it along with each upload. Every rmapi run gets its own temp config and
 cache, so tokens never mix between users or end up on disk after a request.
+
+The CLI and MCP server run on the user's own machine and keep their token in
+``~/.config/rmink/cloud.toml`` instead (see :func:`save_token`).
 """
 
 from __future__ import annotations
@@ -14,7 +17,11 @@ import re
 import shutil
 import subprocess
 import tempfile
+import tomllib
 import zipfile
+from collections.abc import Iterator
+from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 
 log = logging.getLogger(__name__)
@@ -35,6 +42,32 @@ class CloudAuthError(CloudError):
 
 class CloudExistsError(CloudError):
     """A document with the same name is already in the target folder."""
+
+
+def token_path() -> Path:
+    from rmink.devices import config_dir
+
+    return config_dir() / "cloud.toml"
+
+
+def load_token() -> str | None:
+    """The device token saved by ``rmink cloud connect`` (or $RMINK_CLOUD_TOKEN)."""
+    if token := os.environ.get("RMINK_CLOUD_TOKEN"):
+        return token
+    path = token_path()
+    if not path.is_file():
+        return None
+    return tomllib.loads(path.read_text(encoding="utf-8")).get("devicetoken")
+
+
+def save_token(token: str) -> Path:
+    """Keep the token for the CLI and MCP server; only the user can read it."""
+    path = token_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.touch(mode=0o600)
+    path.chmod(0o600)
+    path.write_text(f'devicetoken = "{token}"\n', encoding="utf-8")
+    return path
 
 
 def find_rmapi() -> str | None:
@@ -96,17 +129,65 @@ def connect(code: str) -> str:
         return token
 
 
+@contextmanager
+def _session(device_token: str) -> Iterator[Path]:
+    """A temp rmapi home holding only this token."""
+    if not _TOKEN.match(device_token or ""):
+        raise CloudAuthError("Not connected to reMarkable")
+    with tempfile.TemporaryDirectory(prefix="rmink-cloud-") as tmp:
+        home = Path(tmp)
+        (home / "rmapi.conf").write_text(f"devicetoken: {device_token}\n", encoding="utf-8")
+        yield home
+
+
+def _check_auth(proc: subprocess.CompletedProcess) -> None:
+    output = proc.stdout + proc.stderr
+    if "missing token" in output or "Unauthorized" in output:
+        raise CloudAuthError("The reMarkable connection has expired; connect again")
+
+
+@dataclass(frozen=True)
+class Entry:
+    name: str
+    folder: bool
+
+
+def ls(device_token: str, path: str = "/") -> list[Entry]:
+    """Documents and folders in ``path`` of the user's cloud."""
+    with _session(device_token) as home:
+        proc = _run(["-ni", "ls", path], home)
+    _check_auth(proc)
+    if proc.returncode != 0:
+        raise CloudError("Listing failed: " + _message(proc))
+    entries = []
+    for line in proc.stdout.splitlines():
+        # rmapi prints "[d]\tname" for folders and "[f]\tname" for documents.
+        m = re.match(r"^\[([df])\]\s+(.*\S)\s*$", line)
+        if m:
+            entries.append(Entry(m.group(2), m.group(1) == "d"))
+    return entries
+
+
+def get(device_token: str, path: str) -> bytes:
+    """Download the document at ``path`` (e.g. "/Altan") as .rmdoc bytes."""
+    with _session(device_token) as home:
+        proc = _run(["-ni", "get", path], home)
+        _check_auth(proc)
+        # Newer rmapi writes "<name>.rmdoc", older versions "<name>.zip"; both
+        # are the same archive layout.
+        files = [f for f in home.iterdir() if f.suffix in (".rmdoc", ".zip")]
+        if proc.returncode != 0 or not files:
+            raise CloudError(f'Could not download "{path}": ' + _message(proc))
+        return max(files, key=lambda f: f.stat().st_mtime).read_bytes()
+
+
 def put(path: Path, device_token: str, attempts: int = 20) -> str:
     """Upload a .rmdoc to the root of the user's cloud; returns the name used.
 
     rmapi names the document after the file, so a taken name is retried as
     "name_2", "name_3" and so on.
     """
-    if not _TOKEN.match(device_token or ""):
-        raise CloudAuthError("Not connected to reMarkable")
-    with tempfile.TemporaryDirectory(prefix="rmink-cloud-") as tmp:
-        home = Path(tmp)
-        (home / "rmapi.conf").write_text(f"devicetoken: {device_token}\n", encoding="utf-8")
+    with _session(device_token) as home:
         (home / "upload").mkdir()
         upload = home / "upload" / path.name
         _without_thumbnails(path, upload)
@@ -131,10 +212,8 @@ def _without_thumbnails(src: Path, dst: Path) -> None:
 def _put_once(path: Path, home: Path) -> None:
     # -ni: with a bad token rmapi would otherwise wait for a code on stdin.
     proc = _run(["-ni", "put", str(path), "/"], home)
-    output = proc.stdout + proc.stderr
-    if "missing token" in output or "Unauthorized" in output:
-        raise CloudAuthError("The reMarkable connection has expired; connect again")
-    if "already exists" in output:
+    _check_auth(proc)
+    if "already exists" in proc.stdout + proc.stderr:
         raise CloudExistsError(path.stem)
     # rmapi reports some command errors on stderr but still exits 0.
     if proc.returncode != 0 or "OK" not in proc.stdout:

@@ -1,10 +1,10 @@
 """Serialise a :class:`~rmink.model.Page` to a reMarkable v6 ``.rm`` file.
 
 This module is the only place that touches rmscene's (experimental) writer API.
-The block layout mirrors what firmware 3.x produces for a notebook page with a
-single layer: author ids, migration info, page info, scene info, the scene tree
-(root + "Layer 1") and one ``SceneLineItemBlock`` per stroke, linked as a CRDT
-sequence.
+The block layout mirrors what firmware 3.x produces for a notebook page: author
+ids, migration info, page info, scene info, the scene tree (root + one group per
+layer, the first being "Layer 1" by default) and one ``SceneLineItemBlock`` per
+stroke, linked as a CRDT sequence within its layer.
 """
 
 from __future__ import annotations
@@ -74,7 +74,22 @@ def _line_points(stroke: Stroke, device: DeviceProfile) -> list[si.Point]:
     ]
 
 
+def _layer_ids(count: int, first_free: int) -> list[tuple[CrdtId, CrdtId, CrdtId]]:
+    """(node, label, sequence item) ids per layer. The first layer uses the ids
+    firmware gives "Layer 1"; later ones take counters after the strokes."""
+    ids = [(LAYER_ID, CrdtId(0, 12), CrdtId(0, 13))]
+    for i in range(count - 1):
+        c = first_free + 3 * i
+        ids.append((CrdtId(1, c), CrdtId(1, c + 1), CrdtId(1, c + 2)))
+    return ids
+
+
 def page_blocks(page: Page, device: DeviceProfile, author_uuid: UUID) -> Iterator[Block]:
+    layers = page.layers
+    by_layer = {name: [s for s in page.strokes if s.layer == name and len(s)] for name in layers}
+    n_strokes = sum(len(v) for v in by_layer.values())
+    ids = _layer_ids(len(layers), FIRST_ITEM_COUNTER + n_strokes)
+
     yield AuthorIdsBlock(author_uuids={1: author_uuid})
     yield MigrationInfoBlock(migration_id=CrdtId(1, 1), is_device=True)
     yield PageInfoBlock(loads_count=1, merges_count=0, text_chars_count=0, text_lines_count=0)
@@ -84,42 +99,46 @@ def page_blocks(page: Page, device: DeviceProfile, author_uuid: UUID) -> Iterato
         root_document_visible=LwwValue(NULL_ID, True),
         paper_size=device.paper_size,
     )
-    yield SceneTreeBlock(tree_id=LAYER_ID, node_id=NULL_ID, is_update=True, parent_id=ROOT_ID)
+    for node, _, _ in ids:
+        yield SceneTreeBlock(tree_id=node, node_id=NULL_ID, is_update=True, parent_id=ROOT_ID)
     yield TreeNodeBlock(si.Group(node_id=ROOT_ID))
-    yield TreeNodeBlock(si.Group(node_id=LAYER_ID, label=LwwValue(CrdtId(0, 12), "Layer 1")))
-    yield SceneGroupItemBlock(
-        parent_id=ROOT_ID,
-        item=CrdtSequenceItem(
-            item_id=CrdtId(0, 13),
-            left_id=NULL_ID,
-            right_id=NULL_ID,
-            deleted_length=0,
-            value=LAYER_ID,
-        ),
-    )
-
-    left = NULL_ID
-    counter = FIRST_ITEM_COUNTER
-    for stroke in page.strokes:
-        if len(stroke) == 0:
-            continue
-        item_id = CrdtId(1, counter)
-        line = si.Line(
-            color=stroke.color,
-            tool=stroke.pen,
-            points=_line_points(stroke, device),
-            thickness_scale=1.0,
-            starting_length=0.0,
-            color_rgba=stroke.rgba,
-        )
-        yield SceneLineItemBlock(
-            parent_id=LAYER_ID,
+    for name, (node, label, _) in zip(layers, ids, strict=True):
+        yield TreeNodeBlock(si.Group(node_id=node, label=LwwValue(label, name)))
+    left_layer = NULL_ID
+    for node, _, seq in ids:
+        yield SceneGroupItemBlock(
+            parent_id=ROOT_ID,
             item=CrdtSequenceItem(
-                item_id=item_id, left_id=left, right_id=NULL_ID, deleted_length=0, value=line
+                item_id=seq,
+                left_id=left_layer,
+                right_id=NULL_ID,
+                deleted_length=0,
+                value=node,
             ),
         )
-        left = item_id
-        counter += 1
+        left_layer = seq
+
+    counter = FIRST_ITEM_COUNTER
+    for name, (node, _, _) in zip(layers, ids, strict=True):
+        left = NULL_ID
+        for stroke in by_layer[name]:
+            item_id = CrdtId(1, counter)
+            line = si.Line(
+                color=stroke.color,
+                tool=stroke.pen,
+                points=_line_points(stroke, device),
+                thickness_scale=1.0,
+                starting_length=0.0,
+                color_rgba=stroke.rgba,
+            )
+            yield SceneLineItemBlock(
+                parent_id=node,
+                item=CrdtSequenceItem(
+                    item_id=item_id, left_id=left, right_id=NULL_ID, deleted_length=0, value=line
+                ),
+            )
+            left = item_id
+            counter += 1
 
 
 def page_lines(page: Page, device: DeviceProfile) -> list[si.Line]:

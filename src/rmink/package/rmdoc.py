@@ -62,6 +62,7 @@ def page_indices(count: int) -> list[str]:
 class RmdocPage:
     rm_bytes: bytes
     thumbnail_png: bytes | None = None
+    layers: list[str] = field(default_factory=lambda: ["Layer 1"])
 
 
 @dataclass
@@ -174,7 +175,7 @@ def write_rmdoc(
             add(f"{doc_id}/{pid}.rm", page.rm_bytes)
             add(
                 f"{doc_id}/{pid}-metadata.json",
-                json.dumps({"layers": [{"name": "Layer 1"}]}).encode(),
+                json.dumps({"layers": [{"name": n} for n in page.layers]}).encode(),
             )
             if page.thumbnail_png is not None:
                 add(f"{doc_id}.thumbnails/{pid}.png", page.thumbnail_png)

@@ -1,6 +1,6 @@
 ---
 name: rmink
-description: Convert images, photos of handwriting or sketches, SVGs, logos and PDFs into native, editable reMarkable ink (.rmdoc notebooks with real pen strokes, not embedded images). Use when the user wants something "on my reMarkable", "as ink", "editable on the tablet", or asks to turn a picture/scan/PDF into a reMarkable notebook for rM2, Paper Pure, Paper Pro or Paper Pro Move.
+description: Convert images, photos of handwriting or sketches, SVGs, logos and PDFs into native, editable reMarkable ink (.rmdoc notebooks with real pen strokes, not embedded images), and the other way round, turn a hand sketch made on the tablet (2D drawing with measurements, symbols, legend) into a clean, interpreted drawing revised in rounds. Use when the user wants something "on my reMarkable", "as ink", "editable on the tablet", asks to turn a picture/scan/PDF into a reMarkable notebook for rM2, Paper Pure, Paper Pro or Paper Pro Move, or wants a tablet sketch "cleaned up", "redrawn" or "digitised".
 ---
 
 # rmink: anything → editable reMarkable ink
@@ -54,9 +54,49 @@ If the `rmink` MCP server is connected, prefer its tools (`preview_ink`,
    Settings → Storage → USB web interface, open http://10.11.99.1 and drag the
    `.rmdoc` in (100 MB limit), or drag it into the reMarkable desktop app.
 
+## Sketch → clean drawing (the other direction)
+
+The user sketches a 2D drawing on the tablet (walls, beams, written lengths and
+angles, symbols, arrows, a legend) and wants a clean, interpreted version back,
+then marks that up in rounds. MCP tools: `read_sketch`, `drawing_reference`,
+`render_drawing_preview`, `save_revision`, `get_drawing`, plus `cloud_connect` /
+`cloud_list`. CLI: `rmink cloud connect|ls|get|put`, `rmink sketch`, `rmink draw`.
+
+1. **Get the sketch.** A local `.rmdoc`, or the cloud: `cloud_list`, then
+   `read_sketch("/Altan", page=1, device="rm2")`. If not connected, ask the user
+   for a one-time code from https://my.remarkable.com/device/browser/connect and
+   call `cloud_connect`.
+2. **Interpret.** Look at the numbered image and the group JSON together.
+   Long strokes come with fitted `line`/`polyline`/`circle`/`arc` geometry: copy
+   those coordinates into elements. Groups of `shape: "mark"` are handwriting,
+   arrowheads or small symbols: read them from the image. Decide per group what
+   it is: an element (and its category: structure, hidden, electrical…), a
+   dimension (the written number plus the line it measures), a symbol, legend
+   text, or a remark. Read `drawing_reference` once for the JSON format.
+   If the sketch has a legend, use it for symbol meanings and put it in
+   `legend`. Ask the user about anything you cannot read rather than guessing.
+3. **Check.** `render_drawing_preview` straightens lines, joins corners and
+   compares written measurements with drawn lengths. Show the preview; mention
+   dimensions marked inconsistent (they are often a mis-read number, or a real
+   error in the sketch worth pointing out).
+4. **Save and send.** `save_revision(drawing, send=True)` writes
+   "<name> r<N>" with the clean page first, the original sketch after it, and an
+   empty "Kommentarer" layer for markings.
+5. **Next round.** The user rings, crosses, arrows or annotates the revision
+   on the tablet. `get_drawing(name)` + `read_sketch("/<name> r<N>",
+   since_drawing=name)` returns only the new marks. Map each to the element ids
+   it points at; apply clear edits (moved line, changed measurement), keep
+   questions as `annotations` with status "open", resolve old ones
+   ("accepted"/"rejected"), bump `revision`, append a `log` line, save again.
+
+Colour: on `pro`/`move` categories keep their colours (electrical red, plumbing
+blue, changes green, remarks magenta); on `rm2`/`pure` they become black/grey
+with dashed, dotted and dash-dot lines and different widths.
+
 ## Notes
 
 - Paper Pro / Move / Pure profiles are marked beta until their scale is
   verified; `rmink calibrate -d pro` writes a ruler page to check on hardware.
 - Text in vector PDFs becomes outlined, hatched glyphs (not typed text).
-- Never claim the file is on the tablet — rmink only writes the file.
+- Never claim the file is on the tablet unless `send`/`cloud put` reported it
+  as sent; otherwise rmink only writes the file.
