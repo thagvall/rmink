@@ -34,6 +34,21 @@ for LinkedIn and other sites, and send visitors on to the app with the video
 open (`/?demo`, `/?demo=sv`). Regenerate them with
 `python promo/make_share.py` (see `promo/README.md`).
 
+**Sketch to drawing entry:** a separate, static entry for the other direction
+(hand sketch to clean drawing), next to the app. The app's start page is not
+affected.
+- `/sketch` (English) and `/sketch/sv` or `/skiss` (Swedish) show the
+  interactive demo, with "Watch the video" opening the 4:5 video in a dialog.
+- `/sketch?demo` and `/sketch/sv?demo=sv` open the page with the video
+  playing.
+- `/sketch/video` and `/sketch/video/sv` are share links with link-preview
+  tags for LinkedIn and other sites. They send visitors on to the page with
+  the video open.
+- The videos are at `/promo/sketch/rmink-sketch-{sv,en}-{4x5,16x9}.mp4`.
+
+Rebuild with `python promo/sketch-video/make_site.py` (see
+`promo/sketch-video/README.md`).
+
 **Limits on the hosted version:**
 - Vercel caps each request and response at 4.5 MB. The browser shrinks
   large photos (to at most 3200 px, as JPEG) before uploading, which is

@@ -3,7 +3,12 @@
   "regions": ["arn1"],
   "rewrites": [
     { "source": "/video", "destination": "/video.html" },
-    { "source": "/video/sv", "destination": "/video-sv.html" }
+    { "source": "/video/sv", "destination": "/video-sv.html" },
+    { "source": "/sketch", "destination": "/sketch.html" },
+    { "source": "/sketch/sv", "destination": "/sketch-sv.html" },
+    { "source": "/skiss", "destination": "/sketch-sv.html" },
+    { "source": "/sketch/video", "destination": "/sketch-video.html" },
+    { "source": "/sketch/video/sv", "destination": "/sketch-video-sv.html" }
   ],
   "functions": {
     "app.py": {
