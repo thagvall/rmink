@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<title>rmink sketch to drawing</title>
+<style>
+@font-face { font-family: "Caveat"; src: url("../out/assets/Caveat.ttf"); font-weight: 400 700; }
+:root {
+  --paper: #f4f2ec; --ink: #1d1d1b; --muted: #6b6a65; --accent: #2b5fd9;
+  --mark: #a33a9c; --group: #d3352c; --ok: #1f9d55; --line: #dcd8cd;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { overflow: hidden; }
+body {
+  position: relative; background: var(--paper); color: var(--ink);
+  font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.scene { position: absolute; inset: 0; display: none; }
+.hand { font-family: "Caveat", cursive; font-weight: 650; }
+
+/* Caption column (landscape) or band (portrait). */
+.cap { position: absolute; }
+.beat { position: absolute; left: 0; top: 0; width: 100%; opacity: 0; }
+.chapter { font: 600 var(--fs-chapter)/1 "SF Mono", Menlo, monospace; color: var(--accent); letter-spacing: .04em; margin-bottom: var(--gap-s); }
+.title { font-size: var(--fs-title); font-weight: 780; letter-spacing: -0.025em; line-height: 1.04; }
+.body { font-size: var(--fs-body); line-height: 1.32; color: #3e3d39; margin-top: var(--gap-s); }
+.bullets { margin-top: var(--gap-m); display: grid; gap: var(--gap-s); }
+.bullet { font-size: var(--fs-body); font-weight: 650; display: flex; gap: .55em; align-items: baseline; opacity: 0; }
+.bullet i { font-style: normal; color: var(--accent); font-family: "SF Mono", Menlo, monospace; font-size: .8em; }
+.chips { margin-top: var(--gap-m); display: grid; gap: calc(var(--gap-s) * .7); }
+.chip { font-size: var(--fs-chip); display: flex; gap: .6em; align-items: baseline; background: #fff; border: 2px solid #e2dfd6;
+  border-radius: 12px; padding: .38em .7em; opacity: .35; }
+.chip.on { opacity: 1; border-color: var(--group); }
+.chip.done { opacity: 1; }
+.chip code { font: 600 .78em "SF Mono", Menlo, monospace; color: var(--group); white-space: nowrap; }
+.chip.mark code { color: var(--mark); }
+.stamp { display: inline-flex; gap: .5em; align-items: center; margin-top: var(--gap-m); font-size: var(--fs-chip); font-weight: 700;
+  color: var(--ok); background: #e3f3e8; border-radius: 999px; padding: .35em .9em; opacity: 0; }
+table.cmp { margin-top: var(--gap-m); border-collapse: collapse; font-size: var(--fs-chip); font-variant-numeric: tabular-nums; }
+table.cmp td, table.cmp th { padding: .3em .7em; border-bottom: 2px solid #e2dfd6; text-align: right; }
+table.cmp td:first-child, table.cmp th:first-child { text-align: left; padding-left: 0; }
+table.cmp th { font: 600 .7em "SF Mono", Menlo, monospace; color: var(--muted); }
+table.cmp .win { color: var(--ok); font-weight: 750; }
+
+/* Stage and devices */
+.stage { position: absolute; display: flex; justify-content: center; align-items: center; gap: var(--gap-dev); }
+.dev { display: flex; flex-direction: column; align-items: center; gap: 12px; flex: none; }
+.dev .lbl { font: 600 var(--fs-label) "SF Mono", Menlo, monospace; color: var(--muted); white-space: nowrap; }
+.tablet { background: #262624; border-radius: 26px; padding: 18px 16px 24px; box-shadow: 0 26px 50px rgb(0 0 0 / .25), inset 0 0 0 2px #3a3a37; }
+.screen { background: #fbfaf6; border-radius: 6px; overflow: hidden; position: relative; }
+.bar { display: flex; justify-content: space-between; gap: 10px; padding: 6px 12px; font: 500 var(--fs-bar) "SF Mono", Menlo, monospace;
+  color: #55544f; background: #fff; border-bottom: 1px solid #e6e3da; white-space: nowrap; overflow: hidden; }
+.bar span:last-child { color: #8f8d86; }
+.screen svg { display: block; width: 100%; aspect-ratio: 1360 / 1500; }
+.ink path { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; }
+.box rect { fill: none; stroke: var(--group); stroke-width: 4; }
+.box .tag { fill: var(--group); stroke: none; }
+.box text { fill: #fff; font: 600 28px "SF Mono", Menlo, monospace; }
+.box.new rect { stroke: var(--mark); stroke-dasharray: 12 8; }
+.box.new .tag { fill: var(--mark); }
+.box g.hot rect { stroke-width: 9; }
+.phone { background: #1b1b1a; border-radius: 40px; padding: 14px 11px 18px; box-shadow: 0 26px 50px rgb(0 0 0 / .25); }
+.phone .pscreen { border-radius: 28px; overflow: hidden; background: #d9d6cf; position: relative; }
+.phone .pbar { padding: 8px 14px; font: 500 var(--fs-bar) "SF Mono", Menlo, monospace; color: #55544f; background: #fff; }
+.phone img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
+.phone .toast { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); white-space: nowrap; background: #1d1d1b; color: #fff;
+  font-weight: 700; font-size: var(--fs-bar); padding: .55em 1.1em; border-radius: 999px; opacity: 0; }
+.viewer { border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 26px 50px rgb(0 0 0 / .2), 0 0 0 1px rgb(0 0 0 / .08); }
+.viewer .vbar { padding: 7px 12px; font: 500 var(--fs-bar) "SF Mono", Menlo, monospace; color: #55544f; background: #e9e7e1; display: flex; justify-content: space-between; gap: 8px; white-space: nowrap; }
+.viewer svg { display: block; width: 100%; aspect-ratio: 1360 / 1500; }
+.badge { font: 700 var(--fs-label) -apple-system, sans-serif; border-radius: 999px; padding: .25em .8em; }
+.badge.built { color: var(--ok); background: #e3f3e8; }
+.badge.next { color: var(--muted); background: #ebe9e2; }
+
+/* Loop diagram, status lists, end card */
+.loop text { font-family: -apple-system, "Helvetica Neue", sans-serif; font-weight: 700; }
+.lists { position: absolute; display: grid; gap: var(--gap-m) calc(var(--gap-m) * 2); align-content: start; }
+body.tall .chips { grid-template-columns: 1fr 1fr; }
+body.tall .chip { font-size: calc(var(--fs-chip) * .9); }
+.list h3 { font-size: var(--fs-body); font-weight: 780; margin-bottom: var(--gap-s); }
+.list li { list-style: none; font-size: var(--fs-chip); margin-top: .45em; opacity: 0; display: flex; gap: .55em; }
+.list li b { font-weight: 800; }
+.list.built b { color: var(--ok); }
+.list.next b { color: var(--accent); }
+.end { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: var(--gap-m); }
+.end .big { font-size: calc(var(--fs-title) * 1.15); font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
+.end .url { font: 650 var(--fs-body) "SF Mono", Menlo, monospace; color: var(--accent); }
+.end .small { font-size: var(--fs-chip); color: var(--muted); }
+
+/* Chapter rail */
+#rail { position: absolute; display: flex; gap: 10px; justify-content: center; }
+#rail div { font: 600 var(--fs-rail) "SF Mono", Menlo, monospace; color: #a3a097; padding: .35em .75em; border-radius: 999px; border: 2px solid transparent; white-space: nowrap; }
+#rail div.on { color: var(--accent); border-color: var(--accent); background: #fff; }
+#rail div.done { color: var(--ink); }
+</style>
+</head>
+<body>
+<div id="rail"></div>
+<script>
+const Q = new URLSearchParams(location.search);
+const LANG = Q.get("lang") === "en" ? "en" : "sv";
+const W = +(Q.get("w") || 1920), H = +(Q.get("h") || 1080);
+const LAND = W > H;
+document.documentElement.lang = LANG;
+document.body.style.width = W + "px";
+document.body.style.height = H + "px";
+document.body.classList.add(LAND ? "wide" : "tall");
+
+// Layout per format: caption box, stage box, chapter rail, type sizes.
+const L = LAND ? {
+  cap: [100, 150, 640, 760], stage: [760, 70, 1100, 900], rail: [0, 1000, 1920, 50],
+  fs: { chapter: 26, title: 74, body: 35, chip: 27, label: 21, bar: 15, rail: 20 }, gap: { s: 16, m: 30, dev: 44 },
+} : {
+  cap: [70, 60, 940, 420], stage: [40, 500, 1000, 760], rail: [0, 1278, 1080, 50],
+  fs: { chapter: 24, title: 60, body: 30, chip: 25, label: 20, bar: 14, rail: 17 }, gap: { s: 12, m: 22, dev: 30 },
+};
+const rs = document.documentElement.style;
+for (const [k, v] of Object.entries(L.fs)) rs.setProperty(`--fs-${k}`, v + "px");
+for (const [k, v] of Object.entries(L.gap)) rs.setProperty(`--gap-${k === "dev" ? "dev" : k}`, v + "px");
+const place = (el, [x, y, w, h]) => Object.assign(el.style, { left: x + "px", top: y + "px", width: w + "px", height: h + "px" });
+
+const TX = {
+  sv: {
+    intro_t: "Från handskiss\ntill ren ritning", intro_b: "En idé för rmink, och hur långt vi har kommit.",
+    prob_t: "Ritningar diskuteras i omgångar",
+    prob_1: "Någon skissar för hand", prob_2: "Man pratar om en del i taget", prob_3: "Sedan ritas allt om. Igen.",
+    idea_t: "Tänk tvärtom", idea_b: "Skissa på plattan och få tillbaka en ren ritning. Markera den, så kommer nästa revision.",
+    loop: ["Skissa", "Renritas", "Markera", "Ny revision"],
+    ch: ["Renritning", "Granskning", "Varianter", "Nedslag", "Pappersskiss", "Export"],
+    c1a_t: "Skissen blir data", c1a_b: "rmink läser varje streck och delar upp skissen i grupper. Långa streck blir linjer och cirklar med exakta koordinater.",
+    c1b_t: "Claude tolkar", c1b_b: "Vad är vägg, mått, pelare? Legenden i hörnet säger vad symbolerna betyder.",
+    m_walls: "Väggar V1–V4", m_dims: "Mått 4800 och 3600", m_cols: "Pelare P1–P4", m_drain: "Brunn, blå penna = VVS", m_el: "Eluttag, röd penna = el", m_leg: "Legend",
+    c1c_t: "Ren ritning, revision 1", c1c_b: "Raka linjer och hörn, måttlinjer med pilar, symboler, legend och revisionsruta. Som riktiga pennstreck på plattan.",
+    c1c_ok: "✓ 4800 och 3600 stämmer med skissen",
+    c1d_t: "Med och utan färg", c1d_b: "Paper Pro visar kategorierna i färg. rm2 och Paper Pure skiljer dem åt med linjetyp och tjocklek.",
+    c2a_t: "Markera med pennan", c2a_b: "Ring in pelaren och skriv en fråga. Kryssa över brunnen. Inga formulär.",
+    c2b_t: "Bara det nya läses", c2b_b: "rmink känner igen sina egna streck och lämnar dina markeringar åt Claude.",
+    c2b_1: "Kryss över brunnen: stryk den", c2b_2: "Ring och “FLYTTA 200?”: en fråga",
+    c2c_t: "Revision 2", c2c_b: "Brunnen är borta. Frågan om pelaren blir anmärkning 1. Loggen visar vad som ändrats.",
+    c3a_t: "Två förslag sida vid sida", c3a_b: "Bärlina längs eller tvärs? Claude tar fram båda ur samma ritning.",
+    c3b_t: "Jämför", c3b_b: "Varianterna är data, så de går att räkna på.",
+    cmp_beams: "Bärlinor", cmp_posts: "Nya pelare", cmp_span: "Största spann", cmp_len: "Balklängd",
+    c3c_t: "Välj med pennan", c3c_b: "Kryss på A, bock på B. B blir revision 3, och loggen säger varför.",
+    c4a_t: "Zooma in på ett hörn", c4a_b: "Ring in hörnet vid pelaren och skriv DETALJ.",
+    c4b_t: "En detaljsida i skala 1:5", c4b_b: "Pelaren 90 × 90 och väggarna 45 mm i riktiga mått. Översikten får en ring A som pekar dit.",
+    c4c_t: "Fortsätt i detaljen", c4c_b: "Skissa ett vinkelbeslag. Det ritas rent, och frågan om typ blir en anmärkning.",
+    c5a_t: "Ingen platta med?", c5a_b: "Fota pappersskissen med mobilen, direkt i rmink.",
+    c5b_t: "Bläck ur fotot", c5b_b: "Samma fotokonvertering som rmink har i dag. Bordet och papperskanten blir inte bläck.",
+    c5c_t: "Ren ritning på plattan", c5c_b: "Fotot tolkas som en skiss från plattan och skickas till din reMarkable.",
+    c6a_t: "Dela utan platta", c6a_b: "Alla format ritas ur samma modell, så nästa revision följer med överallt.",
+    svg: "SVG · dela direkt", pdf: "PDF · 1:25 på A4", dxf: "DXF · lager i mm",
+    built: "finns", next: "nästa steg",
+    st_t: "Var står vi?", st_built: "Finns i fas 1", st_next: "Nästa steg",
+    b1: "Läsa sidor från plattan och molnet", b2: "Gruppering och renritning", b3: "Granskningsrundor och revisioner", b4: "Färg och gråskala", b5: "SVG-export och mobilfoto",
+    n1: "Testa på en riktig rm2", n2: "Riktiga skisser från dig", n3: "Rita rent i webbappen", n4: "Varianter, nedslag, PDF och DXF",
+    end_t: "Skissa du.\nVi ritar rent.", end_s: "rmink är gratis och öppen källkod",
+    concept: "koncept",
+  },
+  en: {
+    intro_t: "From hand sketch\nto clean drawing", intro_b: "An idea for rmink, and how far we have come.",
+    prob_t: "Drawings get discussed in rounds",
+    prob_1: "Someone sketches by hand", prob_2: "You talk about one part at a time", prob_3: "Then it all gets redrawn. Again.",
+    idea_t: "Turn it around", idea_b: "Sketch on the tablet and get a clean drawing back. Mark it up, and the next revision follows.",
+    loop: ["Sketch", "Clean up", "Mark up", "New revision"],
+    ch: ["Clean drawing", "Review", "Variants", "Detail", "Paper sketch", "Export"],
+    c1a_t: "The sketch becomes data", c1a_b: "rmink reads every stroke and splits the sketch into groups. Long strokes become lines and circles with exact coordinates.",
+    c1b_t: "Claude interprets", c1b_b: "What is a wall, a measurement, a post? The legend in the corner says what the symbols mean.",
+    m_walls: "Walls V1–V4", m_dims: "Measurements 4800 and 3600", m_cols: "Posts P1–P4", m_drain: "Drain, blue pen = plumbing", m_el: "Outlet, red pen = electrical", m_leg: "Legend",
+    c1c_t: "Clean drawing, revision 1", c1c_b: "Straight lines and corners, dimension lines with arrows, symbols, a legend and a title block. As real pen strokes on the tablet.",
+    c1c_ok: "✓ 4800 and 3600 match the sketch",
+    c1d_t: "With and without colour", c1d_b: "Paper Pro shows categories in colour. rm2 and Paper Pure tell them apart by line type and width.",
+    c2a_t: "Mark it up with the pen", c2a_b: "Ring the post and write a question. Cross out the drain. No forms.",
+    c2b_t: "Only what is new gets read", c2b_b: "rmink recognises its own strokes and leaves your marks to Claude.",
+    c2b_1: "Cross over the drain: remove it", c2b_2: "Ring and “MOVE 200?”: a question",
+    c2c_t: "Revision 2", c2c_b: "The drain is gone. The question about the post becomes remark 1. The log shows what changed.",
+    c3a_t: "Two proposals side by side", c3a_b: "Beam along or across? Claude makes both from the same drawing.",
+    c3b_t: "Compare", c3b_b: "The variants are data, so you can measure them.",
+    cmp_beams: "Beams", cmp_posts: "New posts", cmp_span: "Largest span", cmp_len: "Beam length",
+    c3c_t: "Choose with the pen", c3c_b: "Cross out A, tick B. B becomes revision 3, and the log says why.",
+    c4a_t: "Zoom in on a corner", c4a_b: "Ring the corner at the post and write DETAIL.",
+    c4b_t: "A detail page at 1:5", c4b_b: "The 90 × 90 post and 45 mm walls at their real size. The overview gets a ring A pointing there.",
+    c4c_t: "Keep going in the detail", c4c_b: "Sketch an angle bracket. It is drawn clean, and the question about its type becomes a remark.",
+    c5a_t: "No tablet with you?", c5a_b: "Photograph the paper sketch with your phone, right in rmink.",
+    c5b_t: "Ink from the photo", c5b_b: "The same photo conversion rmink has today. The table and the paper edge do not become ink.",
+    c5c_t: "Clean drawing on the tablet", c5c_b: "The photo is interpreted like a tablet sketch and sent to your reMarkable.",
+    c6a_t: "Share without a tablet", c6a_b: "Every format is drawn from the same model, so the next revision follows everywhere.",
+    svg: "SVG · share now", pdf: "PDF · 1:25 on A4", dxf: "DXF · layers in mm",
+    built: "built", next: "next step",
+    st_t: "Where are we?", st_built: "Built in phase 1", st_next: "Next steps",
+    b1: "Reading pages from the tablet and cloud", b2: "Grouping and clean drawing", b3: "Review rounds and revisions", b4: "Colour and greyscale", b5: "SVG export and phone photos",
+    n1: "Test on a real rm2", n2: "Real sketches from you", n3: "Clean drawings in the web app", n4: "Variants, detail views, PDF and DXF",
+    end_t: "You sketch.\nWe draw it clean.", end_s: "rmink is free and open source",
+    concept: "concept",
+  },
+};
+const T = TX[LANG];
+
+/* ---------- helpers ---------- */
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+function h(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; }
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = x => (x < 0.5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2);
+const ramp = (t, a, b) => ease(clamp((t - a) / (b - a)));
+const window_ = (t, a, b, f = 0.4) => Math.min(ramp(t, a, a + f), 1 - ramp(t, b - f, b));
+
+function ink(svg, paths, colour) {
+  const g = el("g", { class: "ink" }, svg);
+  for (const p of paths) el("path", { d: p.d, stroke: colour === "mono" ? p.m : p.c, "stroke-width": Math.max(p.w * 1.5, 2.2), pathLength: 1 }, g);
+  g._p = [...g.children];
+  return g;
+}
+// Strokes appear in order over progress 0..1; each takes 30 % of the span.
+function draw(g, p) {
+  const n = g._p.length, len = 0.3;
+  g._p.forEach((path, i) => {
+    const s = (n > 1 ? i / (n - 1) : 0) * (1 - len);
+    path.style.strokeDashoffset = 1 - clamp((p - s) / len);
+  });
+}
+function boxes(svg, groups, cls) {
+  const g = el("g", { class: "box " + (cls || "") }, svg);
+  for (const gr of groups) {
+    const [x0, y0, x1, y1] = gr.b;
+    const it = el("g", { opacity: 0 }, g);
+    it._id = gr.id;
+    el("rect", { x: x0 - 6, y: y0 - 6, width: x1 - x0 + 12, height: y1 - y0 + 12, rx: 4 }, it);
+    const label = String(gr.id), w = 22 + label.length * 18;
+    const wide = x1 - x0 > 4 * Math.max(y1 - y0, 1), tall = y1 - y0 > 4 * Math.max(x1 - x0, 1);
+    const tx = wide ? (x0 + x1) / 2 - w / 2 : tall ? x1 + 10 : x0 - 6;
+    const ty = wide ? y0 - 44 : tall ? (y0 + y1) / 2 - 18 : y0 - 44;
+    el("rect", { class: "tag", x: tx, y: ty, width: w, height: 36, rx: 5 }, it);
+    el("text", { x: tx + 10, y: ty + 27 }, it).textContent = label;
+  }
+  g._i = [...g.children];
+  return g;
+}
+function pop(g, p) { const n = g._i.length; g._i.forEach((it, i) => it.setAttribute("opacity", clamp((p * (n + 2) - i) / 2))); }
+function hot(g, ids) { g._i.forEach(it => it.classList.toggle("hot", ids.includes(it._id))); }
+
+// Device sizes: fit `aspects` (w/h incl. frame) side by side in the stage.
+function sizes(aspects, extraH = 46) {
+  const [, , sw, sh] = L.stage;
+  const gap = L.gap.dev * (aspects.length - 1);
+  const hFit = Math.min(sh - extraH, (sw - gap) / aspects.reduce((a, b) => a + b, 0));
+  return aspects.map(a => a * hFit);
+}
+const TAB = 0.86, PHONE = 0.69, VIEW = 0.88;
+function tablet(stage, width, bar, label, viewBox = "40 120 1360 1500") {
+  const d = h(`<div class="dev"><div class="tablet"><div class="screen"><div class="bar"><span></span><span></span></div></div></div><div class="lbl"></div></div>`);
+  d.querySelector(".tablet").style.width = width + "px";
+  const [a, b] = d.querySelectorAll(".bar span");
+  a.textContent = bar[0]; b.textContent = bar[1] || "";
+  d.querySelector(".lbl").textContent = label || "";
+  const svg = el("svg", { viewBox }, d.querySelector(".screen"));
+  stage.appendChild(d);
+  return { d, svg, bar: [a, b] };
+}
+
+/* ---------- scenes ---------- */
+const scenes = [];
+const FADE = 0.45;
+function scene(start, len, chapter, build) {
+  const root = h(`<div class="scene"><div class="cap"></div><div class="stage"></div></div>`);
+  document.body.appendChild(root);
+  const cap = root.querySelector(".cap"), stage = root.querySelector(".stage");
+  place(cap, L.cap); place(stage, L.stage);
+  const s = { start, end: start + len, chapter, root, cap, stage, beats: [] };
+  s.update = build(s) || (() => {});
+  scenes.push(s);
+  return s.end;
+}
+// A caption state shown from `at` until the next beat.
+function beat(s, at, html) {
+  const b = h(`<div class="beat">${html}</div>`);
+  s.cap.appendChild(b);
+  s.beats.push({ at, el: b });
+  return b;
+}
+function beats(s, lt) {
+  s.beats.forEach((b, i) => {
+    const next = s.beats[i + 1] ? s.beats[i + 1].at : 1e9;
+    b.el.style.opacity = window_(lt, b.at, next, 0.4) * (i === 0 ? 1 : 1);
+    if (i === 0 && lt < 0.4) b.el.style.opacity = 1;
+  });
+}
+const capHTML = (chapter, title, body, extra = "") =>
+  `${chapter ? `<div class="chapter">${chapter}</div>` : ""}<div class="title">${title.replace(/\n/g, "<br>")}</div>${body ? `<div class="body">${body}</div>` : ""}${extra}`;
+const chap = i => `${i + 1} · ${T.ch[i]}`;
+
+let D, D2, D3, D4, D5;
+
+function build() {
+  let t = 0;
+
+  // Intro: title over a sketch drawing itself.
+  t = scene(t, 7, -1, s => {
+    beat(s, 0, capHTML("rmink", T.intro_t, T.intro_b));
+    const [w] = sizes([TAB]);
+    const tb = tablet(s.stage, w, [LANG === "sv" ? "Altan · sida 1" : "Altan · page 1", ""]);
+    const sk = ink(tb.svg, D.sketch);
+    return lt => { beats(s, lt); draw(sk, ramp(lt, 0.3, 6.2)); };
+  });
+
+  // Problem.
+  t = scene(t, 10, -1, s => {
+    beat(s, 0, capHTML("", T.prob_t, "", `<div class="bullets">${[T.prob_1, T.prob_2, T.prob_3].map((x, i) => `<div class="bullet"><i>${i + 1}</i>${x}</div>`).join("")}</div>`));
+    const [w] = sizes([TAB]);
+    const tb = tablet(s.stage, w, [LANG === "sv" ? "Altan · sida 1" : "Altan · page 1", ""]);
+    const sk = ink(tb.svg, D.sketch); draw(sk, 1);
+    const mk = ink(tb.svg, D.marks);
+    const bl = [...s.cap.querySelectorAll(".bullet")];
+    return lt => {
+      beats(s, lt);
+      bl.forEach((b, i) => (b.style.opacity = ramp(lt, 1 + i * 2.2, 1.6 + i * 2.2)));
+      draw(mk, ramp(lt, 4, 8));
+    };
+  });
+
+  // The idea as a loop.
+  t = scene(t, 10, -1, s => {
+    beat(s, 0, capHTML("", T.idea_t, T.idea_b));
+    const size = Math.min(L.stage[2], L.stage[3]) * 0.92;
+    const svg = el("svg", { viewBox: "-300 -300 600 600", width: size, height: size, class: "loop" }, s.stage);
+    const R = 190, nodes = [];
+    el("circle", { cx: 0, cy: 0, r: R, fill: "none", stroke: "#dcd8cd", "stroke-width": 6 }, svg);
+    const arc = el("path", { d: `M0 ${-R} A${R} ${R} 0 1 1 -0.01 ${-R}`, fill: "none", stroke: "#2b5fd9", "stroke-width": 8, "stroke-linecap": "round", pathLength: 1, "stroke-dasharray": 1, "stroke-dashoffset": 1 }, svg);
+    T.loop.forEach((label, i) => {
+      const a = -Math.PI / 2 + i * Math.PI / 2, x = R * Math.cos(a), y = R * Math.sin(a);
+      const g = el("g", { opacity: 0.25 }, svg);
+      el("circle", { cx: x, cy: y, r: 62, fill: "#fff", stroke: "#2b5fd9", "stroke-width": 5 }, g);
+      el("text", { x, y: y + 8, "text-anchor": "middle", "font-size": label.length > 9 ? 19 : 23, fill: "#1d1d1b" }, g).textContent = label;
+      nodes.push(g);
+    });
+    return lt => {
+      beats(s, lt);
+      const p = ramp(lt, 1.2, 8.6);
+      arc.style.strokeDashoffset = 1 - p;
+      nodes.forEach((g, i) => g.setAttribute("opacity", 0.25 + 0.75 * clamp((p * 4 - i + 0.2) / 0.4)));
+    };
+  });
+
+  // 1 · sketch to groups to interpretation.
+  const MEAN = [
+    [[4, 6, 8, 15], T.m_walls], [[5, 2, 9, 11], T.m_dims], [[3, 7, 16, 14], T.m_cols],
+    [[10], T.m_drain], [[13, 12], T.m_el], [[17, 18, 19, 20, 21], T.m_leg],
+  ];
+  t = scene(t, 16, 0, s => {
+    beat(s, 0, capHTML(chap(0), T.c1a_t, T.c1a_b));
+    beat(s, 6.5, capHTML(chap(0), T.c1b_t, T.c1b_b, `<div class="chips">${MEAN.map(([ids, txt]) => `<div class="chip"><code>${ids.map(i => "#" + i).join(" ")}</code>${txt}</div>`).join("")}</div>`));
+    const [w] = sizes([TAB]);
+    const tb = tablet(s.stage, w, [LANG === "sv" ? "Altan · sida 1" : "Altan · page 1", "rmink"]);
+    const sk = ink(tb.svg, D.sketch); draw(sk, 1);
+    const bx = boxes(tb.svg, D.groups);
+    const chips = [...s.cap.querySelectorAll(".chip")];
+    return lt => {
+      beats(s, lt);
+      sk.style.opacity = 1 - 0.45 * ramp(lt, 0.5, 1.5);
+      pop(bx, ramp(lt, 1, 4.5));
+      const k = Math.floor((lt - 7.5) / 1.35);
+      chips.forEach((c, i) => { c.classList.toggle("on", i === k); c.classList.toggle("done", i < k); });
+      hot(bx, k >= 0 && k < MEAN.length ? MEAN[k][0] : []);
+    };
+  });
+
+  // 1 · clean revision 1.
+  t = scene(t, 12, 0, s => {
+    beat(s, 0, capHTML(chap(0), T.c1c_t, T.c1c_b, `<div class="stamp">${T.c1c_ok}</div>`));
+    const [w] = sizes([TAB]);
+    const tb = tablet(s.stage, w, [LANG === "sv" ? "Altan r1 · sida 1" : "Altan r1 · page 1", LANG === "sv" ? "Ritning r1" : "Drawing r1"]);
+    const sk = ink(tb.svg, D.sketch); draw(sk, 1);
+    const c1 = ink(tb.svg, D.clean1.pro);
+    const stamp = s.cap.querySelector(".stamp");
+    return lt => {
+      beats(s, lt);
+      sk.style.opacity = 0.35 * (1 - ramp(lt, 2, 5));
+      draw(c1, ramp(lt, 0.6, 7));
+      stamp.style.opacity = ramp(lt, 7.5, 8.2);
+    };
+  });
+
+  // 1 · colour and greyscale.
+  t = scene(t, 8, 0, s => {
+    beat(s, 0, capHTML(chap(0), T.c1d_t, T.c1d_b));
+    const ws = sizes([TAB, TAB]);
+    const a = tablet(s.stage, ws[0], ["Paper Pro", ""], "Paper Pro");
+    const b = tablet(s.stage, ws[1], ["reMarkable 2", ""], "rm2 · Paper Pure");
+    const ca = ink(a.svg, D.clean1.pro), cb = ink(b.svg, D.clean1.rm2, "mono");
+    draw(ca, 1);
+    return lt => { beats(s, lt); draw(cb, ramp(lt, 0.8, 5)); };
+  });
+
+  // 2 · review round.
+  t = scene(t, 17, 1, s => {
+    beat(s, 0, capHTML(chap(1), T.c2a_t, T.c2a_b));
+    beat(s, 6, capHTML(chap(1), T.c2b_t, T.c2b_b, `<div class="chips"><div class="chip mark done"><code>#1 #2</code>${T.c2b_1}</div><div class="chip mark done"><code>#3 #4</code>${T.c2b_2}</div></div>`));
+    beat(s, 11.5, capHTML(chap(1), T.c2c_t, T.c2c_b));
+    const [w] = sizes([TAB]);
+    const tb = tablet(s.stage, w, [LANG === "sv" ? "Altan r1 · sida 1" : "Altan r1 · page 1", LANG === "sv" ? "Lager: Kommentarer" : "Layer: Comments"]);
+    const c1 = ink(tb.svg, D.clean1.pro); draw(c1, 1);
+    const mk = ink(tb.svg, D.marks);
+    const nb = boxes(tb.svg, D.newGroups, "new");
+    const c2 = ink(tb.svg, D.clean2.pro);
+    return lt => {
+      beats(s, lt);
+      draw(mk, ramp(lt, 1, 5));
+      const fadeOld = 1 - 0.7 * ramp(lt, 6.2, 7);
+      const gone = 1 - ramp(lt, 11.2, 11.8);
+      c1.style.opacity = fadeOld * gone;
+      mk.style.opacity = gone;
+      pop(nb, ramp(lt, 7, 9)); nb.style.opacity = gone;
+      draw(c2, ramp(lt, 11.8, 16.5));
+      tb.bar[0].textContent = lt < 11.5 ? (LANG === "sv" ? "Altan r1 · sida 1" : "Altan r1 · page 1") : (LANG === "sv" ? "Altan r2 · sida 1" : "Altan r2 · page 1");
+      tb.bar[1].textContent = lt < 6 ? (LANG === "sv" ? "Lager: Kommentarer" : "Layer: Comments") : lt < 11.5 ? (LANG === "sv" ? "rmink: nya streck" : "rmink: new strokes") : (LANG === "sv" ? "Ritning r2" : "Drawing r2");
+    };
+  });
+
+  // 3 · variants.
+  t = scene(t, 16, 2, s => {
+    const V = D2.compare, mm = v => v.toLocaleString(LANG === "sv" ? "sv-SE" : "en-GB") + " mm";
+    beat(s, 0, capHTML(`${chap(2)} · ${T.concept}`, T.c3a_t, T.c3a_b));
+    beat(s, 6, capHTML(`${chap(2)} · ${T.concept}`, T.c3b_t, T.c3b_b, `<table class="cmp">
+      <tr><th></th><th>A</th><th>B</th></tr>
+      <tr><td>${T.cmp_beams}</td><td>${V.A.beams}</td><td>${V.B.beams}</td></tr>
+      <tr><td>${T.cmp_posts}</td><td>${V.A.posts}</td><td class="win">${V.B.posts}</td></tr>
+      <tr><td>${T.cmp_span}</td><td>${mm(V.A.span)}</td><td class="win">${mm(V.B.span)}</td></tr>
+      <tr><td>${T.cmp_len}</td><td class="win">${mm(V.A.beam_mm)}</td><td>${mm(V.B.beam_mm)}</td></tr></table>`));
+    beat(s, 10.5, capHTML(`${chap(2)} · ${T.concept}`, T.c3c_t, T.c3c_b));
+    const ws = sizes([TAB, TAB]);
+    const pg = LANG === "sv" ? "sida" : "page";
+    const a = tablet(s.stage, ws[0], [`Altan r3 · ${pg} 1`, "A"], "A");
+    const b = tablet(s.stage, ws[1], [`Altan r3 · ${pg} 2`, "B"], "B");
+    const as = ink(a.svg, D2.A.pro.same), an = ink(a.svg, D2.A.pro.new);
+    const bs = ink(b.svg, D2.B.pro.same), bn = ink(b.svg, D2.B.pro.new);
+    draw(as, 1); draw(bs, 1);
+    const ma = ink(a.svg, D2.marksA), mb = ink(b.svg, D2.marksB);
+    const fs = ink(b.svg, D2.final.pro.new);
+    return lt => {
+      beats(s, lt);
+      draw(an, ramp(lt, 1, 5)); draw(bn, ramp(lt, 1.4, 5.4));
+      draw(ma, ramp(lt, 11, 12.6)); draw(mb, ramp(lt, 12.4, 14));
+      const fade = 1 - 0.8 * ramp(lt, 14.2, 15);
+      [as, an, ma].forEach(g => (g.style.opacity = fade));
+      draw(fs, ramp(lt, 14.4, 15.8));
+      if (lt > 14.2) { b.bar[0].textContent = `Altan r3 · ${pg} 1`; b.bar[1].textContent = LANG === "sv" ? "Beslut" : "Decision"; }
+      else { b.bar[0].textContent = `Altan r3 · ${pg} 2`; b.bar[1].textContent = "B"; }
+    };
+  });
+
+  // 4 · detail view.
+  t = scene(t, 16, 3, s => {
+    beat(s, 0, capHTML(`${chap(3)} · ${T.concept}`, T.c4a_t, T.c4a_b));
+    beat(s, 5, capHTML(`${chap(3)} · ${T.concept}`, T.c4b_t, T.c4b_b));
+    beat(s, 10.5, capHTML(`${chap(3)} · ${T.concept}`, T.c4c_t, T.c4c_b));
+    const ws = sizes([TAB, TAB]);
+    const pg = LANG === "sv" ? "sida" : "page";
+    const a = tablet(s.stage, ws[0], [`Altan · ${pg} 1`, ""], LANG === "sv" ? "översikt" : "overview");
+    const b = tablet(s.stage, ws[1], [`Altan · ${pg} 2`, LANG === "sv" ? "detalj A" : "detail A"], LANG === "sv" ? "detalj A · 1:5" : "detail A · 1:5");
+    const o3 = ink(a.svg, D3.ov3.pro); draw(o3, 1);
+    const m1 = ink(a.svg, D3.marks1);
+    const o4 = ink(a.svg, D3.ov4.pro.new);
+    const d4 = ink(b.svg, D3.det4.pro);
+    const m2 = ink(b.svg, D3.marks2);
+    const d5 = ink(b.svg, D3.det5.pro.new);
+    return lt => {
+      beats(s, lt);
+      draw(m1, ramp(lt, 0.8, 3.6));
+      m1.style.opacity = 1 - ramp(lt, 5, 5.6);
+      draw(o4, ramp(lt, 5.4, 7));
+      draw(d4, ramp(lt, 5.6, 9.6));
+      draw(m2, ramp(lt, 10.8, 13));
+      m2.style.opacity = 1 - ramp(lt, 13.4, 14);
+      draw(d5, ramp(lt, 13.6, 15.6));
+    };
+  });
+
+  // 5 · paper sketch through the phone.
+  t = scene(t, 16, 4, s => {
+    beat(s, 0, capHTML(`${chap(4)}`, T.c5a_t, T.c5a_b));
+    beat(s, 5, capHTML(`${chap(4)}`, T.c5b_t, T.c5b_b));
+    beat(s, 10.5, capHTML(`${chap(4)}`, T.c5c_t, T.c5c_b));
+    const [wp, wt] = sizes([PHONE, TAB]);
+    const ph = h(`<div class="dev"><div class="phone"><div class="pscreen"><div class="pbar">rmink.vercel.app</div><img><div class="toast"></div></div></div><div class="lbl">${LANG === "sv" ? "mobilen" : "phone"}</div></div>`);
+    ph.querySelector(".phone").style.width = wp + "px";
+    ph.querySelector("img").src = D4.photo;
+    s.stage.appendChild(ph);
+    const toast = ph.querySelector(".toast"), img = ph.querySelector("img");
+    const tb = tablet(s.stage, wt, ["Förråd", ""], LANG === "sv" ? "plattan" : "tablet", "40 190 1360 1500");
+    const ik = ink(tb.svg, D4.ink, "mono");
+    const cl = ink(tb.svg, D4.clean.pro);
+    return lt => {
+      beats(s, lt);
+      const msgs = [[0.8, "Take a photo"], [3, "Photo 2026-10-27 14.12.jpg"], [10.5, "Send to reMarkable"], [14, LANG === "sv" ? "Skickad ✓" : "Sent ✓"]];
+      let m = ""; for (const [at, txt] of msgs) if (lt >= at) m = txt;
+      toast.textContent = m; toast.style.opacity = m ? 1 : 0;
+      img.style.opacity = 1 - 0.4 * ramp(lt, 5, 6);
+      draw(ik, ramp(lt, 5.3, 9.6));
+      ik.style.opacity = 1 - 0.85 * ramp(lt, 10.6, 11.6);
+      draw(cl, ramp(lt, 11, 15));
+      tb.bar[0].textContent = lt < 10.5 ? (LANG === "sv" ? "Förhandsvisning" : "Preview") : (LANG === "sv" ? "Förråd r1 · sida 1" : "Förråd r1 · page 1");
+    };
+  });
+
+  // 6 · export.
+  t = scene(t, 14, 5, s => {
+    beat(s, 0, capHTML(chap(5), T.c6a_t, T.c6a_b, `<div class="chips">
+      <div class="chip done"><code style="color:var(--ok)">${T.built}</code>${T.svg}</div>
+      <div class="chip done"><code style="color:var(--muted)">${T.next}</code>${T.pdf}</div>
+      <div class="chip done"><code style="color:var(--muted)">${T.next}</code>${T.dxf}</div></div>`));
+    const ws = sizes([VIEW, VIEW, VIEW]);
+    const views = [["altan-r5.svg", T.built, "built"], ["Altan r5.pdf", T.next, "next"], ["altan-r5.dxf", T.next, "next"]].map(([name, badge, cls], i) => {
+      const d = h(`<div class="dev"><div class="viewer"><div class="vbar"><span>${name}</span></div></div><div class="lbl"><span class="badge ${cls}">${badge}</span></div></div>`);
+      d.querySelector(".viewer").style.width = ws[i] + "px";
+      s.stage.appendChild(d);
+      return d;
+    });
+    const sv = el("svg", { viewBox: "40 120 1360 1500" }, views[0].querySelector(".viewer"));
+    el("rect", { x: 40, y: 120, width: 1360, height: 1500, fill: "#fff" }, sv);
+    const g1 = ink(sv, D5.ov.pro);
+    const pv = el("svg", { viewBox: "-8 -30 313 330" }, views[1].querySelector(".viewer"));
+    const g2 = pdfSheet(pv);
+    const cv = el("svg", { viewBox: "-900 -5200 6600 6900" }, views[2].querySelector(".viewer"));
+    const g3 = cadView(cv);
+    const cards = views;
+    return lt => {
+      beats(s, lt);
+      cards.forEach((c, i) => (c.style.opacity = ramp(lt, 0.8 + i * 3.6, 1.4 + i * 3.6)));
+      draw(g1, ramp(lt, 1, 4.2)); draw(g2, ramp(lt, 4.6, 7.8)); draw(g3, ramp(lt, 8.2, 11.4));
+    };
+  });
+
+  // Status.
+  t = scene(t, 12, 6, s => {
+    s.stage.remove();
+    beat(s, 0, capHTML("", T.st_t, ""));
+    const lists = h(`<div class="lists"><div class="list built"><h3>${T.st_built}</h3><ul>${[T.b1, T.b2, T.b3, T.b4, T.b5].map(x => `<li><b>✓</b>${x}</li>`).join("")}</ul></div>
+      <div class="list next"><h3>${T.st_next}</h3><ul>${[T.n1, T.n2, T.n3, T.n4].map(x => `<li><b>→</b>${x}</li>`).join("")}</ul></div></div>`);
+    if (LAND) place(lists, [760, 220, 1060, 700]); else place(lists, [70, 300, 940, 900]);
+    if (LAND) lists.style.gridTemplateColumns = "1fr 1fr";
+    s.root.appendChild(lists);
+    const items = [...lists.querySelectorAll("li")];
+    return lt => { beats(s, lt); items.forEach((li, i) => (li.style.opacity = ramp(lt, 0.8 + i * 0.75, 1.3 + i * 0.75))); };
+  });
+
+  // End card.
+  t = scene(t, 7, -1, s => {
+    s.stage.remove(); s.cap.remove();
+    const e = h(`<div class="end"><div class="big">${T.end_t.replace(/\n/g, "<br>")}</div><div class="url">rmink.vercel.app</div><div class="url" style="color:var(--muted)">github.com/thagvall/rmink</div><div class="small">${T.end_s}</div></div>`);
+    s.root.appendChild(e);
+    return () => {};
+  });
+
+  window.DURATION = t;
+}
+
+/* ---------- export views ---------- */
+const ACI = { 7: "#e8e8e8", 3: "#4ec94e", 1: "#ff5a52", 8: "#8a8f94", 6: "#e070e0" };
+const PRINT = { VAGG: "#111", BARLINA: "#2a8a3e", EL: "#c8322b", MATT: "#777", PELARE: "#111", DETALJ: "#777", TEXT: "#111", KOMMENTAR: "#a33a9c" };
+function entities(g, map, s, colour, widths) {
+  const w = l => widths[l] || widths._;
+  const path = (l, d) => el("path", { d, stroke: colour(l), "stroke-width": w(l), pathLength: 1 }, g);
+  const seg = (l, a, b) => path(l, `M${map(a)} L${map(b)}`);
+  const ring = (l, [cx, cy], r, n) => { const p = []; for (let i = 0; i <= n; i++) { const a = i / n * Math.PI * 2; p.push(map([cx + r * Math.cos(a), cy + r * Math.sin(a)])); } path(l, "M" + p.join(" L")); };
+  const text = (l, pt, size, str, rot) => { const [x, y] = map(pt); el("text", { x, y, fill: colour(l), "font-size": size / s, "text-anchor": rot !== undefined ? "middle" : "start", transform: rot ? `rotate(${rot} ${x} ${y})` : "" }, g.parentNode).textContent = str; };
+  for (const e of D5.ents) {
+    if (e.t === "line") seg(e.l, e.p[0], e.p[1]);
+    if (e.t === "circle") ring(e.l, e.c, e.r, 48);
+    if (e.t === "text") text(e.l, e.p, e.h, e.s);
+    if (e.t === "insert") {
+      const [x, y] = e.p;
+      if (e.b === "PELARE") { const r = 45, c = [[x - r, y - r], [x + r, y - r], [x + r, y + r], [x - r, y + r]]; c.forEach((a, i) => seg(e.l, a, c[(i + 1) % 4])); seg(e.l, c[0], c[2]); seg(e.l, c[3], c[1]); }
+      else ring(e.l, e.p, 60, 24);
+    }
+    if (e.t === "dim") {
+      const [a2, b2] = e.q; seg("MATT", a2, b2); seg("MATT", e.p[0], a2); seg("MATT", e.p[1], b2);
+      const vertical = Math.abs(b2[0] - a2[0]) < Math.abs(b2[1] - a2[1]);
+      const mid = [(a2[0] + b2[0]) / 2 + (vertical ? 60 : 0), (a2[1] + b2[1]) / 2 + (vertical ? 0 : 50)];
+      text("MATT", mid, 140, e.s, vertical ? -90 : 0);
+    }
+  }
+}
+function pdfSheet(svg) {
+  el("rect", { x: -8, y: -30, width: 313, height: 330, fill: "#c9ccc7" }, svg);
+  el("rect", { x: 0, y: 40, width: 297, height: 210, fill: "#fff" }, svg);
+  const g = el("g", { class: "ink" }, svg);
+  entities(g, ([x, y]) => [(40 + x / 25).toFixed(2), (218 - y / 25).toFixed(2)], 25, l => PRINT[l] || "#111", { VAGG: 0.6, PELARE: 0.4, _: 0.3, MATT: 0.22 });
+  for (const d of ["M10 50 H287 V240 H10 Z", "M240 196 H287", "M240 196 V240", "M240 212 H287"]) el("path", { d, stroke: "#111", "stroke-width": 0.4, pathLength: 1 }, g);
+  el("text", { x: 243, y: 207, "font-size": 7, "font-weight": 700, fill: "#111" }, svg).textContent = "ALTAN";
+  el("text", { x: 243, y: 224, "font-size": 4, fill: "#111" }, svg).textContent = "REV 5 · 1:25 · A4";
+  svg.querySelectorAll("text").forEach(x => x.setAttribute("font-family", "-apple-system, Helvetica, sans-serif"));
+  g._p = [...g.querySelectorAll("path")];
+  return g;
+}
+function cadView(svg) {
+  el("rect", { x: -900, y: -5200, width: 6600, height: 6900, fill: "#1b1f23" }, svg);
+  for (let x = 0; x <= 5000; x += 1000) {
+    el("path", { d: `M${x} 400 V-4100`, stroke: "#2b3238", "stroke-width": 14 }, svg);
+    el("text", { x, y: 700, fill: "#5d666d", "font-size": 200, "text-anchor": "middle", "font-family": "SF Mono, Menlo, monospace" }, svg).textContent = x;
+  }
+  for (let y = 0; y <= 4000; y += 1000) el("path", { d: `M-500 ${-y} H5400`, stroke: "#2b3238", "stroke-width": 14 }, svg);
+  const layers = Object.fromEntries(D5.layers.map(l => [l.n, l.c]));
+  const g = el("g", { class: "ink" }, svg);
+  entities(g, ([x, y]) => [x, -y], 1, l => ACI[layers[l]] || "#e8e8e8", { VAGG: 30, _: 18 });
+  svg.querySelectorAll("text").forEach(x => x.setAttribute("font-family", "SF Mono, Menlo, monospace"));
+  el("text", { x: -800, y: 1450, fill: "#9aa1a6", "font-size": 230, "font-family": "SF Mono, Menlo, monospace" }, svg).textContent = "P3  X 4800  Y 0   mm";
+  g._p = [...g.querySelectorAll("path")];
+  return g;
+}
+
+/* ---------- chapter rail and seek ---------- */
+function buildRail() {
+  const rail = document.getElementById("rail");
+  place(rail, L.rail);
+  T.ch.forEach((c, i) => { const d = document.createElement("div"); d.textContent = `${i + 1} ${c}`; rail.appendChild(d); });
+}
+window.seek = function (t) {
+  let chapter = -1;
+  for (const s of scenes) {
+    const vis = t >= s.start && t < s.end + (s === scenes[scenes.length - 1] ? 1e9 : 0);
+    s.root.style.display = vis ? "block" : "none";
+    if (!vis) continue;
+    const lt = t - s.start;
+    s.root.style.opacity = Math.min(ramp(lt, 0, FADE), s === scenes[scenes.length - 1] ? 1 : 1 - ramp(lt, s.end - s.start - FADE, s.end - s.start));
+    if (s.start === 0) s.root.style.opacity = 1 - ramp(lt, s.end - s.start - FADE, s.end - s.start);
+    s.update(lt);
+    chapter = s.chapter;
+  }
+  const rail = document.getElementById("rail");
+  rail.style.opacity = chapter >= 0 && chapter < 6 ? 1 : 0;
+  [...rail.children].forEach((d, i) => { d.classList.toggle("on", i === chapter); d.classList.toggle("done", i < chapter); });
+};
+
+(async () => {
+  const load = n => fetch(`../sketch-demo/${n}`).then(r => r.json());
+  [D, D2, D3, D4, D5] = await Promise.all(["data.json", "data2.json", "data3.json", "data4.json", "data5.json"].map(load));
+  await document.fonts.ready;
+  buildRail();
+  build();
+  window.seek(0);
+  window.ready = true;
+})();
+</script>
+</body>
+</html>

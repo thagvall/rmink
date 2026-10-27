@@ -1,0 +1,1256 @@
+<title>Skiss till ritning</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a drafting table. Tablets play the story; a margin column says who
+   is working and what they see. */
+:root {
+  --bg: #eceeea;
+  --surface: #ffffff;
+  --ink: #16191b;
+  --muted: #586064;
+  --rule: #cfd4ce;
+  --accent: #2546b8;
+  --accent-soft: #dfe5f8;
+  --mark: #a33a9c;
+  --group: #d3352c;
+  --ok: #2c7a45;
+  --paper: #f8f8f5;
+  --bezel: #2b2e30;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111416; --surface: #1a1e20; --ink: #e7eae6; --muted: #9ba3a5; --rule: #2d3336;
+    --accent: #8aa4ff; --accent-soft: #1f2a4d; --mark: #d985d2; --group: #ff6a5e; --ok: #6cc58a;
+    --paper: #f3f3ef; --bezel: #050607; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111416; --surface: #1a1e20; --ink: #e7eae6; --muted: #9ba3a5; --rule: #2d3336;
+  --accent: #8aa4ff; --accent-soft: #1f2a4d; --mark: #d985d2; --group: #ff6a5e; --ok: #6cc58a;
+  --paper: #f3f3ef; --bezel: #050607; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 64px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 64px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 800; font-stretch: 72%; letter-spacing: -0.01em; line-height: 1.02; }
+h2 { font-size: 1.6rem; font-weight: 700; font-stretch: 80%; }
+h3 { font-size: 1.08rem; font-weight: 700; }
+p { margin: 0; }
+.eyebrow { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+header { display: grid; gap: 14px; max-width: 760px; }
+header p.lede { font-size: 1.12rem; color: var(--muted); max-width: 64ch; }
+header .arrow { color: var(--accent); }
+.toc { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 0.92rem; }
+.toc a { color: var(--accent); }
+
+/* Stage 1: one tablet beside the panel */
+.stage { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 36px; align-items: start; }
+@media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); gap: 24px; } }
+.device { display: grid; gap: 14px; justify-items: center; }
+.tablet {
+  width: 100%; max-width: 560px; background: var(--bezel); border-radius: 22px; padding: 22px 18px 30px;
+  box-shadow: 0 18px 40px -22px rgba(0,0,0,.45);
+}
+.screen { background: var(--paper); border-radius: 4px; overflow: hidden; position: relative; }
+.screen svg { display: block; width: 100%; height: auto; }
+.docbar {
+  display: flex; justify-content: space-between; gap: 8px; padding: 7px 12px; font-family: var(--mono);
+  font-size: 0.72rem; color: #4a5054; border-bottom: 1px solid #e2e2dc; background: #fbfbf9;
+}
+.docbar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.docbar span:last-child { color: #7b8286; text-align: right; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; width: 100%; }
+button { font: inherit; cursor: pointer; }
+.btn {
+  border: 1px solid var(--rule); background: var(--surface); color: var(--ink); border-radius: 999px;
+  padding: 7px 16px; font-weight: 600; font-size: 0.92rem; display: inline-flex; gap: 8px; align-items: center;
+}
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.btn:focus-visible, .chip:focus-visible, .seg button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; color: var(--muted); padding: 7px 14px; font-weight: 600; font-size: 0.88rem; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.steps { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.chip {
+  border: 1px solid var(--rule); background: var(--surface); color: var(--muted); border-radius: 6px;
+  font-family: var(--mono); font-size: 0.74rem; padding: 4px 8px; display: inline-flex; gap: 6px; align-items: center;
+}
+.chip b { font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+.chip[aria-current="step"] { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+
+/* Panels */
+.panel { display: grid; gap: 22px; min-width: 0; }
+.pipeline { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.actor {
+  border: 1px solid var(--rule); border-radius: 8px; padding: 8px 6px; text-align: center; background: var(--surface);
+  font-size: 0.82rem; font-weight: 600; color: var(--muted); transition: background .3s, color .3s, border-color .3s;
+}
+.actor small { display: block; font-family: var(--mono); font-weight: 400; font-size: 0.68rem; color: var(--muted); }
+.actor.on { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+.stepnum { font-family: var(--mono); color: var(--accent); font-size: 0.85rem; }
+.copy { display: grid; gap: 10px; align-content: start; }
+.stage .copy { min-height: 9.5em; }
+.copy p { color: var(--muted); max-width: 60ch; }
+.detail { display: grid; gap: 8px; min-width: 0; align-content: start; }
+.row {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: baseline;
+  padding: 7px 10px; border-radius: 8px; background: var(--surface); border: 1px solid var(--rule);
+  font-size: 0.92rem; transition: border-color .3s, opacity .4s;
+}
+.row.dim { opacity: .45; }
+.row.hot { border-color: var(--group); }
+.row .ids { font-family: var(--mono); font-size: 0.74rem; color: var(--group); white-space: nowrap; }
+.row .ids.mark { color: var(--mark); }
+.row .ids.plain { color: var(--accent); }
+.row .what b { font-weight: 600; }
+.row .what span { color: var(--muted); }
+.ok { color: var(--ok); font-weight: 600; }
+.stat { display: flex; gap: 22px; flex-wrap: wrap; }
+.stat div { display: grid; }
+.stat strong { font-family: var(--display); font-stretch: 75%; font-size: 2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 0.82rem; color: var(--muted); }
+.cmp { overflow-x: auto; }
+.cmp table { border-collapse: collapse; width: 100%; font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+.cmp th, .cmp td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--rule); }
+.cmp th { font-family: var(--mono); font-size: 0.72rem; font-weight: 500; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.cmp td:not(:first-child), .cmp th:not(:first-child) { text-align: right; }
+.cmp td.win { color: var(--ok); font-weight: 600; }
+
+/* Stage 2: two tablets side by side, panel below */
+.stage2 { display: grid; gap: 22px; }
+.duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.duo > div { display: grid; justify-items: center; min-width: 0; }
+.duo .tablet { max-width: 470px; padding: 16px 12px 22px; border-radius: 18px; }
+.duo-label { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); text-align: center; margin-top: 8px; }
+@media (max-width: 560px) { .duo { gap: 10px; } .duo .tablet { padding: 8px 6px 12px; border-radius: 12px; } .duo .docbar { font-size: 0.6rem; padding: 4px 6px; } }
+.panel.wide { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px 36px; }
+.panel.wide .pipeline { grid-column: 1 / -1; }
+@media (max-width: 860px) { .panel.wide { grid-template-columns: minmax(0, 1fr); } }
+.phone-duo { grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr); align-items: center; }
+.phone {
+  width: 100%; max-width: 320px; background: var(--bezel); border-radius: 34px; padding: 14px 10px 18px;
+  box-shadow: 0 18px 40px -22px rgba(0,0,0,.45);
+}
+.pbar {
+  display: flex; justify-content: space-between; gap: 6px; font-family: var(--mono); font-size: 0.68rem;
+  color: #4a5054; background: #fbfbf9; padding: 7px 10px; border-radius: 22px 22px 0 0; border-bottom: 1px solid #e2e2dc;
+}
+.pbar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.pbar span:last-child { color: #7b8286; }
+.pview { position: relative; background: #d9d6cf; border-radius: 0 0 22px 22px; overflow: hidden; aspect-ratio: 3 / 4; }
+.pview img { display: block; width: 100%; height: 100%; object-fit: cover; transition: filter .5s, opacity .5s; }
+.pview img.dim { filter: saturate(.6); opacity: .55; }
+.ptoast {
+  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); max-width: calc(100% - 24px);
+  background: #16191b; color: #f3f3ef; font-size: 0.78rem; font-weight: 600; padding: 7px 14px; border-radius: 999px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: opacity .3s;
+}
+.ptoast.shutter { width: 58px; height: 58px; padding: 0; border-radius: 50%; background: #f3f3ef; border: 5px solid #16191b; box-shadow: 0 0 0 3px #f3f3ef; }
+.ptoast:empty { opacity: 0; }
+@media (max-width: 560px) { .phone { border-radius: 18px; padding: 6px 5px 9px; } .pbar { font-size: 0.56rem; padding: 4px 6px; border-radius: 12px 12px 0 0; } .pview { border-radius: 0 0 12px 12px; } .ptoast { font-size: 0.62rem; padding: 4px 8px; } }
+.viewer { width: 100%; max-width: 470px; border-radius: 12px; overflow: hidden; border: 1px solid var(--rule); background: #f4f5f3; box-shadow: 0 18px 40px -22px rgba(0,0,0,.45); }
+.vbar { display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; font-family: var(--mono); font-size: 0.72rem; color: #4a5054; background: #e6e8e4; border-bottom: 1px solid #d3d6d1; }
+.vbar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.vbar span:last-child { color: #7b8286; }
+.vbody { position: relative; aspect-ratio: 1360 / 1500; background: #f4f5f3; }
+.vbody > svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.vbody .empty { position: absolute; inset: 0; display: grid; place-content: center; gap: 10px; justify-items: center; color: #7b8286; font-family: var(--mono); font-size: 0.8rem; text-align: center; padding: 16px; }
+.vbody .files { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.vbody .file { border: 1px solid #c9cdc8; background: #fff; color: #4a5054; border-radius: 6px; padding: 10px 12px; min-width: 64px; }
+.vbody .file b { display: block; color: #16191b; font-size: 0.9rem; }
+.layers { position: absolute; top: 10px; right: 10px; background: rgba(20,23,26,.92); border: 1px solid #3a4046; border-radius: 6px; padding: 6px 8px; display: grid; gap: 2px; font-family: var(--mono); font-size: 0.66rem; color: #d7dadc; }
+.layers label { display: flex; align-items: center; gap: 6px; cursor: pointer; white-space: nowrap; }
+.layers input { margin: 0; accent-color: #8aa4ff; }
+.layers i { width: 10px; height: 3px; display: inline-block; }
+.cadstatus { position: absolute; left: 0; right: 0; bottom: 0; padding: 4px 10px; background: #14171a; color: #9aa1a6; font-family: var(--mono); font-size: 0.66rem; display: flex; justify-content: space-between; gap: 8px; }
+.trio { position: absolute; inset: 0; display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 10px; }
+.trio > div { position: relative; border-radius: 6px; overflow: hidden; border: 1px solid #d3d6d1; }
+.trio > div > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.trio span { position: absolute; left: 6px; top: 4px; font-family: var(--mono); font-size: 0.62rem; color: #7b8286; background: rgba(255,255,255,.8); padding: 0 4px; border-radius: 3px; z-index: 1; }
+pre.snippet { margin: 0; overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; font-family: var(--mono); font-size: 0.74rem; line-height: 1.45; color: var(--muted); }
+.concept { border: 1px dashed var(--rule); border-radius: 10px; padding: 10px 14px; color: var(--muted); font-size: 0.92rem; max-width: 72ch; }
+.concept b { color: var(--ink); }
+
+/* SVG layers */
+.layer { transition: opacity .6s ease; }
+.ink path { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; }
+.box rect { fill: none; stroke: var(--group); stroke-width: 3; }
+.box .tag { fill: var(--group); }
+.box text { fill: #fff; font-family: var(--mono); font-size: 26px; font-weight: 500; }
+.box g { transition: opacity .35s ease; }
+.box.newbox rect { stroke: var(--mark); stroke-dasharray: 10 7; }
+.box.newbox .tag { fill: var(--mark); }
+.box g.hot rect { stroke-width: 7; }
+
+/* Scenarios */
+.scen-head { display: grid; gap: 8px; max-width: 70ch; }
+.scen-head p { color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; padding: 18px; display: grid; gap: 10px; align-content: start; }
+.card .top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.card p { color: var(--muted); font-size: 0.95rem; }
+.card a { color: var(--accent); font-size: 0.9rem; }
+.pill { font-family: var(--mono); font-size: 0.7rem; letter-spacing: .04em; border-radius: 999px; padding: 2px 9px; white-space: nowrap; border: 1px solid currentColor; }
+.pill.built { color: var(--ok); }
+.pill.later { color: var(--muted); }
+.pill.partial { color: var(--accent); }
+.card svg { width: 100%; height: 86px; display: block; }
+.card svg .s { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.card svg .a { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+.card svg .m { fill: none; stroke: var(--mark); stroke-width: 2; stroke-linecap: round; }
+.card svg .g { fill: none; stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 5 4; }
+.card svg text { fill: var(--muted); font-family: var(--mono); font-size: 10px; }
+
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px; }
+.facts ul { margin: 10px 0 0; padding-left: 1.1em; color: var(--muted); display: grid; gap: 6px; }
+.facts code { font-family: var(--mono); font-size: 0.86em; color: var(--ink); }
+footer { color: var(--muted); font-size: 0.86rem; border-top: 1px solid var(--rule); padding-top: 18px; }
+@media (prefers-reduced-motion: reduce) { .layer, .row, .actor, .box g { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">rmink · phase 1 · proposal</span>
+    <h1>From hand sketch <span class="arrow">→</span> clean drawing, in rounds</h1>
+    <p class="lede">Sketch a 2D drawing on a reMarkable with measurements, symbols and a small legend. rmink and Claude draw it clean, you mark it up on the tablet, and the next revision deals with your marks. Every stroke below is real output from rmink.</p>
+    <nav class="toc" aria-label="On this page">
+      <a href="#flode">Sketch to revision 2</a>
+      <a href="#varianter">Variants A and B</a>
+      <a href="#nedslag">Zoom into a detail</a>
+      <a href="#pappersskiss">Paper sketch via phone</a>
+      <a href="#export">Export</a>
+      <a href="#scenarier">All scenarios</a>
+    </nav>
+  </header>
+
+  <section class="stage" id="flode" aria-label="Demo: sketch to revision 2">
+    <div class="device">
+      <div class="tablet">
+        <div class="screen">
+          <div class="docbar"><span data-doc="0"></span><span data-layer="0"></span></div>
+          <svg data-svg="0" viewBox="40 120 1360 1500" role="img" aria-label="Tablet screen"></svg>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn primary" data-role="play" type="button">▶ Play</button>
+        <button class="btn" data-role="prev" type="button" aria-label="Previous step">←</button>
+        <button class="btn" data-role="next" type="button" aria-label="Next step">→</button>
+        <div class="seg" role="group" aria-label="Tablet">
+          <button type="button" data-dev="rm2" aria-pressed="false">reMarkable 2</button>
+          <button type="button" data-dev="pro" aria-pressed="true">Paper Pro</button>
+        </div>
+      </div>
+      <nav class="steps" data-role="steps" aria-label="Steps"></nav>
+    </div>
+    <div class="panel">
+      <div class="pipeline">
+        <div class="actor" data-a="tablet">Tablet<small>you</small></div>
+        <div class="actor" data-a="cloud">Cloud<small>sync</small></div>
+        <div class="actor" data-a="rmink">rmink<small>geometry</small></div>
+        <div class="actor" data-a="claude">Claude<small>interpretation</small></div>
+      </div>
+      <div class="copy">
+        <span class="stepnum" data-role="stepnum"></span>
+        <h2 data-role="title"></h2>
+        <p data-role="text"></p>
+      </div>
+      <div class="detail" data-role="detail"></div>
+    </div>
+  </section>
+
+  <section class="stage2" id="varianter" aria-label="Demo: variants A and B">
+    <div class="scen-head">
+      <span class="eyebrow">Scenario 5 · concept</span>
+      <h2>Variants A and B</h2>
+      <p>The same deck, two ways to carry the joists. Claude makes both from the same drawing model, and they land as two pages in one notebook. You choose by drawing on the tablet.</p>
+      <p class="concept"><b>Not built yet.</b> The variants are made by hand in the drawing model. The pages, the spans and which strokes count as new still come from rmink's real renderer and grouping.</p>
+    </div>
+    <div class="duo">
+      <div>
+        <div class="tablet">
+          <div class="screen">
+            <div class="docbar"><span data-doc="0"></span><span data-layer="0"></span></div>
+            <svg data-svg="0" viewBox="40 120 1360 1500" role="img" aria-label="Page with variant A"></svg>
+          </div>
+        </div>
+        <div class="duo-label">Page 1 · A</div>
+      </div>
+      <div>
+        <div class="tablet">
+          <div class="screen">
+            <div class="docbar"><span data-doc="1"></span><span data-layer="1"></span></div>
+            <svg data-svg="1" viewBox="40 120 1360 1500" role="img" aria-label="Page with variant B"></svg>
+          </div>
+        </div>
+        <div class="duo-label">Page 2 · B</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn primary" data-role="play" type="button">▶ Play</button>
+      <button class="btn" data-role="prev" type="button" aria-label="Previous step">←</button>
+      <button class="btn" data-role="next" type="button" aria-label="Next step">→</button>
+      <div class="seg" role="group" aria-label="Tablet">
+        <button type="button" data-dev="rm2" aria-pressed="false">reMarkable 2</button>
+        <button type="button" data-dev="pro" aria-pressed="true">Paper Pro</button>
+      </div>
+    </div>
+    <nav class="steps" data-role="steps" aria-label="Steps"></nav>
+    <div class="panel wide">
+      <div class="pipeline">
+        <div class="actor" data-a="tablet">Tablet<small>you</small></div>
+        <div class="actor" data-a="cloud">Cloud<small>sync</small></div>
+        <div class="actor" data-a="rmink">rmink<small>geometry</small></div>
+        <div class="actor" data-a="claude">Claude<small>interpretation</small></div>
+      </div>
+      <div class="copy">
+        <span class="stepnum" data-role="stepnum"></span>
+        <h2 data-role="title"></h2>
+        <p data-role="text"></p>
+      </div>
+      <div class="detail" data-role="detail"></div>
+    </div>
+  </section>
+
+  <section class="stage2" id="nedslag" aria-label="Demo: zoom into a detail">
+    <div class="scen-head">
+      <span class="eyebrow">Scenario 4 · concept</span>
+      <h2>Zoom into a detail</h2>
+      <p>Ring a corner on the overview and you get a detail page at a larger scale, where the post and the walls have their real sizes. The discussion carries on there, and the overview gets a mark that points to the detail. Revisions follow phase by phase.</p>
+      <p class="concept"><b>Not built yet.</b> The detail page is made by hand in the drawing model. The pages and which strokes count as new still come from rmink's real renderer and grouping.</p>
+    </div>
+    <div class="duo">
+      <div>
+        <div class="tablet">
+          <div class="screen">
+            <div class="docbar"><span data-doc="0"></span><span data-layer="0"></span></div>
+            <svg data-svg="0" viewBox="40 120 1360 1500" role="img" aria-label="Overview page"></svg>
+          </div>
+        </div>
+        <div class="duo-label">Page 1 · overview</div>
+      </div>
+      <div>
+        <div class="tablet">
+          <div class="screen">
+            <div class="docbar"><span data-doc="1"></span><span data-layer="1"></span></div>
+            <svg data-svg="1" viewBox="40 120 1360 1500" role="img" aria-label="Detail page"></svg>
+          </div>
+        </div>
+        <div class="duo-label">Page 2 · detail A</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn primary" data-role="play" type="button">▶ Play</button>
+      <button class="btn" data-role="prev" type="button" aria-label="Previous step">←</button>
+      <button class="btn" data-role="next" type="button" aria-label="Next step">→</button>
+      <div class="seg" role="group" aria-label="Tablet">
+        <button type="button" data-dev="rm2" aria-pressed="false">reMarkable 2</button>
+        <button type="button" data-dev="pro" aria-pressed="true">Paper Pro</button>
+      </div>
+    </div>
+    <nav class="steps" data-role="steps" aria-label="Steps"></nav>
+    <div class="panel wide">
+      <div class="pipeline">
+        <div class="actor" data-a="tablet">Tablet<small>you</small></div>
+        <div class="actor" data-a="cloud">Cloud<small>sync</small></div>
+        <div class="actor" data-a="rmink">rmink<small>geometry</small></div>
+        <div class="actor" data-a="claude">Claude<small>interpretation</small></div>
+      </div>
+      <div class="copy">
+        <span class="stepnum" data-role="stepnum"></span>
+        <h2 data-role="title"></h2>
+        <p data-role="text"></p>
+      </div>
+      <div class="detail" data-role="detail"></div>
+    </div>
+  </section>
+
+  <section class="stage2" id="pappersskiss" aria-label="Demo: paper sketch">
+    <div class="scen-head">
+      <span class="eyebrow">Scenario 6 · partly built</span>
+      <h2>Paper sketch via phone</h2>
+      <p>Not everyone has the tablet with them. A paper sketch from a meeting is photographed with the phone in the web app and goes through the same interpretation as sketches from the tablet. The clean drawing lands on the tablet, and the rounds carry on from there.</p>
+      <p class="concept"><b>Partly built.</b> The camera button, the photo conversion and Send to reMarkable are already in the web app, and the ink below comes from that very conversion. Turning it into a clean drawing works today through Claude and MCP. In the web app it is phase 2.</p>
+    </div>
+    <div class="duo phone-duo">
+      <div>
+        <div class="phone">
+          <div class="pbar"><span data-doc="0"></span><span data-layer="0"></span></div>
+          <div class="pview">
+            <img data-role="photo" alt="Photo of a pencil sketch on paper: a 3000 × 2400 shed with a door and a window">
+            <div class="ptoast" data-role="toast"></div>
+          </div>
+        </div>
+        <div class="duo-label">Phone · rmink.vercel.app</div>
+      </div>
+      <div>
+        <div class="tablet">
+          <div class="screen">
+            <div class="docbar"><span data-doc="1"></span><span data-layer="1"></span></div>
+            <svg data-svg="0" viewBox="40 190 1360 1500" role="img" aria-label="Tablet screen"></svg>
+          </div>
+        </div>
+        <div class="duo-label">Tablet</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn primary" data-role="play" type="button">▶ Play</button>
+      <button class="btn" data-role="prev" type="button" aria-label="Previous step">←</button>
+      <button class="btn" data-role="next" type="button" aria-label="Next step">→</button>
+      <div class="seg" role="group" aria-label="Tablet">
+        <button type="button" data-dev="rm2" aria-pressed="false">reMarkable 2</button>
+        <button type="button" data-dev="pro" aria-pressed="true">Paper Pro</button>
+      </div>
+    </div>
+    <nav class="steps" data-role="steps" aria-label="Steps"></nav>
+    <div class="panel wide">
+      <div class="pipeline">
+        <div class="actor" data-a="phone">Phone<small>camera</small></div>
+        <div class="actor" data-a="rmink">rmink<small>photo to ink</small></div>
+        <div class="actor" data-a="claude">Claude<small>interpretation</small></div>
+        <div class="actor" data-a="tablet">Tablet<small>you</small></div>
+      </div>
+      <div class="copy">
+        <span class="stepnum" data-role="stepnum"></span>
+        <h2 data-role="title"></h2>
+        <p data-role="text"></p>
+      </div>
+      <div class="detail" data-role="detail"></div>
+    </div>
+  </section>
+
+  <section class="stage2" id="export" aria-label="Demo: export">
+    <div class="scen-head">
+      <span class="eyebrow">Scenario 7 · partly built</span>
+      <h2>Export and sharing</h2>
+      <p>The drawing is data, so it can leave the tablet in several formats: SVG to share right away, PDF to print to scale and DXF to open in CAD. All three come from the same drawing model as the revisions.</p>
+      <p class="concept"><b>Partly built.</b> The SVG export exists and the picture on the right in step 2 is its real output. PDF and DXF are next steps. The sheet and the CAD view are drawn from the same model to show how they would look.</p>
+    </div>
+    <div class="duo">
+      <div>
+        <div class="tablet">
+          <div class="screen">
+            <div class="docbar"><span data-doc="0"></span><span data-layer="0"></span></div>
+            <svg data-svg="0" viewBox="40 120 1360 1500" role="img" aria-label="Tablet screen"></svg>
+          </div>
+        </div>
+        <div class="duo-label">Tablet</div>
+      </div>
+      <div>
+        <div class="viewer">
+          <div class="vbar"><span data-doc="1"></span><span data-layer="1"></span></div>
+          <div class="vbody" data-role="viewer"></div>
+        </div>
+        <div class="duo-label" data-role="vlabel">Recipient</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn primary" data-role="play" type="button">▶ Play</button>
+      <button class="btn" data-role="prev" type="button" aria-label="Previous step">←</button>
+      <button class="btn" data-role="next" type="button" aria-label="Next step">→</button>
+      <div class="seg" role="group" aria-label="Tablet">
+        <button type="button" data-dev="rm2" aria-pressed="false">reMarkable 2</button>
+        <button type="button" data-dev="pro" aria-pressed="true">Paper Pro</button>
+      </div>
+    </div>
+    <nav class="steps" data-role="steps" aria-label="Steps"></nav>
+    <div class="panel wide">
+      <div class="pipeline">
+        <div class="actor" data-a="tablet">Tablet<small>you</small></div>
+        <div class="actor" data-a="rmink">rmink<small>export</small></div>
+        <div class="actor" data-a="claude">Claude<small>on request</small></div>
+        <div class="actor" data-a="share">Recipient<small>web, printer, CAD</small></div>
+      </div>
+      <div class="copy">
+        <span class="stepnum" data-role="stepnum"></span>
+        <h2 data-role="title"></h2>
+        <p data-role="text"></p>
+      </div>
+      <div class="detail" data-role="detail"></div>
+    </div>
+  </section>
+
+  <section style="display:grid; gap:22px" id="scenarier">
+    <div class="scen-head">
+      <span class="eyebrow">Scenarios</span>
+      <h2>Eight ways to use it</h2>
+      <p>The demo at the top shows scenarios 1, 3 and 8, with a legend from scenario 2. Scenarios 4 to 7 have their own animations above. All of them build on the same model: the drawing is kept as data between rounds, so every revision knows what the previous one held.</p>
+    </div>
+    <div class="grid" id="scenarios"></div>
+  </section>
+
+  <section class="facts">
+    <div>
+      <h3>Colour and greyscale</h3>
+      <ul>
+        <li><b>Paper Pro and Move:</b> every category gets its own colour. Electrical is red, plumbing blue, changes green and comments magenta.</li>
+        <li><b>rm2 and Paper Pure:</b> the same categories are told apart by solid, dashed, dotted or dash-dot lines and by width.</li>
+        <li>Switch tablets in the demo to see the difference.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Who does what</h3>
+      <ul>
+        <li><b>Claude</b> reads handwriting and decides what each group is: a wall, a measurement, a symbol or a remark.</li>
+        <li><b>rmink</b> handles the geometry. It fits lines and circles, squares up corners, checks the measurements and draws.</li>
+        <li>The interpretation runs in the user's own Claude, so rmink stays free.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>To verify on a tablet</h3>
+      <ul>
+        <li>Does the tablet keep rmink's stroke ids after a sync? That is what lets only the new strokes be picked up.</li>
+        <li>Can you select the <code>Kommentarer</code> (comments) layer and draw on it?</li>
+        <li>How well are real handwritten measurements such as <code>45°</code> and <code>Ø110</code> read?</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>rmink is free and open source. The sketch, the marks, the variants, the detail and the photo in the demo are synthetic, as are the PDF sheet and the DXF file in the export demo. The groups, the measurement check, the clean drawings and which strokes count as new come from rmink 2.2.1 with the phase 1 code.</footer>
+</div>
+
+<script>
+const DATA = __DATA__;
+const DATA2 = __DATA2__;
+const NS = "http://www.w3.org/2000/svg";
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let device = "pro";
+const players = [];
+
+function el(tag, attrs, parent) {
+  const n = document.createElementNS(NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+
+function inkLayer(svg, paths) {
+  const g = el("g", { class: "layer ink", opacity: 0 }, svg);
+  for (const p of paths) {
+    el("path", { d: p.d, "stroke-width": Math.max(p.w * 1.4, 2), pathLength: 1, "data-c": p.c, "data-m": p.m }, g);
+  }
+  return g;
+}
+
+// One layer per tablet colour mode; .cur is the one for the chosen tablet.
+function dual(svg, byDevice) {
+  return { pro: inkLayer(svg, byDevice.pro), rm2: inkLayer(svg, byDevice.rm2), get cur() { return this[device]; } };
+}
+
+function boxLayer(svg, groups, extra) {
+  const g = el("g", { class: "layer box " + (extra || ""), opacity: 0 }, svg);
+  for (const gr of groups) {
+    const [x0, y0, x1, y1] = gr.b;
+    const item = el("g", { "data-id": gr.id, opacity: 0 }, g);
+    el("rect", { x: x0 - 6, y: y0 - 6, width: x1 - x0 + 12, height: y1 - y0 + 12, rx: 4 }, item);
+    const label = String(gr.id);
+    const w = 18 + label.length * 16;
+    const wide = x1 - x0 > 4 * Math.max(y1 - y0, 1);
+    const tall = y1 - y0 > 4 * Math.max(x1 - x0, 1);
+    const tx = wide ? (x0 + x1) / 2 - w / 2 : tall ? x1 + 10 : x0 - 6;
+    const ty = wide ? y0 - 40 : tall ? (y0 + y1) / 2 - 17 : y0 - 40;
+    el("rect", { class: "tag", x: tx, y: ty, width: w, height: 32, rx: 4 }, item);
+    el("text", { x: tx + 9, y: ty + 24 }, item).textContent = label;
+  }
+  return g;
+}
+
+function stats(items) {
+  return `<div class="stat">${items.map(([n, l]) => `<div><strong>${n}</strong><span>${l}</span></div>`).join("")}</div>`;
+}
+function row(ids, what, cls) {
+  return `<div class="row"><span class="ids ${cls || ""}">${ids}</span><span class="what">${what}</span></div>`;
+}
+
+class Player {
+  constructor(root, steps, start, build) {
+    this.root = root;
+    this.steps = steps;
+    this.step = start;
+    this.playing = false;
+    this.timers = [];
+    this.L = build([...root.querySelectorAll("svg[data-svg]")]);
+    const flat = v => (v instanceof Element ? [v] : v.pro ? [v.pro, v.rm2] : Object.values(v).flatMap(flat));
+    this.all = Object.values(this.L).flatMap(flat);
+    const q = r => root.querySelector(`[data-role="${r}"]`);
+    this.ui = { play: q("play"), steps: q("steps"), stepnum: q("stepnum"), title: q("title"), text: q("text"), detail: q("detail") };
+    this.ui.play.addEventListener("click", () => this.toggle());
+    q("prev").addEventListener("click", () => { this.stop(); this.go(this.step - 1, true); });
+    q("next").addEventListener("click", () => { this.stop(); this.go(this.step + 1, true); });
+    steps.forEach((s, k) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip";
+      b.innerHTML = `<b>${k + 1}</b>${s.chip || s.title}`;
+      b.addEventListener("click", () => { this.stop(); this.go(k, true); });
+      this.ui.steps.appendChild(b);
+    });
+  }
+  later(fn, ms) { this.timers.push(setTimeout(fn, ms)); }
+  clear() { while (this.timers.length) clearTimeout(this.timers.pop()); }
+  set(g, opacity, mode, span) {
+    // mode: "draw" animates strokes in, "show" shows them at once, "hide" hides them.
+    g.setAttribute("opacity", opacity);
+    const items = g.classList.contains("box") ? [...g.children] : [...g.querySelectorAll("path")];
+    const step = (span || 2600) / Math.max(items.length, 1);
+    items.forEach((n, i) => {
+      const isBox = n.tagName === "g";
+      n.style.transition = "none";
+      if (mode === "hide") { if (isBox) n.setAttribute("opacity", 0); else n.style.strokeDashoffset = 1; return; }
+      if (mode === "show" || reduce) { if (isBox) n.setAttribute("opacity", 1); else n.style.strokeDashoffset = 0; return; }
+      if (isBox) {
+        n.setAttribute("opacity", 0);
+        this.later(() => { n.style.transition = ""; n.setAttribute("opacity", 1); }, i * step);
+      } else {
+        n.style.strokeDashoffset = 1;
+        void n.getBoundingClientRect();
+        const dur = Math.min(520, Math.max(160, step * 6));
+        n.style.transition = `stroke-dashoffset ${dur}ms ease-out ${Math.round(i * step)}ms`;
+        n.style.strokeDashoffset = 0;
+      }
+    });
+  }
+  paint() {
+    const attr = device === "pro" ? "data-c" : "data-m";
+    this.root.querySelectorAll(".ink path").forEach(p => p.setAttribute("stroke", p.getAttribute(attr)));
+    this.root.querySelectorAll("[data-dev]").forEach(b => b.setAttribute("aria-pressed", b.dataset.dev === device));
+  }
+  go(i, animate) {
+    this.clear();
+    this.step = Math.max(0, Math.min(this.steps.length - 1, i));
+    const s = this.steps[this.step];
+    this.all.forEach(g => this.set(g, 0, "hide"));
+    this.ui.stepnum.textContent = `Step ${this.step + 1} of ${this.steps.length}`;
+    this.ui.title.textContent = s.title;
+    this.ui.text.textContent = s.text;
+    this.ui.detail.innerHTML = s.detail();
+    s.doc.forEach(([name, layer], k) => {
+      this.root.querySelector(`[data-doc="${k}"]`).textContent = name;
+      this.root.querySelector(`[data-layer="${k}"]`).textContent = layer;
+    });
+    this.root.querySelectorAll(".actor").forEach(a => a.classList.toggle("on", s.actors.includes(a.dataset.a)));
+    this.ui.steps.querySelectorAll(".chip").forEach((c, k) => {
+      if (k === this.step) c.setAttribute("aria-current", "step"); else c.removeAttribute("aria-current");
+    });
+    this.paint();
+    s.run.call(this, animate);
+    if (this.playing) {
+      this.later(() => (this.step < this.steps.length - 1 ? this.go(this.step + 1, true) : this.stop()), s.hold || 5600);
+    }
+  }
+  stop() { this.playing = false; this.ui.play.textContent = "▶ Play"; }
+  toggle() {
+    if (this.playing) { this.stop(); this.clear(); return; }
+    this.playing = true;
+    this.ui.play.textContent = "❚❚ Pause";
+    this.go(this.step === this.steps.length - 1 ? 0 : this.step, true);
+  }
+}
+
+document.querySelectorAll("[data-dev]").forEach(b => b.addEventListener("click", () => {
+  device = b.dataset.dev;
+  players.forEach(p => { p.stop(); p.go(p.step, false); });
+}));
+
+/* ---------- Demo 1: sketch to revision 2 ---------- */
+const C = DATA.check.dimensions;
+const scale = DATA.check.scale_units_per_px.toFixed(2).replace(".", ",");
+const MEANING = [
+  { ids: [4, 6, 8, 15], what: "<b>Walls V1–V4</b> <span>· load-bearing, the lines are fitted straight</span>" },
+  { ids: [5, 2], what: "<b>Measurement 4800</b> <span>· dimension line + handwritten number</span>" },
+  { ids: [9, 11], what: "<b>Measurement 3600</b> <span>· vertical, read from below</span>" },
+  { ids: [3, 7, 16, 14], what: "<b>Posts P1–P4</b> <span>· the symbol from the legend</span>" },
+  { ids: [10], what: "<b>Drain B1</b> <span>· blue circle = plumbing</span>" },
+  { ids: [13, 12], what: "<b>Outlet with cable</b> <span>· red pen = electrical</span>" },
+  { ids: [17, 18, 19, 20, 21], what: "<b>Legend</b> <span>· post 90×90, drain, electrical</span>" },
+  { ids: [1], what: "<b>Title</b> <span>· “ALTAN” (deck)</span>" },
+];
+function hot(layer, ids) {
+  layer.querySelectorAll("g[data-id]").forEach(n => n.classList.toggle("hot", ids.includes(+n.dataset.id)));
+}
+
+const STEPS1 = [
+  {
+    title: "Sketch on the tablet", chip: "Sketch", actors: ["tablet"], doc: [["Altan · page 1", "Layer 1"]],
+    text: "You draw freely with the pen: walls, two measurements, posts in the corners, a drain and an outlet. In the corner you write what the symbols mean. On Paper Pro the pen colour can already say something: blue for plumbing, red for electrical.",
+    run(a) { this.set(this.L.sketch, 1, a ? "draw" : "show", 3200); },
+    detail: () => stats([[DATA.counts.sketch, "strokes"], ["3", "pen colours"], ["1", "page"]]),
+  },
+  {
+    title: "Sync and read", chip: "Sync", actors: ["tablet", "cloud", "rmink"], doc: [["Altan · page 1", "Layer 1"]],
+    text: "The tablet syncs to the reMarkable Cloud. rmink fetches the notebook and reads every stroke back: points, pen, colour, layer and an id that stays with the stroke.",
+    run() { this.set(this.L.sketch, 1, "show"); },
+    detail: () => stats([[DATA.counts.sketch, "strokes read"], ["1", "layer"], [DATA.counts.sketch, "stroke ids"]]),
+  },
+  {
+    title: "Group and fit", chip: "Group", actors: ["rmink"], doc: [["Altan · page 1", "rmink: groups"]],
+    text: "rmink splits the sketch into numbered groups. Long strokes are fitted to lines and circles with exact coordinates. Handwriting, arrowheads and small symbols stay together in a group that Claude reads from the picture.",
+    run(a) { this.set(this.L.sketch, 0.55, "show"); this.set(this.L.groups, 1, a ? "draw" : "show", 2200); },
+    detail() {
+      const n = s => DATA.groups.filter(g => g.shape === s).length;
+      return stats([[DATA.groups.length, "groups"], [n("line"), "lines"], [n("circle"), "circle"], [n("mark"), "text and symbols"]]);
+    },
+  },
+  {
+    title: "Claude interprets", actors: ["claude"], doc: [["Altan · page 1", "rmink: groups"]], hold: 6800,
+    text: "Claude sees the numbered picture and the group list, and decides what each group is. The coordinates come from rmink's fitting, so Claude never has to guess a position from the picture. The legend in the corner decides what the symbols mean.",
+    run(a) {
+      this.set(this.L.sketch, 0.55, "show"); this.set(this.L.groups, 1, "show");
+      const rows = [...this.ui.detail.querySelectorAll(".row")];
+      if (!a || reduce) return;
+      rows.forEach(r => r.classList.add("dim"));
+      MEANING.forEach((m, i) => this.later(() => {
+        rows.forEach((r, k) => r.classList.toggle("hot", k === i));
+        rows[i].classList.remove("dim");
+        hot(this.L.groups, m.ids);
+      }, 300 + i * 650));
+      this.later(() => { rows.forEach(r => r.classList.remove("hot")); hot(this.L.groups, []); }, 300 + MEANING.length * 650 + 400);
+    },
+    detail: () => MEANING.map(m => row(m.ids.map(i => "#" + i).join(" "), m.what)).join(""),
+  },
+  {
+    title: "Clean drawing, revision 1", chip: "Clean drawing", actors: ["rmink", "cloud", "tablet"], doc: [["Altan r1 · page 1", "Ritning r1 · Kommentarer layers"]],
+    text: "rmink straightens the lines, joins the corners and draws with real pen strokes. The drawing gets dimension lines with arrows, symbols, a legend and a title block. The new notebook lands on the tablet, with the original sketch kept as page 2.",
+    run(a) {
+      this.set(this.L.sketch, a ? 0.12 : 0, "show");
+      if (a) this.later(() => this.set(this.L.sketch, 0, "show"), 2400);
+      this.set(this.L.clean1.cur, 1, a ? "draw" : "show", 3000);
+    },
+    detail: () => C.map(r => row(r.text, `<b>${r.drawn_px} px drawn</b> <span>· ${r.consistent ? '<span class="ok">matches</span>' : "differs"} with the scale</span>`)).join("")
+      + row("scale", `<b>${scale} mm per px</b> <span>· worked out from the written measurements. Measurements that disagree are flagged so Claude can ask.</span>`),
+  },
+  {
+    title: "Mark up on the tablet", chip: "Mark up", actors: ["tablet"], doc: [["Altan r1 · page 1", "Layer: Kommentarer"]],
+    text: "On the Kommentarer (comments) layer you ring the post in the corner and write “FLYTTA 200?” (move 200?). The drain should go, so you cross it out. Nothing more is needed.",
+    run(a) { this.set(this.L.clean1.cur, 1, "show"); this.set(this.L.marks, 1, a ? "draw" : "show", 2600); },
+    detail: () => stats([["3", "marks"], ["1", "layer"]]),
+  },
+  {
+    title: "Only what is new is picked up", chip: "Only new", actors: ["cloud", "rmink", "claude"], doc: [["Altan r1 · page 1", "rmink: new strokes"]],
+    text: "rmink knows which strokes it wrote in r1 and filters them out. Only your marks are left. Claude links each mark to an element: the cross is a change, the ring with the text a question.",
+    run(a) { this.set(this.L.clean1.cur, 0.3, "show"); this.set(this.L.marks, 1, "show"); this.set(this.L.newb, 1, a ? "draw" : "show", 1400); },
+    detail: () => stats([[DATA.counts.known, "own strokes filtered out"], [DATA.counts.new, "new groups"]])
+      + row("#1 #2", "<b>Cross over B1</b> <span>· change: the drain is removed</span>", "mark")
+      + row("#4 #3", "<b>Ring around P3 + “FLYTTA 200?”</b> <span>· question: open remark 1</span>", "mark"),
+  },
+  {
+    title: "Revision 2", actors: ["rmink", "cloud", "tablet"], doc: [["Altan r2 · page 1", "Ritning r2 · Kommentarer layers"]],
+    text: "The drain is gone, from the legend too. The question about P3 is remark 1, with a numbered ring on the drawing and in the list. The change log shows what happened between revisions. The next round starts here.",
+    run(a) { this.set(this.L.clean2.cur, 1, a ? "draw" : "show", 3000); },
+    detail: () => row("r1", "<b>Drawn clean from sketch</b> <span>· Proposal</span>", "plain")
+      + row("r2", "<b>Drain B1 removed, P3 under discussion</b> <span>· Review</span>", "plain"),
+  },
+];
+
+players.push(new Player(document.getElementById("flode"), STEPS1, 0, ([svg]) => ({
+  sketch: inkLayer(svg, DATA.sketch),
+  groups: boxLayer(svg, DATA.groups),
+  clean1: dual(svg, DATA.clean1),
+  marks: inkLayer(svg, DATA.marks),
+  newb: boxLayer(svg, DATA.newGroups, "newbox"),
+  clean2: dual(svg, DATA.clean2),
+})));
+
+/* ---------- Demo 2: variants A and B ---------- */
+const V = DATA2.compare;
+const mm = v => v.toLocaleString("en-GB") + " mm";
+const part = (src, key) => ({ pro: src.pro[key], rm2: src.rm2[key] });
+const STEPS2 = [
+  {
+    title: "Starting point: revision 2", chip: "Start", actors: ["claude"],
+    doc: [["Altan r2 · page 1", "Ritning r2 layer"], ["Altan r2 · page 1", "Ritning r2 layer"]],
+    text: "Drawing r2 is done, but the joists are missing. You ask Claude whether the beams should run along or across, and ask for both variants to compare on the tablet.",
+    run() { this.set(this.L.baseA.cur, 1, "show"); this.set(this.L.baseB.cur, 1, "show"); },
+    detail: () => row("ask", "<b>“Show the beam along and across as two pages.”</b> <span>· in Claude, with rmink connected</span>", "plain")
+      + row("r2", "<b>4 walls, 4 posts, 1 outlet</b> <span>· remark 1 about P3 is still open</span>", "plain"),
+  },
+  {
+    title: "Two variants from one model", chip: "Two variants", actors: ["claude", "rmink"], hold: 6200,
+    doc: [["Altan r3 variants · page 1", "Option A"], ["Altan r3 variants · page 2", "Option B"]],
+    text: "Claude copies the drawing model twice and adds beams in different ways. rmink draws both. Only what differs from r2 is added to the pages: lines, a post, a measurement, the legend and the log.",
+    run(a) {
+      for (const k of ["A", "B"]) {
+        this.set(this.L[k].same.cur, 1, "show");
+        this.set(this.L[k].new.cur, 1, a ? "draw" : "show", 2600);
+      }
+    },
+    detail: () => row("A", `<b>1 beam along, centre post P5</b> <span>· span ${mm(V.A.span)}</span>`, "plain")
+      + row("B", `<b>2 beams across, no new posts</b> <span>· span ${mm(V.B.span)}</span>`, "plain")
+      + row("changed", `<b>${DATA2.A.pro.new.length} and ${DATA2.B.pro.new.length} new strokes</b> <span>· the rest of the pages is identical to r2</span>`),
+  },
+  {
+    title: "Compare", actors: ["rmink"],
+    doc: [["Altan r3 variants · page 1", "Option A"], ["Altan r3 variants · page 2", "Option B"]],
+    text: "Since both variants are data, you can measure them. Spans and beam lengths come from the model at the same scale as the measurements, so the comparison rests on what you wrote in the sketch.",
+    run() { for (const k of ["A", "B"]) { this.set(this.L[k].same.cur, 1, "show"); this.set(this.L[k].new.cur, 1, "show"); } },
+    detail: () => `<div class="cmp"><table>
+        <tr><th></th><th>A · along</th><th>B · across</th></tr>
+        <tr><td>Beams</td><td>${V.A.beams}</td><td>${V.B.beams}</td></tr>
+        <tr><td>New posts</td><td>${V.A.posts}</td><td class="win">${V.B.posts}</td></tr>
+        <tr><td>Largest span</td><td>${mm(V.A.span)}</td><td class="win">${mm(V.B.span)}</td></tr>
+        <tr><td>Total beam length</td><td class="win">${mm(V.A.beam_mm)}</td><td>${mm(V.B.beam_mm)}</td></tr>
+      </table></div>`,
+  },
+  {
+    title: "Choose on the tablet", chip: "Choose", actors: ["tablet"],
+    doc: [["Altan r3 variants · page 1", "Layer: Kommentarer"], ["Altan r3 variants · page 2", "Layer: Kommentarer"]],
+    text: "You flip between the pages, cross out A and tick B with “KÖR B” (go with B). No buttons, just the pen.",
+    run(a) {
+      for (const k of ["A", "B"]) { this.set(this.L[k].same.cur, 1, "show"); this.set(this.L[k].new.cur, 1, "show"); }
+      this.set(this.L.marksA, 1, a ? "draw" : "show", 1600);
+      if (a) this.later(() => this.set(this.L.marksB, 1, "draw", 1800), 1700); else this.set(this.L.marksB, 1, "show");
+    },
+    detail: () => stats([["2", "pages"], ["2", "marks"]]),
+  },
+  {
+    title: "The choice is picked up", chip: "Choice", actors: ["cloud", "rmink", "claude"],
+    doc: [["Altan r3 variants · page 1", "rmink: new strokes"], ["Altan r3 variants · page 2", "rmink: new strokes"]],
+    text: "As in the review round, rmink filters out its own strokes on both pages. Claude reads what is left: a cross over all of A and a tick with text on B.",
+    run(a) {
+      for (const k of ["A", "B"]) { this.set(this.L[k].same.cur, 0.3, "show"); this.set(this.L[k].new.cur, 0.3, "show"); }
+      this.set(this.L.marksA, 1, "show"); this.set(this.L.marksB, 1, "show");
+      this.set(this.L.newA, 1, a ? "draw" : "show", 900); this.set(this.L.newB, 1, a ? "draw" : "show", 900);
+    },
+    detail: () => stats([[DATA2.known.A + DATA2.known.B, "own strokes filtered out"], [DATA2.newA.length + DATA2.newB.length, "new groups"]])
+      + row("A #1 #2", "<b>Cross over the whole page</b> <span>· reject variant A</span>", "mark")
+      + row("B #1 #2", "<b>Tick + “KÖR B”</b> <span>· choose variant B</span>", "mark"),
+  },
+  {
+    title: "Revision 3: B it is", chip: "Revision 3", actors: ["rmink", "cloud", "tablet"], hold: 6200,
+    doc: [["Altan r3 variants · page 1", "rejected"], ["Altan r3 · page 1", "Ritning r3 · Kommentarer layers"]],
+    text: "Variant B becomes revision 3 in the Decision phase. The log says B was chosen and A rejected, so you can see why the drawing looks the way it does. A stays in the variants notebook in case the question comes up again.",
+    run(a) {
+      this.set(this.L.A.same.cur, 0.18, "show"); this.set(this.L.A.new.cur, 0.18, "show"); this.set(this.L.marksA, 0.18, "show");
+      this.set(this.L.final.same.cur, 1, "show");
+      this.set(this.L.final.new.cur, 1, a ? "draw" : "show", 1800);
+    },
+    detail: () => row("r2", "<b>Drain B1 removed</b> <span>· Review</span>", "plain")
+      + row("r3", "<b>Variant B chosen, A rejected</b> <span>· Decision</span>", "plain"),
+  },
+];
+
+players.push(new Player(document.getElementById("varianter"), STEPS2, 0, ([a, b]) => ({
+  baseA: dual(a, DATA2.base),
+  baseB: dual(b, DATA2.base),
+  A: { same: dual(a, part(DATA2.A, "same")), new: dual(a, part(DATA2.A, "new")) },
+  B: { same: dual(b, part(DATA2.B, "same")), new: dual(b, part(DATA2.B, "new")) },
+  final: { same: dual(b, part(DATA2.final, "same")), new: dual(b, part(DATA2.final, "new")) },
+  marksA: inkLayer(a, DATA2.marksA),
+  marksB: inkLayer(b, DATA2.marksB),
+  newA: boxLayer(a, DATA2.newA, "newbox"),
+  newB: boxLayer(b, DATA2.newB, "newbox"),
+})));
+
+/* ---------- Demo 3: detail view ---------- */
+const DATA3 = __DATA3__;
+const PHASES = [
+  ["r1", "Drawn clean from sketch", "Proposal"],
+  ["r2", "Drain B1 removed", "Review"],
+  ["r3", "Variant B chosen, A rejected", "Decision"],
+  ["r4", "Detail A at P3", "Detailing"],
+  ["r5", "Angle bracket in detail A, type open", "Detailing"],
+];
+const phaseRows = n => PHASES.slice(0, n).map(([r, w, f]) => row(r, `<b>${w}</b> <span>· ${f}</span>`, "plain")).join("");
+const STEPS3 = [
+  {
+    title: "Point out a corner", chip: "Point out", actors: ["tablet"],
+    doc: [["Altan r3 · page 1", "Layer: Kommentarer"], ["Altan r3 · page 2", "empty"]],
+    text: "On r3 you want to discuss how post P3 meets the walls. You ring the corner and write “DETALJ” (detail) next to it. Page 2 is empty.",
+    run(a) { this.set(this.L.ov3.cur, 1, "show"); this.set(this.L.marks1, 1, a ? "draw" : "show", 1600); },
+    detail: () => phaseRows(3),
+  },
+  {
+    title: "The zoom-in is interpreted", chip: "Interpret", actors: ["cloud", "rmink", "claude"],
+    doc: [["Altan r3 · page 1", "rmink: new strokes"], ["Altan r3 · page 2", "empty"]],
+    text: "rmink filters out its own strokes and finds the ring and the word. Claude sees which elements the ring encloses and understands that it asks for a detail view, not a change.",
+    run(a) { this.set(this.L.ov3.cur, 0.3, "show"); this.set(this.L.marks1, 1, "show"); this.set(this.L.new1, 1, a ? "draw" : "show", 900); },
+    detail: () => stats([[DATA3.known.ov, "own strokes filtered out"], [DATA3.new1.length, "new groups"]])
+      + row("#2", "<b>Ring around P3</b> <span>· encloses post P3 and the wall ends V2 and V3</span>", "mark")
+      + row("#1", "<b>“DETALJ”</b> <span>· make a detail view of what is ringed</span>", "mark"),
+  },
+  {
+    title: "The detail page is made", chip: "Detail page", actors: ["claude", "rmink", "tablet"], hold: 6400,
+    doc: [["Altan r4 · page 1", "Ritning r4 layer"], ["Altan r4 · page 2", "Detail A · Kommentarer"]],
+    text: "Claude builds the detail in real millimetres: the post 90 × 90 and the walls 45 mm. rmink draws it at 1:5 on a page of its own. The overview gets a dashed ring with the letter A pointing to the detail.",
+    run(a) {
+      this.set(this.L.ov4.same.cur, 1, "show");
+      this.set(this.L.ov4.new.cur, 1, a ? "draw" : "show", 1200);
+      if (a) this.later(() => this.set(this.L.det4.cur, 1, "draw", 3000), 900); else this.set(this.L.det4.cur, 1, "show");
+    },
+    detail: () => row("scale", `<b>${DATA3.scale}</b> <span>· a ${DATA3.cut_mm} × ${DATA3.cut_mm} mm cut-out around P3</span>`, "plain")
+      + row("sizes", "<b>Post 90, wall 45</b> <span>· drawn at their real size, not scaled up from the sketch</span>", "plain")
+      + row("link", "<b>Ring A on the overview</b> <span>· detail and overview share one drawing model</span>", "plain"),
+  },
+  {
+    title: "Keep sketching in the detail", chip: "Keep sketching", actors: ["tablet"],
+    doc: [["Altan r4 · page 1", "Ritning r4 layer"], ["Altan r4 · page 2", "Layer: Kommentarer"]],
+    text: "The detail has room for what the overview cannot show. You draw an angle bracket in the inner corner, add an arrow and write “VINKELBESLAG?” (angle bracket?).",
+    run(a) {
+      this.set(this.L.ov4.same.cur, 1, "show"); this.set(this.L.ov4.new.cur, 1, "show");
+      this.set(this.L.det4.cur, 1, "show"); this.set(this.L.marks2, 1, a ? "draw" : "show", 2200);
+    },
+    detail: () => stats([["3", "marks"], ["1", "layer"]]),
+  },
+  {
+    title: "What is new is picked up", chip: "New", actors: ["cloud", "rmink", "claude"],
+    doc: [["Altan r4 · page 1", "Ritning r4 layer"], ["Altan r4 · page 2", "rmink: new strokes"]],
+    text: "Same as on the overview: rmink recognises its own strokes on the detail page and leaves the rest to Claude. The L shape becomes a bracket, the question mark an open question.",
+    run(a) {
+      this.set(this.L.ov4.same.cur, 1, "show"); this.set(this.L.ov4.new.cur, 1, "show");
+      this.set(this.L.det4.cur, 0.3, "show"); this.set(this.L.marks2, 1, "show");
+      this.set(this.L.new2, 1, a ? "draw" : "show", 1200);
+    },
+    detail: () => stats([[DATA3.known.det, "own strokes filtered out"], [DATA3.new2.length, "new groups"]])
+      + row("#3", "<b>L shape in the inner corner</b> <span>· angle bracket VB1, drawn clean</span>", "mark")
+      + row("#1 #2 #4", "<b>Arrow + “VINKELBESLAG?”</b> <span>· question: which bracket, size and screws</span>", "mark"),
+  },
+  {
+    title: "Revision 5, phase by phase", chip: "Revision 5", actors: ["rmink", "cloud", "tablet"], hold: 6400,
+    doc: [["Altan r5 · page 1", "Ritning r5 layer"], ["Altan r5 · page 2", "Detail A · Kommentarer"]],
+    text: "The bracket is drawn in green as a change, and the question about its type is remark 1 on the detail page. The overview's log gets a line. Every revision has its phase, so the history reads from proposal to detailing.",
+    run(a) {
+      this.set(this.L.ov5.same.cur, 1, "show"); this.set(this.L.ov5.new.cur, 1, a ? "draw" : "show", 900);
+      this.set(this.L.det5.same.cur, 1, "show"); this.set(this.L.det5.new.cur, 1, a ? "draw" : "show", 2400);
+    },
+    detail: () => phaseRows(5),
+  },
+];
+
+players.push(new Player(document.getElementById("nedslag"), STEPS3, 0, ([a, b]) => ({
+  ov3: dual(a, DATA3.ov3),
+  ov4: { same: dual(a, part(DATA3.ov4, "same")), new: dual(a, part(DATA3.ov4, "new")) },
+  ov5: { same: dual(a, part(DATA3.ov5, "same")), new: dual(a, part(DATA3.ov5, "new")) },
+  marks1: inkLayer(a, DATA3.marks1),
+  new1: boxLayer(a, DATA3.new1, "newbox"),
+  det4: dual(b, DATA3.det4),
+  det5: { same: dual(b, part(DATA3.det5, "same")), new: dual(b, part(DATA3.det5, "new")) },
+  marks2: inkLayer(b, DATA3.marks2),
+  new2: boxLayer(b, DATA3.new2, "newbox"),
+})));
+
+/* ---------- Demo 4: paper sketch through the phone ---------- */
+const DATA4 = __DATA4__;
+const MEANING4 = [
+  { ids: [4, 9, 11, 16, 18], what: "<b>Walls</b> <span>· two corners came as connected polylines</span>" },
+  { ids: [6, 7, 8, 10], what: "<b>Window</b> <span>· double line in the top wall</span>" },
+  { ids: [15, 16], what: "<b>Door</b> <span>· door leaf and swing</span>" },
+  { ids: [2, 3], what: "<b>Measurement 3000</b> <span>· dimension line + number</span>" },
+  { ids: [13, 14], what: "<b>Measurement 2400</b> <span>· vertical</span>" },
+  { ids: [1, 19, 21, 22], what: "<b>Text</b> <span>· “FÖRRÅD” (shed), “DÖRR 9X21” (door), “TAKLUTNING 15°” (roof pitch)</span>" },
+  { ids: [5, 12, 17, 20], what: "<b>Small bits</b> <span>· where pencil lines cross, ignored</span>" },
+];
+const C4 = DATA4.check.dimensions;
+function phone(p, toast, opts) {
+  const t = p.root.querySelector('[data-role="toast"]');
+  t.textContent = toast || "";
+  t.classList.toggle("shutter", !!(opts && opts.shutter));
+  p.root.querySelector('[data-role="photo"]').classList.toggle("dim", !!(opts && opts.dim));
+}
+const STEPS4 = [
+  {
+    title: "A sketch on paper", chip: "Paper", actors: ["phone"],
+    doc: [["Camera", ""], ["Tablet", "no notebook yet"]],
+    text: "At a meeting by the shed you draw in pencil on an ordinary sheet of paper: walls, a door, a window, two measurements and the roof pitch. The tablet is at home.",
+    run() { phone(this, "", { shutter: true }); },
+    detail: () => row("paper", "<b>A4, pencil</b> <span>· roughly 1:20, photographed a little skewed in uneven light</span>", "plain"),
+  },
+  {
+    title: "Photograph it in the web app", chip: "Photo", actors: ["phone"],
+    doc: [["rmink.vercel.app", "Take a photo"], ["Tablet", "no notebook yet"]],
+    text: "In rmink on the phone you tap “Take a photo”. The picture joins the file list, named by date and time, just as today.",
+    run() { phone(this, "Photo 2026-10-27 14.12.jpg"); },
+    detail: () => row("built", "<b>The camera button</b> <span>· in the web app since 2.1.1</span>", "plain"),
+  },
+  {
+    title: "Ink from the photo", chip: "Ink", actors: ["rmink"],
+    doc: [["rmink.vercel.app", "Preview"], ["Preview", "ink from the photo"]],
+    text: "rmink's photo conversion finds the pencil lines and turns them into pen strokes. The table, the shadow and the paper edge do not become ink. This is rmink's real output for the photo on the left.",
+    run(a) { phone(this, "Converting…", { dim: true }); this.set(this.L.ink, 1, a ? "draw" : "show", 2600); },
+    detail: () => stats([[DATA4.ink.length, "strokes"], [DATA4.inkPoints, "points"], ["0", "strokes from the table"]])
+      + row("built", "<b>Photo to ink</b> <span>· the same conversion as for handwriting today</span>", "plain"),
+  },
+  {
+    title: "Group and interpret", chip: "Interpret", actors: ["rmink", "claude"], hold: 6800,
+    doc: [["rmink.vercel.app", "Preview"], ["Preview", "rmink: groups"]],
+    text: "The strokes are grouped as for a tablet sketch. A photo gives slightly messier groups: corners that hang together and small bits where pencil lines cross. Claude sorts out walls, openings, measurements and text, and skips the small bits.",
+    run(a) {
+      phone(this, "Draw clean · phase 2", { dim: true });
+      this.set(this.L.ink, 0.55, "show"); this.set(this.L.groups, 1, "show");
+      const rows = [...this.ui.detail.querySelectorAll(".row")];
+      if (!a || reduce) return;
+      rows.forEach(r => r.classList.add("dim"));
+      MEANING4.forEach((m, i) => this.later(() => {
+        rows.forEach((r, k) => r.classList.toggle("hot", k === i));
+        rows[i].classList.remove("dim");
+        hot(this.L.groups, m.ids);
+      }, 300 + i * 750));
+      this.later(() => { rows.forEach(r => r.classList.remove("hot")); hot(this.L.groups, []); }, 300 + MEANING4.length * 750 + 400);
+    },
+    detail: () => MEANING4.map(m => row(m.ids.map(i => "#" + i).join(" "), m.what)).join(""),
+  },
+  {
+    title: "Clean drawing", actors: ["rmink"],
+    doc: [["rmink.vercel.app", "Preview"], ["Förråd r1 · page 1", "Ritning r1 · Kommentarer layers"]],
+    text: "The photo was taken a little skewed, but the lines are straightened and the corners joined. The door gets its swing, the window its double line, and the roof pitch comes along as text. The measurements are checked against each other as usual.",
+    run(a) {
+      phone(this, "Send to reMarkable", { dim: true });
+      this.set(this.L.ink, a ? 0.15 : 0, "show");
+      if (a) this.later(() => this.set(this.L.ink, 0, "show"), 2400);
+      this.set(this.L.clean.cur, 1, a ? "draw" : "show", 2800);
+    },
+    detail: () => C4.map(r => row(r.text, `<b>${r.drawn_px} px drawn</b> <span>· ${r.consistent ? '<span class="ok">matches</span>' : "differs"} with the scale</span>`)).join(""),
+  },
+  {
+    title: "On the tablet", chip: "Tablet", actors: ["tablet"],
+    doc: [["rmink.vercel.app", "Sent"], ["Förråd r1 · page 1", "Ritning r1 · Kommentarer layers"]],
+    text: "The drawing lands on the tablet with the photo's ink as page 2. From there it works like a tablet sketch: mark it up, get the next revision, try variants or zoom into a detail.",
+    run() { phone(this, "Sent to reMarkable ✓"); this.set(this.L.clean.cur, 1, "show"); },
+    detail: () => row("built", "<b>Send to reMarkable</b> <span>· in the web app since 2.2.0</span>", "plain")
+      + row("next", '<b>Review round</b> <span>· <a href="#flode">as in the demo at the top</a></span>', "plain"),
+  },
+];
+
+players.push(new Player(document.getElementById("pappersskiss"), STEPS4, 0, ([svg]) => ({
+  ink: inkLayer(svg, DATA4.ink),
+  groups: boxLayer(svg, DATA4.groups),
+  clean: dual(svg, DATA4.clean),
+})));
+document.querySelector('#pappersskiss [data-role="photo"]').src = DATA4.photo;
+
+/* ---------- Demo 5: export ---------- */
+const DATA5 = __DATA5__;
+const ACI = { 7: "#e8e8e8", 3: "#4ec94e", 1: "#ff5a52", 8: "#8a8f94", 6: "#e070e0" };
+const PRINT = { VAGG: "#111", BARLINA: "#2a8a3e", EL: "#c8322b", MATT: "#777", PELARE: "#111", DETALJ: "#777", TEXT: "#111", KOMMENTAR: "#a33a9c" };
+const LAYER_ACI = Object.fromEntries(DATA5.layers.map(l => [l.n, l.c]));
+const kb = n => (n / 1000).toLocaleString("en-GB", { maximumFractionDigits: 1 }) + " kB";
+
+// Draws the export entities (millimetres, y up) into an SVG group.
+// map: [x, y] mm -> [x, y] in the target viewBox; s: mm per viewBox unit.
+function drawEntities(g, map, s, colour, widths) {
+  const w = l => widths[l] || widths._;
+  const path = (parent, l, d) => el("path", { d, stroke: colour(l), "stroke-width": w(l), pathLength: 1 }, parent);
+  const seg = (parent, l, a, b) => path(parent, l, `M${map(a)} L${map(b)}`);
+  const ring = (parent, l, [cx, cy], r, n) => {
+    const pts = [];
+    for (let i = 0; i <= n; i++) { const t = i / n * Math.PI * 2; pts.push(map([cx + r * Math.cos(t), cy + r * Math.sin(t)])); }
+    path(parent, l, "M" + pts.join(" L"));
+  };
+  const text = (parent, l, [x, y], size, str, extra) => {
+    const [tx, ty] = map([x, y]);
+    el("text", { x: tx, y: ty, fill: colour(l), "font-size": size / s, ...(extra ? extra(tx, ty) : {}) }, parent).textContent = str;
+  };
+  for (const e of DATA5.ents) {
+    const layer = el("g", { "data-layer": e.l }, g);
+    if (e.t === "line") seg(layer, e.l, e.p[0], e.p[1]);
+    if (e.t === "circle") ring(layer, e.l, e.c, e.r, 48);
+    if (e.t === "text") text(layer, e.l, e.p, e.h, e.s);
+    if (e.t === "insert") {
+      const [x, y] = e.p;
+      if (e.b === "PELARE") {
+        const r = 45, c = [[x - r, y - r], [x + r, y - r], [x + r, y + r], [x - r, y + r]];
+        c.forEach((a, i) => seg(layer, e.l, a, c[(i + 1) % 4]));
+        seg(layer, e.l, c[0], c[2]); seg(layer, e.l, c[3], c[1]);
+      } else {
+        ring(layer, e.l, e.p, 60, 24);
+      }
+      if (e.label) text(layer, e.l, [x + 80, y + 80], 110, e.label);
+    }
+    if (e.t === "dim") {
+      const [a2, b2] = e.q;
+      seg(layer, "MATT", a2, b2); seg(layer, "MATT", e.p[0], a2); seg(layer, "MATT", e.p[1], b2);
+      const mid = [(a2[0] + b2[0]) / 2, (a2[1] + b2[1]) / 2];
+      const vertical = Math.abs(b2[0] - a2[0]) < Math.abs(b2[1] - a2[1]);
+      text(layer, "MATT", mid, 130, e.s, (tx, ty) => ({
+        "text-anchor": "middle",
+        transform: vertical ? `rotate(-90 ${tx} ${ty}) translate(0 ${-40 / s})` : `translate(0 ${-40 / s})`,
+      }));
+    }
+  }
+}
+
+function svgView(host) {
+  const svg = el("svg", { viewBox: "40 120 1360 1500" }, host);
+  el("rect", { x: 40, y: 120, width: 1360, height: 1500, fill: "#ffffff" }, svg);
+  const g = inkLayer(svg, DATA5.ov.pro);
+  g.querySelectorAll("path").forEach(p => p.setAttribute("stroke", p.dataset.c));
+  return g;
+}
+
+function pdfView(host) {
+  const svg = el("svg", { viewBox: "-8 -8 313 226" }, host);
+  el("rect", { x: -8, y: -8, width: 313, height: 226, fill: "#c9ccc7" }, svg);
+  el("rect", { x: 0, y: 0, width: 297, height: 210, fill: "#ffffff" }, svg);
+  const g = el("g", { class: "layer ink" }, svg);
+  const map = ([x, y]) => [(40 + x / 25).toFixed(2), (178 - y / 25).toFixed(2)];
+  drawEntities(g, map, 25, l => PRINT[l] || "#111", { VAGG: 0.5, PELARE: 0.35, _: 0.25, MATT: 0.18 });
+  g.querySelectorAll("text").forEach(t => t.setAttribute("font-family", "Archivo, Arial, sans-serif"));
+  const frame = el("g", { class: "layer ink" }, svg);
+  for (const d of ["M10 10 H287 V200 H10 Z", "M240 156 H287", "M240 156 V200", "M240 172 H287", "M240 186 H287", "M40 192 H80", "M40 190 V194", "M60 191 V193", "M80 190 V194"])
+    el("path", { d, stroke: "#111", "stroke-width": d.startsWith("M10") ? 0.5 : 0.25, pathLength: 1 }, frame);
+  const t = (x, y, s, txt, w) => { el("text", { x, y, "font-size": s, fill: "#111", "font-family": "Archivo, Arial, sans-serif", "font-weight": w || 400 }, svg).textContent = txt; };
+  t(243, 166, 6, "ALTAN", 700); t(243, 181, 3.4, "REV 5 · DETAILING"); t(243, 195, 3.4, "1:25 · A4 · 2026-10-27");
+  t(40, 199, 2.6, "0"); t(78, 199, 2.6, "1 m");
+  return [g, frame];
+}
+
+function cadView(host, withPanel) {
+  host.style.background = "#1b1f23";
+  const svg = el("svg", { viewBox: "-900 -4500 6600 5400", preserveAspectRatio: "xMidYMid meet" }, host);
+  el("rect", { x: -900, y: -4500, width: 6600, height: 5400, fill: "#1b1f23" }, svg);
+  const grid = el("g", {}, svg);
+  for (let x = -0; x <= 5000; x += 1000) {
+    el("path", { d: `M${x} 400 V-4100`, stroke: "#2b3238", "stroke-width": 12 }, grid);
+    el("text", { x: x, y: 650, fill: "#5d666d", "font-size": 150, "text-anchor": "middle", "font-family": "IBM Plex Mono, monospace" }, grid).textContent = x;
+  }
+  for (let y = 0; y <= 4000; y += 1000) {
+    el("path", { d: `M-500 ${-y} H5400`, stroke: "#2b3238", "stroke-width": 12 }, grid);
+    el("text", { x: -560, y: -y + 50, fill: "#5d666d", "font-size": 150, "text-anchor": "end", "font-family": "IBM Plex Mono, monospace" }, grid).textContent = y;
+  }
+  const g = el("g", { class: "layer ink" }, svg);
+  drawEntities(g, ([x, y]) => [x, -y], 1, l => ACI[LAYER_ACI[l]] || "#e8e8e8", { VAGG: 26, _: 16 });
+  g.querySelectorAll("text").forEach(t => t.setAttribute("font-family", "IBM Plex Mono, monospace"));
+  // Crosshair on P3.
+  el("path", { d: "M4800 -260 V260 M4540 0 H5060", stroke: "#8aa4ff", "stroke-width": 10 }, svg);
+  if (withPanel) {
+    const panel = document.createElement("div");
+    panel.className = "layers";
+    panel.innerHTML = DATA5.layers.map(l => `<label><input type="checkbox" checked data-l="${l.n}"><i style="background:${ACI[l.c]}"></i>${l.n} <span style="color:#7b8286">${l.count}</span></label>`).join("");
+    panel.addEventListener("change", ev => {
+      const n = ev.target.dataset.l;
+      svg.querySelectorAll(`[data-layer="${n}"]`).forEach(x => (x.style.display = ev.target.checked ? "" : "none"));
+    });
+    host.appendChild(panel);
+    const st = document.createElement("div");
+    st.className = "cadstatus";
+    st.innerHTML = "<span>P3 · X 4800  Y 0</span><span>unit mm · grid 50</span>";
+    host.appendChild(st);
+  }
+  return g;
+}
+
+function viewer(p, build) {
+  const host = p.root.querySelector('[data-role="viewer"]');
+  host.innerHTML = "";
+  host.style.background = "";
+  return build(host);
+}
+
+const STEPS5 = [
+  {
+    title: "The latest revision", chip: "Revision", actors: ["tablet"],
+    doc: [["Altan r5 · page 1", "Ritning r5 layer"], ["Export", ""]],
+    text: "Altan r5 is on the tablet after review, variants and detailing. Now it needs to reach someone without a reMarkable: a carpenter, a neighbour, an engineer.",
+    run() {
+      this.set(this.L.ov.cur, 1, "show");
+      viewer(this, h => { h.innerHTML = `<div class="empty"><span>Choose a format</span><div class="files"><div class="file"><b>SVG</b>share</div><div class="file"><b>PDF</b>print</div><div class="file"><b>DXF</b>CAD</div></div></div>`; });
+    },
+    detail: () => row("r5", "<b>Altan, Detailing</b> <span>· 4 walls, 2 beams, 4 posts, 1 outlet, detail A</span>", "plain"),
+  },
+  {
+    title: "SVG: share right away", chip: "SVG", actors: ["rmink", "share"],
+    doc: [["Altan r5 · page 1", "Ritning r5 layer"], ["Browser", "altan-r5.svg"]],
+    text: "rmink writes the clean page as SVG, the same strokes as on the tablet, in Paper Pro's colours. It opens in any browser and can go in an email or a chat.",
+    run(a) { this.set(this.L.ov.cur, 1, "show"); const g = viewer(this, svgView); this.set(g, 1, a ? "draw" : "show", 2200); },
+    detail: () => stats([[kb(DATA5.svgBytes), "file size"], [DATA5.ov.pro.length, "lines"]])
+      + row("built", "<b>rmink draw --svg</b> <span>· or save_revision with svg_path over MCP</span>", "plain"),
+  },
+  {
+    title: "PDF: print to scale", chip: "PDF", actors: ["rmink", "share"],
+    doc: [["Altan r5 · page 1", "Ritning r5 layer"], ["Preview", "Altan r5.pdf"]],
+    text: "For printing, the same model is redrawn in millimetres on an A4 sheet, landscape at 1:25, with a border, title block and scale bar. The deck's 4800 mm becomes 192 mm on paper.",
+    run(a) { this.set(this.L.ov.cur, 1, "show"); const gs = viewer(this, pdfView); gs.forEach(g => this.set(g, 1, a ? "draw" : "show", 2400)); },
+    detail: () => row("scale", "<b>1:25 on A4 landscape</b> <span>· 4800 × 3600 mm becomes 192 × 144 mm</span>", "plain")
+      + row("sheet", "<b>Border, title block, scale bar</b> <span>· revision, phase and date from the model</span>", "plain")
+      + row("status", "<b>Next step</b> <span>· the sheet here is drawn from the model to show the idea</span>"),
+  },
+  {
+    title: "DXF: open in CAD", chip: "DXF", actors: ["rmink", "share"], hold: 7000,
+    doc: [["Altan r5 · page 1", "Ritning r5 layer"], ["CAD", "altan-r5.dxf"]],
+    text: "The engineer gets a DXF with the geometry in real millimetres, worked out from the handwritten measurements and locked to a 50 mm grid. Each category is a layer of its own and the posts are a block. Try switching the layers on and off.",
+    run(a) { this.set(this.L.ov.cur, 1, "show"); const g = viewer(this, h => cadView(h, true)); this.set(g, 1, a ? "draw" : "show", 2400); },
+    detail: () => stats([[DATA5.ents.length, "objects"], [DATA5.layers.length, "layers"], [kb(DATA5.dxfBytes), "file size"]])
+      + `<pre class="snippet">${DATA5.dxfSnippet.replace(/</g, "&lt;")}\n …</pre>`
+      + row("status", "<b>Next step</b> <span>· the file above is written from the model for this demo, not by rmink</span>"),
+  },
+  {
+    title: "One model, three formats", chip: "Summary", actors: ["tablet", "rmink", "claude", "share"], hold: 6200,
+    doc: [["Altan r5 · page 1", "Ritning r5 layer"], ["Export", "SVG · PDF · DXF"]],
+    text: "None of the files is a picture of a picture. All three are drawn from the drawing model, so a change on the tablet in the next revision shows up in every format. Claude can export on request: “send r5 as a PDF to the carpenter”.",
+    run() {
+      this.set(this.L.ov.cur, 1, "show");
+      viewer(this, h => {
+        const t = document.createElement("div"); t.className = "trio"; h.appendChild(t);
+        const cell = label => { const c = document.createElement("div"); c.innerHTML = `<span>${label}</span>`; t.appendChild(c); return c; };
+        this.set(svgView(cell("SVG · built")), 1, "show");
+        pdfView(cell("PDF · next step")).forEach(g => this.set(g, 1, "show"));
+        this.set(cadView(cell("DXF · next step"), false), 1, "show");
+      });
+    },
+    detail: () => `<div class="cmp"><table>
+        <tr><th>Format</th><th>For</th><th>Status</th></tr>
+        <tr><td>SVG</td><td>web, email, chat</td><td class="win">built</td></tr>
+        <tr><td>PDF</td><td>printing to scale</td><td>next step</td></tr>
+        <tr><td>DXF</td><td>CAD, layers in mm</td><td>next step</td></tr>
+      </table></div>`,
+  },
+];
+
+players.push(new Player(document.getElementById("export"), STEPS5, 0, ([svg]) => ({
+  ov: dual(svg, DATA5.ov),
+})));
+
+/* ---------- Scenario cards ---------- */
+const SCEN = [
+  { t: "Clean drawing", st: "built", link: "#flode", d: "A hand sketch with measurements becomes a clean drawing: straight lines, dimension chains, capital lettering and a title block. The sketch stays as page 2.",
+    g: `<path class="s" d="M14 70 Q40 66 70 71 T112 68"/><path class="s" d="M14 70 L16 20 Q60 23 112 19 L112 68"/><path class="a" d="M150 70 H260 V20 H150 Z"/><path class="g" d="M150 10 H260"/><text x="194" y="8">4800</text><path class="a" d="M122 45 h16 m-5 -5 l5 5 l-5 5"/>` },
+  { t: "The legend sets the symbols", st: "built", link: "#flode", d: "The sketch's own legend says what the symbols and arrows mean. The drawing gets standard symbols and a clean legend box.",
+    g: `<rect class="s" x="20" y="22" width="18" height="18"/><path class="s" d="M20 22 l18 18 m0 -18 l-18 18"/><text x="46" y="35">= POST</text><circle class="a" cx="29" cy="62" r="9"/><text x="46" y="66">= DRAIN</text><rect class="a" x="170" y="18" width="80" height="56"/><rect class="s" x="163" y="11" width="14" height="14"/><circle class="a" cx="200" cy="45" r="10"/>` },
+  { t: "Review round", st: "built", link: "#flode", d: "Ring, cross out or write on the revision. Only the new strokes are read. Clear changes are made straight away, questions become numbered remarks.",
+    g: `<rect class="s" x="20" y="16" width="110" height="60"/><circle class="m" cx="130" cy="76" r="14"/><path class="m" d="M40 30 l20 20 m0 -20 l-20 20"/><text x="150" y="40">#1 cross → remove</text><text x="150" y="58">#2 ring → question</text>` },
+  { t: "Phases and detail views", st: "later", link: "#nedslag", d: "Every revision has a phase and a date: proposal, review, decision. Zooming in gives a detail view of an element on its own page, where you keep sketching.",
+    g: `<rect class="s" x="16" y="16" width="100" height="60"/><circle class="g" cx="100" cy="62" r="16"/><path class="g" d="M116 62 L160 46"/><rect class="a" x="160" y="16" width="96" height="60"/><text x="168" y="30">DETAIL A</text>` },
+  { t: "Variants", st: "later", link: "#varianter", d: "Options A and B from the same model as separate pages, for example two beam layouts. Mark the one that wins on the tablet.",
+    g: `<rect class="s" x="16" y="18" width="100" height="56"/><path class="a" d="M16 46 H116"/><text x="18" y="88">A</text><rect class="s" x="156" y="18" width="100" height="56"/><path class="a" d="M189 18 V74 M222 18 V74"/><text x="158" y="88">B</text><path class="m" d="M232 84 l8 6 l14 -16"/>` },
+  { t: "Paper sketch", st: "partial", link: "#pappersskiss", d: "A photo of a paper sketch goes into the same interpretation, through the camera button in the web app. People without a tablet at hand can join in too.",
+    g: `<rect class="s" x="20" y="14" width="60" height="70" rx="8"/><circle class="s" cx="50" cy="44" r="14"/><path class="a" d="M100 49 h50 m-6 -6 l6 6 l-6 6"/><rect class="a" x="170" y="20" width="86" height="58"/>` },
+  { t: "Export and sharing", st: "partial", link: "#export", d: "The clean page as SVG to share with others. PDF and DXF for CAD are next steps.",
+    g: `<rect class="a" x="20" y="18" width="90" height="60"/><text x="140" y="30">SVG  ✓</text><text x="140" y="52">PDF</text><text x="140" y="74">DXF</text>` },
+  { t: "With and without colour", st: "built", link: "#flode", d: "The same drawing on every tablet. Paper Pro and Move show the categories in colour, rm2 and Paper Pure by line type and width. Switch tablets in the demo.",
+    g: `<path class="s" d="M16 26 H116"/><path class="a" d="M16 46 H116"/><path class="m" d="M16 66 H116"/><path class="s" d="M156 26 H256"/><path class="s" stroke-dasharray="10 6" d="M156 46 H256"/><path class="s" stroke-dasharray="2 6" d="M156 66 H256"/><text x="16" y="88">PAPER PRO</text><text x="156" y="88">RM2 / PURE</text>` },
+];
+document.getElementById("scenarios").innerHTML = SCEN.map((s, i) => `
+  <article class="card">
+    <div class="top"><h3>${i + 1}. ${s.t}</h3><span class="pill ${s.st}">${{ built: "phase 1", partial: "partly", later: "later" }[s.st]}</span></div>
+    <svg viewBox="0 0 272 92" aria-hidden="true">${s.g}</svg>
+    <p>${s.d}</p>
+    ${s.link ? `<a href="${s.link}">${s.link === "#flode" ? "See it in the demo" : "See the concept animation"}</a>` : ""}
+  </article>`).join("");
+
+players.forEach(p => p.go(p.step, false));
+
+// A link to a demo (menu, scenario card or #anchor in the address) rewinds it
+// to step 1 and plays it from the start.
+function startDemo(id) {
+  const p = players.find(x => x.root.id === id);
+  if (!p) return;
+  players.forEach(x => { if (x !== p && x.playing) { x.stop(); x.clear(); } });
+  p.stop();
+  p.go(0, false);
+  p.toggle();
+}
+document.addEventListener("click", ev => {
+  const a = ev.target.closest('a[href^="#"]');
+  if (a) startDemo(a.getAttribute("href").slice(1));
+});
+if (location.hash) startDemo(location.hash.slice(1));
+</script>
