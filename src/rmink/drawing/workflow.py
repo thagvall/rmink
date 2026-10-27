@@ -29,6 +29,7 @@ from rmink.devices import DeviceProfile, config_dir, get_device
 from rmink.drawing.fit import Group, analyse, overlay
 from rmink.drawing.model import Drawing, LegendEntry
 from rmink.drawing.render import default_legend, render_drawing
+from rmink.drawing.store import FileStore, Store
 from rmink.ingest.rm import read_page, read_rmdoc
 from rmink.model import Document, Page
 from rmink.package.rmdoc import RmdocPage, UuidFactory, write_rmdoc
@@ -40,22 +41,15 @@ def drawings_dir() -> Path:
     return config_dir() / "drawings"
 
 
-def _slug(name: str) -> str:
-    return re.sub(r"[^\w\-]+", "-", name.strip().lower()).strip("-") or "drawing"
+def save_drawing(drawing: Drawing, store: Store | None = None) -> str:
+    return (store or FileStore()).save(drawing)
 
 
-def save_drawing(drawing: Drawing) -> Path:
-    path = drawings_dir() / f"{_slug(drawing.name)}.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(drawing.model_dump_json(indent=2), encoding="utf-8")
-    return path
-
-
-def load_drawing(name: str) -> Drawing:
-    path = drawings_dir() / f"{_slug(name)}.json"
-    if not path.is_file():
+def load_drawing(name: str, store: Store | None = None) -> Drawing:
+    drawing = (store or FileStore()).load(name)
+    if drawing is None:
         raise FileNotFoundError(f'No saved drawing named "{name}"')
-    return Drawing.model_validate_json(path.read_text(encoding="utf-8"))
+    return drawing
 
 
 def open_document(source: str, device: DeviceProfile) -> Document:
@@ -205,7 +199,7 @@ def check_dimensions(drawing: Drawing) -> dict:
 class Revision:
     path: Path
     drawing: Drawing
-    saved_to: Path
+    saved_to: str
     preview_png: bytes
 
 
@@ -214,9 +208,11 @@ def build_revision(
     output: Path,
     sketch: Page | None = None,
     seed: int | None = None,
+    store: Store | None = None,
 ) -> Revision:
     """Write the clean revision (and the sketch after it) as a notebook, and
-    save the drawing with the ids of the strokes rmink wrote."""
+    save the drawing with the ids of the strokes rmink wrote, in ``store``
+    (the local drawings folder by default)."""
     device = get_device(drawing.sketch.device)
     drawing = drawing.model_copy(deep=True)
     if not drawing.legend:
@@ -251,7 +247,7 @@ def build_revision(
     )
     buf = io.BytesIO()
     thumbs[0].save(buf, "PNG", optimize=True)
-    return Revision(output, drawing, save_drawing(drawing), buf.getvalue())
+    return Revision(output, drawing, save_drawing(drawing, store), buf.getvalue())
 
 
 def drawing_from_json(data: str | dict) -> Drawing:

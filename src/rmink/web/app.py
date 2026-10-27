@@ -26,6 +26,7 @@ from rmink.ingest import IMAGE_SUFFIXES, parse_page_ranges
 from rmink.options import ConvertOptions, ConvertResult, Shading
 from rmink.package.rmdoc import repair_rmdoc
 from rmink.support import demo_url, source_url, support_url
+from rmink.web import rounds
 
 _STATIC = Path(__file__).parent / "static"
 _ALLOWED = IMAGE_SUFFIXES | {".pdf", ".svg"}
@@ -385,5 +386,9 @@ def create_app(limits: Limits | None = None) -> FastAPI:
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
         return {"name": sent, "warnings": len(result.warnings)}
+
+    # Revision rounds for drawings: owner-only, and only when configured.
+    if rounds.enabled():
+        app.include_router(rounds.router())
 
     return app

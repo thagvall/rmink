@@ -323,6 +323,34 @@ def draw(
         typer.echo(f"Sent as {cloud.put(rev.path, _token())!r}")
 
 
+@app.command(name="round")
+def round_(
+    document: Annotated[str, typer.Argument(help='Cloud path like "/Altan r2", or a local .rmdoc')],
+    device: Device = "rm2",
+    effort: Annotated[str, typer.Option(help="low | medium | high | xhigh | max")] = "medium",
+    send: Annotated[bool, typer.Option("--send/--no-send", help="Upload the revision")] = True,
+) -> None:
+    """Run one revision round with Claude (needs ANTHROPIC_API_KEY and rmink[rounds])."""
+    try:
+        from rmink.drawing.agent import RoundError, run_round
+    except ImportError as e:
+        typer.secho("Rounds need: pip install 'rmink[rounds]'", fg="red", err=True)
+        raise typer.Exit(1) from e
+    from rmink.drawing.store import default_store
+
+    try:
+        r = run_round(document, device, default_store(), effort=effort, send=send)
+    except RoundError as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+    where = f"sent as {r.sent_as!r}" if r.sent_as else "not sent"
+    cost = r.usage["usd"]
+    typer.echo(f"{r.drawing} r{r.revision} ({where}) in {r.seconds:.0f} s, about {cost} USD")
+    typer.echo(r.summary)
+    for q in r.open_questions:
+        typer.echo(f"  ? {q}")
+
+
 @app.command()
 def mcp() -> None:
     """Run the MCP server on stdio (for Claude and other MCP clients)."""

@@ -12,3 +12,6 @@ dist/
 *.rmdoc
 .DS_Store
 !docs/images/**/*.rmdoc
+
+# Local secrets (API keys); never commit.
+.env

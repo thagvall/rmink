@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>rmink varv</title>
+<style>
+:root {
+  --paper: #f4f2ec; --surface: #fff; --ink: #1d1d1b; --muted: #6b6a65; --line: #dcd8cd;
+  --accent: #2b5fd9; --ok: #1f9d55; --err: #c0392b; --mark: #a33a9c;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --paper: #141513; --surface: #1d1e1c; --ink: #eceae4; --muted: #a09e97; --line: #34352f;
+    --accent: #8aa4ff; --ok: #5fc98a; --err: #ff7b6e; --mark: #d985d2; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 -apple-system, "Helvetica Neue", sans-serif;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left)); }
+main { max-width: 560px; margin: 0 auto; display: grid; gap: 18px; }
+h1 { font-size: 1.5rem; margin: 0; letter-spacing: -0.01em; }
+p { margin: 0; }
+.muted { color: var(--muted); font-size: .92rem; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; }
+label { font-weight: 600; font-size: .92rem; }
+input, select { font: inherit; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); }
+button { font: inherit; cursor: pointer; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 9px 16px; font-weight: 600; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.list { display: grid; gap: 6px; }
+.item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line);
+  border-radius: 10px; background: var(--paper); text-align: left; font-weight: 500; width: 100%; }
+.item[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.item small { color: var(--muted); font-weight: 400; }
+.crumbs { display: flex; gap: 6px; flex-wrap: wrap; font-size: .9rem; }
+.crumbs button { padding: 2px 10px; font-weight: 500; }
+.status { font-variant-numeric: tabular-nums; }
+.error { color: var(--err); }
+.ok { color: var(--ok); font-weight: 700; }
+.result img { width: 100%; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
+.result ul { margin: 0; padding-left: 1.2em; }
+.result li { color: var(--mark); }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Revisionsvarv</h1>
+    <p class="muted">Markera på plattan, låt den synka, välj anteckningsboken och kör nästa varv. Den nya revisionen skickas till plattan.</p>
+  </header>
+
+  <section class="card" id="login" hidden>
+    <label for="secret">Nyckel</label>
+    <input id="secret" type="password" autocomplete="current-password">
+    <div class="row"><button class="primary" id="save" type="button">Fortsätt</button></div>
+    <p class="muted">Bara för ägaren. Nyckeln sparas i den här webbläsaren.</p>
+  </section>
+
+  <section class="card" id="pick" hidden>
+    <div class="crumbs" id="crumbs"></div>
+    <div class="list" id="list"><p class="muted">Hämtar…</p></div>
+    <div class="row">
+      <label for="device" style="flex:none">Platta</label>
+      <select id="device" style="width:auto">
+        <option value="rm2">reMarkable 2</option><option value="pure">Paper Pure</option>
+        <option value="pro">Paper Pro</option><option value="move">Paper Pro Move</option>
+      </select>
+    </div>
+    <div class="row">
+      <button class="primary" id="run" type="button" disabled>Kör varvet</button>
+      <span class="status muted" id="status"></span>
+    </div>
+  </section>
+
+  <section class="card result" id="result" hidden></section>
+</main>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const store = {
+    get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+    del: (k) => { try { localStorage.removeItem(k); } catch {} },
+  };
+  let secret = store.get("rmink.roundsSecret");
+  let path = "/", chosen = null;
+  const device = $("#device");
+  device.value = store.get("rmink.roundsDevice") || "rm2";
+  device.addEventListener("change", () => store.set("rmink.roundsDevice", device.value));
+
+  async function api(url, opts = {}) {
+    const r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), "X-Rmink-Secret": secret || "" } });
+    if (r.status === 401) { store.del("rmink.roundsSecret"); secret = null; show(); throw new Error("Fel nyckel eller utgången koppling"); }
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(body.detail || `Fel ${r.status}`);
+    return body;
+  }
+
+  function show() {
+    $("#login").hidden = !!secret;
+    $("#pick").hidden = !secret;
+    if (secret) load(path);
+  }
+
+  $("#save").addEventListener("click", () => {
+    secret = $("#secret").value.trim();
+    if (secret) { store.set("rmink.roundsSecret", secret); show(); }
+  });
+
+  function crumbs() {
+    const c = $("#crumbs"); c.innerHTML = "";
+    const parts = path.split("/").filter(Boolean);
+    const add = (label, p) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.onclick = () => load(p); c.appendChild(b); };
+    add("Mina filer", "/");
+    parts.forEach((part, i) => add(part, "/" + parts.slice(0, i + 1).join("/")));
+  }
+
+  async function load(p) {
+    path = p; chosen = null; $("#run").disabled = true; crumbs();
+    const list = $("#list");
+    list.innerHTML = '<p class="muted">Hämtar…</p>';
+    try {
+      const { entries } = await api(`/api/rounds/documents?path=${encodeURIComponent(p)}`);
+      list.innerHTML = "";
+      if (!entries.length) list.innerHTML = '<p class="muted">Tom mapp.</p>';
+      for (const e of entries) {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "item";
+        b.innerHTML = `<span></span><small>${e.folder ? "mapp ›" : ""}</small>`;
+        b.firstChild.textContent = e.name;
+        b.onclick = () => {
+          if (e.folder) return load(e.path);
+          chosen = e.path;
+          for (const x of list.children) x.setAttribute("aria-pressed", String(x === b));
+          $("#run").disabled = false;
+        };
+        list.appendChild(b);
+      }
+    } catch (err) {
+      list.innerHTML = ""; const m = document.createElement("p"); m.className = "error"; m.textContent = err.message; list.appendChild(m);
+    }
+  }
+
+  $("#run").addEventListener("click", async () => {
+    if (!chosen) return;
+    const run = $("#run"), status = $("#status"), result = $("#result");
+    run.disabled = true; result.hidden = true;
+    const t0 = Date.now();
+    const tick = setInterval(() => { status.textContent = `Kör… ${Math.round((Date.now() - t0) / 1000)} s`; }, 500);
+    try {
+      const r = await api("/api/rounds/run", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: chosen, device: device.value }),
+      });
+      result.innerHTML = "";
+      const h = document.createElement("p");
+      h.innerHTML = `<span class="ok">✓</span> <b></b>`;
+      h.querySelector("b").textContent = r.sent_as ? `Skickad som “${r.sent_as}”` : `Revision ${r.revision} klar`;
+      result.appendChild(h);
+      const s = document.createElement("p"); s.textContent = r.summary; result.appendChild(s);
+      if (r.open_questions.length) {
+        const q = document.createElement("div");
+        q.innerHTML = "<b>Öppna frågor på ritningen</b><ul></ul>";
+        for (const t of r.open_questions) { const li = document.createElement("li"); li.textContent = t; q.querySelector("ul").appendChild(li); }
+        result.appendChild(q);
+      }
+      if (r.preview_png) { const img = document.createElement("img"); img.alt = `Revision ${r.revision}`; img.src = "data:image/png;base64," + r.preview_png; result.appendChild(img); }
+      const m = document.createElement("p"); m.className = "muted";
+      m.textContent = `${r.seconds} s · ${r.usage.input_tokens + r.usage.cache_read_input_tokens + r.usage.cache_creation_input_tokens} in- och ${r.usage.output_tokens} ut-tokens · ca ${r.usage.usd} USD`;
+      result.appendChild(m);
+      result.hidden = false;
+      status.textContent = "";
+      load(path);
+    } catch (err) {
+      status.innerHTML = ""; const e = document.createElement("span"); e.className = "error"; e.textContent = err.message; status.appendChild(e);
+      run.disabled = false;
+    } finally {
+      clearInterval(tick);
+    }
+  });
+
+  show();
+})();
+</script>
+</body>
+</html>

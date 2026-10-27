@@ -1,0 +1,116 @@
+"""Where drawings are kept between rounds.
+
+A drawing is saved after every revision so the next round can tell the user's
+new marks from rmink's own strokes. Locally that is a JSON file per drawing in
+``~/.config/rmink/drawings``; on a hosted server it is Upstash Redis (the
+Vercel KV integration), reached over its REST API.
+
+Each store also remembers which drawing a notebook belongs to ("Altan r2" ->
+"altan"), since the cloud may rename an upload ("Altan r2_2").
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+from pathlib import Path
+from typing import Protocol
+
+from rmink.devices import config_dir
+from rmink.drawing.model import Drawing
+
+
+def slug(name: str) -> str:
+    return re.sub(r"[^\w\-]+", "-", name.strip().lower()).strip("-") or "drawing"
+
+
+def guess_drawing_name(document: str) -> str:
+    """'/Altan r2_2' -> 'Altan': the notebook name without folder, file
+    extension, revision and the cloud's _N suffix for taken names."""
+    name = document.rstrip("/").rsplit("/", 1)[-1]
+    name = re.sub(r"\.(rmdoc|rm|zip)$", "", name, flags=re.I)
+    name = re.sub(r"_\d+$", "", name)
+    return re.sub(r"\s+r\d+$", "", name)
+
+
+class Store(Protocol):
+    def save(self, drawing: Drawing) -> str: ...
+    def load(self, name: str) -> Drawing | None: ...
+    def link(self, document: str, name: str) -> None: ...
+    def linked(self, document: str) -> str | None: ...
+
+
+class FileStore:
+    def __init__(self, root: Path | None = None) -> None:
+        self.root = root or config_dir() / "drawings"
+
+    def _path(self, name: str) -> Path:
+        return self.root / f"{slug(name)}.json"
+
+    def save(self, drawing: Drawing) -> str:
+        path = self._path(drawing.name)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(drawing.model_dump_json(indent=2), encoding="utf-8")
+        return str(path)
+
+    def load(self, name: str) -> Drawing | None:
+        path = self._path(name)
+        if not path.is_file():
+            return None
+        return Drawing.model_validate_json(path.read_text(encoding="utf-8"))
+
+    def _links(self) -> dict[str, str]:
+        path = self.root / "documents.json"
+        return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+
+    def link(self, document: str, name: str) -> None:
+        links = self._links() | {document.strip("/"): name}
+        self.root.mkdir(parents=True, exist_ok=True)
+        (self.root / "documents.json").write_text(json.dumps(links, indent=2), encoding="utf-8")
+
+    def linked(self, document: str) -> str | None:
+        return self._links().get(document.strip("/"))
+
+
+class RedisStore:
+    """Upstash Redis over REST: each command is a JSON array POSTed to the URL."""
+
+    def __init__(self, url: str, token: str) -> None:
+        import httpx
+
+        self._client = httpx.Client(
+            base_url=url, headers={"Authorization": f"Bearer {token}"}, timeout=15
+        )
+
+    def _cmd(self, *args: str):
+        r = self._client.post("/", json=list(args))
+        r.raise_for_status()
+        body = r.json()
+        if "error" in body:
+            raise RuntimeError(f"Redis: {body['error']}")
+        return body.get("result")
+
+    def save(self, drawing: Drawing) -> str:
+        key = f"rmink:drawing:{slug(drawing.name)}"
+        self._cmd("SET", key, drawing.model_dump_json())
+        return f"redis:{key}"
+
+    def load(self, name: str) -> Drawing | None:
+        raw = self._cmd("GET", f"rmink:drawing:{slug(name)}")
+        return Drawing.model_validate_json(raw) if raw else None
+
+    def link(self, document: str, name: str) -> None:
+        self._cmd("SET", f"rmink:document:{document.strip('/')}", name)
+
+    def linked(self, document: str) -> str | None:
+        return self._cmd("GET", f"rmink:document:{document.strip('/')}")
+
+
+def default_store() -> Store:
+    """Redis when the Upstash variables are set (as on Vercel), else files."""
+    url = os.environ.get("UPSTASH_REDIS_REST_URL") or os.environ.get("KV_REST_API_URL")
+    token = os.environ.get("UPSTASH_REDIS_REST_TOKEN") or os.environ.get("KV_REST_API_TOKEN")
+    if url and token:
+        return RedisStore(url, token)
+    return FileStore()

@@ -1,0 +1,231 @@
+from types import SimpleNamespace
+
+import numpy as np
+import pytest
+
+from rmink.devices import get_device
+from rmink.drawing import workflow
+from rmink.drawing.agent import RoundError, run_round
+from rmink.drawing.font import text_paths
+from rmink.drawing.render import COMMENT_LAYER
+from rmink.drawing.store import FileStore, RedisStore, guess_drawing_name
+from rmink.ingest.rm import read_rmdoc
+from rmink.model import Page, Stroke
+from rmink.package.rmdoc import RmdocPage, UuidFactory, write_rmdoc
+from rmink.writer.rm_v6 import write_page
+
+RM2 = get_device("rm2")
+
+
+@pytest.fixture(autouse=True)
+def config_home(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    for key in ("RMINK_CLOUD_TOKEN", "UPSTASH_REDIS_REST_URL", "KV_REST_API_URL"):
+        monkeypatch.delenv(key, raising=False)
+
+
+def _write(path, name, page):
+    uu = UuidFactory(4)
+    author = uu()
+    write_rmdoc(
+        path, name, [RmdocPage(write_page(page, RM2, author))], [str(uu())], author, RM2, str(uu())
+    )
+    return path
+
+
+@pytest.fixture
+def sketch(tmp_path):
+    strokes = [
+        Stroke(np.linspace((200, 300), (1200, 300), 30)),
+        Stroke(np.linspace((1200, 300), (1200, 1000), 30)),
+        Stroke(np.linspace((1200, 1000), (200, 1000), 30)),
+        Stroke(np.linspace((200, 1000), (200, 300), 30)),
+    ]
+    strokes += [Stroke(p) for p in text_paths("4800", (640, 260), 34)]
+    return _write(tmp_path / "Altan.rmdoc", "Altan", Page(RM2.width, RM2.height, strokes))
+
+
+DRAWING = {
+    "name": "anything",
+    "elements": [
+        {"id": "V1", "kind": "rect", "points": [[200, 300], [1200, 1000]], "category": "structure"}
+    ],
+    "dimensions": [{"id": "M1", "start": [200, 300], "end": [1200, 300], "text": "4800"}],
+}
+
+
+def _block(**kw):
+    return SimpleNamespace(**kw)
+
+
+def _tool(id_, name, args):
+    return _block(type="tool_use", id=id_, name=name, input=args)
+
+
+class FakeClient:
+    """Plays back a fixed list of assistant turns and records each request."""
+
+    def __init__(self, turns):
+        self.turns = list(turns)
+        self.requests = []
+        self.beta = SimpleNamespace(messages=SimpleNamespace(stream=self._stream))
+
+    def _stream(self, **kw):
+        # Snapshot: the round keeps appending to the same list.
+        self.requests.append(kw | {"messages": list(kw["messages"])})
+        content, stop = self.turns.pop(0)
+        response = SimpleNamespace(
+            content=content,
+            stop_reason=stop,
+            usage=SimpleNamespace(input_tokens=1000, output_tokens=200, cache_read_input_tokens=0,
+                                  cache_creation_input_tokens=0),
+        )  # fmt: skip
+
+        class Ctx:
+            def __enter__(self):
+                return SimpleNamespace(get_final_message=lambda: response)
+
+            def __exit__(self, *a):
+                return False
+
+        return Ctx()
+
+
+def _turns(drawing=DRAWING):
+    return [
+        ([_tool("t1", "render_preview", {"drawing": drawing})], "tool_use"),
+        ([_tool("t2", "save_revision", {"drawing": drawing, "summary": "Renritad."})], "tool_use"),
+        ([_block(type="text", text="Klart.")], "end_turn"),
+    ]  # fmt: skip
+
+
+def test_guess_drawing_name():
+    assert guess_drawing_name("/Projekt/Altan r2_2") == "Altan"
+    assert guess_drawing_name("/tmp/Altan r1.rmdoc") == "Altan"
+    assert guess_drawing_name("Altan") == "Altan"
+
+
+def test_first_round(sketch, tmp_path):
+    store = FileStore(tmp_path / "drawings")
+    client = FakeClient(_turns())
+    r = run_round(str(sketch), "rm2", store, client=client, send=False)
+    assert (r.drawing, r.revision, r.summary) == ("Altan", 1, "Renritad.")
+    assert r.preview_png[:4] == b"\x89PNG" and r.usage["usd"] > 0
+    saved = store.load("Altan")
+    assert saved.revision == 1 and saved.sketch.written_ids
+    # The first request carries the sketch picture and the groups; tool
+    # results carry the preview picture.
+    first = client.requests[0]["messages"][0]["content"]
+    assert [c["type"] for c in first] == ["text", "image", "text"]
+    assert "First round" in first[0]["text"]
+    preview_result = client.requests[1]["messages"][-1]["content"][0]
+    assert preview_result["content"][0]["type"] == "image"
+    assert client.requests[0]["fallbacks"] == "default"
+
+
+def test_second_round_reads_only_new_marks(sketch, tmp_path):
+    store = FileStore(tmp_path / "drawings")
+    run_round(str(sketch), "rm2", store, client=FakeClient(_turns()), send=False)
+    saved = store.load("Altan")
+    rev = workflow.build_revision(
+        saved, tmp_path / "Altan r1.rmdoc", store=FileStore(tmp_path / "x")
+    )
+    clean = read_rmdoc(rev.path, RM2).pages[0]
+    t = np.linspace(0, 2 * np.pi, 40)
+    ring = Stroke(
+        np.column_stack([1200 + 50 * np.cos(t), 1000 + 50 * np.sin(t)]), layer=COMMENT_LAYER
+    )
+    marked = Page(clean.width, clean.height, clean.strokes + [ring], clean.layer_names)
+    doc = _write(tmp_path / "Altan r1 marked.rmdoc", "Altan r1", marked)
+    store.link(str(doc), "Altan")
+
+    client = FakeClient(_turns())
+    r = run_round(str(doc), "rm2", store, client=client, send=False)
+    assert r.revision == 2
+    first = client.requests[0]["messages"][0]["content"]
+    assert "Round 2" in first[0]["text"] and '"groups": [{' in first[2]["text"]
+    assert first[2]["text"].count('"group":') == 1  # only the ring
+
+
+def test_no_new_marks(sketch, tmp_path):
+    store = FileStore(tmp_path / "drawings")
+    run_round(str(sketch), "rm2", store, client=FakeClient(_turns()), send=False)
+    saved = store.load("Altan")
+    rev = workflow.build_revision(
+        saved, tmp_path / "Altan r1.rmdoc", store=FileStore(tmp_path / "x")
+    )
+    store.link(str(rev.path), "Altan")
+    with pytest.raises(RoundError, match="Inga nya"):
+        run_round(str(rev.path), "rm2", store, client=FakeClient([]), send=False)
+
+
+def test_invalid_drawing_is_reported_back(sketch, tmp_path):
+    turns = [
+        (
+            [_block(type="tool_use", id="t1", name="render_preview", input={"drawing": {"x": 1}})],
+            "tool_use",
+        )
+    ]
+    turns += _turns()
+    client = FakeClient(turns)
+    run_round(str(sketch), "rm2", FileStore(tmp_path / "d"), client=client, send=False)
+    error = client.requests[1]["messages"][-1]["content"][0]
+    assert error["is_error"] is True
+
+
+def test_redis_store(monkeypatch):
+    data = {}
+
+    def cmd(self, *args):
+        if args[0] == "SET":
+            data[args[1]] = args[2]
+            return "OK"
+        return data.get(args[1])
+
+    monkeypatch.setattr(RedisStore, "__init__", lambda self, url, token: None)
+    monkeypatch.setattr(RedisStore, "_cmd", cmd)
+    store = RedisStore("https://x", "t")
+    from rmink.drawing.model import Drawing
+
+    store.save(Drawing(name="Altan", revision=3))
+    assert store.load("altan").revision == 3 and store.load("missing") is None
+    store.link("/Altan r3", "Altan")
+    assert store.linked("Altan r3") == "Altan"
+
+
+def test_rounds_router(monkeypatch):
+    pytest.importorskip("fastapi")
+    from fastapi.testclient import TestClient
+
+    from rmink.web.app import Limits, create_app
+
+    limits = Limits(2_000_000, 3, 5, 60, 1)
+    monkeypatch.delenv("RMINK_ROUNDS_SECRET", raising=False)
+    assert TestClient(create_app(limits)).get("/rounds").status_code == 404
+
+    monkeypatch.setenv("RMINK_ROUNDS_SECRET", "s3cret")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
+    monkeypatch.setenv("RMINK_CLOUD_TOKEN", "tok.en-1")
+    client = TestClient(create_app(limits))
+    assert client.get("/rounds").status_code == 200
+    assert client.get("/api/rounds/documents").status_code == 401
+    assert (
+        client.get("/api/rounds/documents", headers={"X-Rmink-Secret": "nope"}).status_code == 401
+    )
+
+    from rmink import cloud
+
+    monkeypatch.setattr(cloud, "ls", lambda token, path="/": [cloud.Entry("Altan r1", False)])
+    r = client.get("/api/rounds/documents", headers={"X-Rmink-Secret": "s3cret"})
+    assert r.json()["entries"] == [{"name": "Altan r1", "folder": False, "path": "/Altan r1"}]
+
+    import rmink.drawing.agent as agent
+
+    fake = agent.RoundResult(
+        "Altan r2", "Altan", 2, "Klart.", ["Vilken höjd?"], None, 12.0, {"usd": 0.4}
+    )
+    monkeypatch.setattr(agent, "run_round", lambda document, device, store: fake)
+    r = client.post(
+        "/api/rounds/run", json={"document": "/Altan r1"}, headers={"X-Rmink-Secret": "s3cret"}
+    )
+    assert r.status_code == 200 and r.json()["sent_as"] == "Altan r2"

@@ -49,6 +49,23 @@ affected.
 Rebuild with `python promo/sketch-video/make_site.py` (see
 `promo/sketch-video/README.md`).
 
+**Revision rounds (owner-only, experimental):** `/rounds` runs one round of
+the sketch-to-drawing loop with Claude: pick a notebook in your reMarkable
+Cloud, and the next clean revision is sent back to the tablet. It is off
+unless these are set under *Settings → Environment Variables*:
+- `RMINK_ROUNDS_SECRET`: a long random passphrase; the page asks for it once
+- `ANTHROPIC_API_KEY`: your Claude API key (each round costs roughly
+  0.3–0.6 USD; the page shows the cost after every round)
+- `RMINK_CLOUD_TOKEN`: the device token from `rmink cloud connect CODE`
+  (it is printed into `~/.config/rmink/cloud.toml`)
+- `RMINK_ROUND_EFFORT` (optional): `low`, `medium` (default) or `high`
+
+Drawings are kept between rounds in Upstash Redis: add the **Upstash for
+Redis** integration from the Vercel Marketplace to the project, which sets
+`KV_REST_API_URL` and `KV_REST_API_TOKEN`. The rounds need `rmink[rounds]`
+in `requirements.txt`. Locally, `rmink round "/Altan r2"` runs the same round
+with drawings in `~/.config/rmink/drawings`.
+
 **Limits on the hosted version:**
 - Vercel caps each request and response at 4.5 MB. The browser shrinks
   large photos (to at most 3200 px, as JPEG) before uploading, which is
