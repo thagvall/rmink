@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.5.0 — 2026-10-28
 
 - Revision rounds know Swedish building practice. Claude's cached reference now includes:
   - terms and abbreviations, including handwritten variants ("gips 13" → Gips typ A 12,5)
@@ -8,6 +8,8 @@
   - typical small-house assemblies (YV1, IV1, PL1, ALT1 …)
   - review rules with their source: BFS 2024 (which replaced BBR), PBL/PBF and the Electrical Safety Act. Practice values and permit rules are raised as questions, never as errors.
 - A new tool, `lookup_knowledge`, returns full entries with exact values and sources, both in rounds and over MCP; `drawing_reference` includes the summary. The data lives in `src/rmink/knowledge/data/*.toml`; see `docs/knowledge.md`.
+- Long remarks and change-log lines in the title block wrap onto the next line instead of being cut off at 70 characters.
+- The drawing font has §, –, ;, …, ≤, ≥, ≈, λ and É, so rule references such as "(BFS 2024:9 2 kap. 11 §)" are drawn in full.
 
 ## 2.4.1 — 2026-10-27
 

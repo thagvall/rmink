@@ -231,6 +231,21 @@ def _content_bottom(strokes: list[Stroke]) -> float:
     return max((float(s.points[:, 1].max()) for s in strokes), default=0.0)
 
 
+def _wrap(text: str, size: float, width: float, max_lines: int) -> list[str]:
+    """Break ``text`` at spaces into lines no wider than ``width``; the last
+    allowed line ends in "…" if text is left over."""
+    lines: list[str] = []
+    for word in text.split():
+        if lines and text_width(f"{lines[-1]} {word}", size) <= width:
+            lines[-1] += f" {word}"
+        else:
+            lines.append(word)
+    if len(lines) > max_lines:
+        lines = lines[:max_lines]
+        lines[-1] += " …"
+    return lines
+
+
 def _title_block(pen: _Pen, top: float, open_remarks: list[tuple[int, Annotation]]) -> None:
     d, dev = pen.drawing, pen.device
     st_text = pen.style("text")
@@ -272,8 +287,9 @@ def _title_block(pen: _Pen, top: float, open_remarks: list[tuple[int, Annotation
         pen.text("ANMÄRKNINGAR", (x0, y), 18, st_c)
         answer_line = _Style(st_c.color, st_c.rgb, "solid", 1.2)
         for n, ann in open_remarks:
-            y += 32
-            pen.text(f"{n}. {ann.text}"[:70], (x0, y), 18, st_c)
+            for i, line in enumerate(_wrap(f"{n}. {ann.text}", 18, x1 - x0, 3)):
+                y += 32 if i == 0 else 26
+                pen.text(line, (x0, y), 18, st_c)
             # A line to write the answer on, so it is clear which remark it answers.
             y += 84
             pen.text("SVAR:", (x0 + 28, y), 16, st_c)
@@ -283,9 +299,10 @@ def _title_block(pen: _Pen, top: float, open_remarks: list[tuple[int, Annotation
     if d.log:
         y += 36
         pen.text("ÄNDRINGAR", (x0, y), 18, st_text)
-        for line in d.log[-6:]:
-            y += 30
-            pen.text(line[:70], (x0, y), 16, st_text)
+        for entry in d.log[-6:]:
+            for i, line in enumerate(_wrap(entry, 16, x1 - x0, 2)):
+                y += 30 if i == 0 else 22
+                pen.text(line, (x0 + (0 if i == 0 else 24), y), 16, st_text)
 
 
 def render_drawing(drawing: Drawing, device: DeviceProfile, size: float = 22.0) -> Page:

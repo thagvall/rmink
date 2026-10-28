@@ -436,3 +436,21 @@ def test_open_remarks_get_answer_lines():
 
 def _bottom(page):
     return max(float(s.points[:, 1].max()) for s in page.strokes)
+
+
+def test_long_remarks_and_log_lines_wrap_instead_of_being_cut():
+    from rmink.drawing.render import _wrap
+
+    text = (
+        "r1: Altan 4800×3600 på 6 plintar ritad från skissen, "
+        "ca 480 från husväggen, med materialtext"
+    )
+    lines = _wrap(text, 16, 600, 3)
+    assert len(lines) > 1 and " ".join(lines) == text
+    assert _wrap("ord " * 200, 16, 600, 2)[-1].endswith("…")
+
+    d = Drawing.model_validate(DRAWING)
+    d.log = ["r1: kort"]
+    short = render_drawing(d, RM2)
+    d.log = [text * 2]
+    assert _bottom(render_drawing(d, RM2)) - _bottom(short) >= 22
