@@ -168,6 +168,9 @@ class Drawing(BaseModel):
     annotations: list[Annotation] = Field(default_factory=list)
     legend: list[LegendEntry] = Field(default_factory=list)
     log: list[str] = Field(default_factory=list)  # one line per change, newest last
+    # The unit after each dimension ("4800 mm"); the title block always says
+    # which unit the dimensions are in.
+    show_units: bool = True
     sketch: SketchRef = Field(default_factory=SketchRef)
 
     def category(self, name: str) -> Category:

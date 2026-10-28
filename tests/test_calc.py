@@ -171,3 +171,34 @@ def test_angle_degrees_avoid_a_line_along_the_bisector():
     label = np.vstack([s.points for s in page.strokes[6 : 6 + n]])
     xs = label[:, 0]
     assert xs.max() < 696 or xs.min() > 704, (xs.min(), xs.max())
+
+
+@pytest.mark.parametrize(
+    "text, unit, expected",
+    [
+        ("4800", "mm", "4800 mm"),
+        ("≈4025", "mm", "≈4025 mm"),
+        ("2,1", "m", "2,1 m"),
+        ("2,1 m", "m", "2,1 m"),
+        ("45°", "mm", "45°"),
+        ("c600", "mm", "c600"),
+        ("4800", "", "4800"),
+    ],
+)
+def test_dimensions_say_their_unit(text, unit, expected):
+    from rmink.drawing.render import dimension_label
+
+    dim = Dimension(id="d", start=(0, 0), end=(100, 0), text=text, unit=unit)
+    assert dimension_label(dim) == expected
+    assert dimension_label(dim, show_unit=False) == text
+
+
+def test_title_block_says_the_unit():
+    from rmink.drawing.font import _letters
+
+    plain = render_drawing(Drawing(name="x"), get_device("rm2"))
+    page = render_drawing(_roof(), get_device("rm2"))
+    without = render_drawing(_roof().model_copy(update={"show_units": False}), get_device("rm2"))
+    # "4800 mm" on the dimension and "Mått i mm" in the title block
+    assert len(page.strokes) > len(without.strokes) > len(plain.strokes)
+    assert _letters("Mått i mm") == "MÅTT I mm"

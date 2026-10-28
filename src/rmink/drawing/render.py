@@ -11,6 +11,7 @@ change log.
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass
 
 import numpy as np
@@ -153,6 +154,17 @@ def _readable(angle: float) -> float:
     return angle
 
 
+_HAS_UNIT = re.compile(r"[A-Za-zÅÄÖåäö°%²³]")
+
+
+def dimension_label(dim: Dimension, show_unit: bool = True) -> str:
+    """The dimension's text with its unit, "4800" -> "4800 mm", unless it
+    already says what it is ("2,1 m", "45°", "c600")."""
+    if not show_unit or not dim.unit or not dim.text or _HAS_UNIT.search(dim.text):
+        return dim.text
+    return f"{dim.text} {dim.unit}"
+
+
 def _dimension(pen: _Pen, dim: Dimension, size: float) -> None:
     st = pen.style(dim.category)
     a, b = np.array(dim.start, float), np.array(dim.end, float)
@@ -169,7 +181,8 @@ def _dimension(pen: _Pen, dim: Dimension, size: float) -> None:
     pen.paths([np.array([b + n * 6 * np.sign(dim.offset or 1), b2 + ext])], st)
     pen.paths([np.array([a2, b2]), _arrowhead(a2, -u), _arrowhead(b2, u)], st)
     angle = _readable(math.degrees(math.atan2(u[1], u[0])))
-    w = text_width(dim.text, size)
+    label = dimension_label(dim, pen.drawing.show_units)
+    w = text_width(label, size)
     r = math.radians(angle)
     along = np.array([math.cos(r), math.sin(r)])
     up = np.array([math.sin(r), -math.cos(r)])
@@ -181,7 +194,7 @@ def _dimension(pen: _Pen, dim: Dimension, size: float) -> None:
         origin = mid - along * w / 2 - up * (8 + size)
     text_st = pen.style("text")
     text_st.color, text_st.rgb = st.color, st.rgb
-    pen.text(dim.text, origin, size, text_st, angle)
+    pen.text(label, origin, size, text_st, angle)
 
 
 def _angle(pen: _Pen, ang: AngleDimension, size: float) -> None:
@@ -342,6 +355,11 @@ def _title_block(pen: _Pen, top: float, open_remarks: list[tuple[int, Annotation
         + (f"  {d.date}" if d.date else "")
     )
     pen.text(rev, (x1 - text_width(rev, 20), y), 20, st_text)
+    units = [dim.unit for dim in d.dimensions if dim.unit]
+    if units:
+        note = f"Mått i {max(set(units), key=units.count)}"
+        pen.text(note, (x1 - text_width(note, 16), y + 28), 16, st_text)
+        y += 20
     y += 30
 
     if d.legend:

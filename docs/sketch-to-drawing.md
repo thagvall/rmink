@@ -111,6 +111,8 @@ Detaljer:
 - **Anpassning:** små streck nära varandra blir en grupp (text, pilspetsar, små symboler). Långa
   streck anpassas till linje, cirkel, båge eller polylinje.
 - **Rendering:** färg på Pro/Move, linjetyp på rm2/Pure.
+- **Enheter:** varje mått ritas med sin enhet (`4800 mm`), och ritningshuvudet anger `Mått i mm`.
+  Med `show_units: false` står enheten bara i ritningshuvudet, som på många standardritningar.
 - **Vinklar och räkning:** ett vinkelmått (`AngleDimension`) ritas som en båge med pilar mellan
   två ben. Gradtalet skrivs som `38,7°`. Lämnas texten tom skrivs den ritade vinkeln.
   - Skriver man "visa vinklarna" på ritningen tar Claude hörnens vinklar från `measure` och

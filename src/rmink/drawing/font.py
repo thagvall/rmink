@@ -12,7 +12,7 @@ import re
 
 import numpy as np
 
-_UNIT = re.compile(r"(?<![A-Za-zÅÄÖåäö])(mm|m)(?=[0-9²³]?(?![A-Za-zÅÄÖåäö]))")
+_UNIT = re.compile(r"(?<![A-Za-zÅÄÖåäö])(mm|cm|m)(?=[0-9²³]?(?![A-Za-zÅÄÖåäö]))")
 
 _A = "0,6 2,0 4,6; 0.7,4 3.3,4"
 _O = "1,0 3,0 4,1 4,5 3,6 1,6 0,5 0,1 1,0"

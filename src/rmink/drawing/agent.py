@@ -103,7 +103,9 @@ angle dimensions at the corners measure reports; leave text empty to show the \
 drawn angle, or write the value calculate gave from the measurements. When a \
 written angle and the drawing disagree, ask instead of choosing. Answer a \
 question about a quantity ("hur många reglar?", "vad väger plattan?") in an \
-open annotation with the number and how it was worked out, briefly.
+open annotation with the number and how it was worked out, briefly. Write \
+the unit with every number in remarks, texts and labels (mm, m, m², m³, kg, \
+°); dimensions get theirs from unit, so keep their text to the number as written.
 
 Write annotation texts, log lines and the summary in the user's language: \
 Swedish when the sketch is in Swedish. Keep coordinates in page pixels.

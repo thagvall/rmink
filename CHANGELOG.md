@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Dimensions say their unit: "4800" is drawn as "4800 mm", and the title block says "Mått i mm". A dimension that already has a unit or text ("2,1 m", "45°", "c600") is drawn as written. `show_units: false` on a drawing leaves only the note in the title block. Rounds write units with every number in remarks.
 - An angle's degrees move along the arc, or out from it, when a line runs where they would go, e.g. a king post down the middle of a ridge angle. They no longer sit on top of the line.
 
 ## 2.6.0 — 2026-10-28
