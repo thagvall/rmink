@@ -107,6 +107,8 @@ def test_guess_drawing_name():
     assert guess_drawing_name("Altan") == "Altan"
     assert guess_drawing_name("/rmink/Altan/Altan r03 · 2 frågor") == "Altan"
     assert guess_drawing_name("/rmink/Altan/Tidigare/Altan r12 · 1 fråga_2") == "Altan"
+    assert guess_drawing_name(r"C:\Users\me\AppData\Local\Temp\x\Altan.rmdoc") == "Altan"
+    assert guess_drawing_name("C:\\ritningar\\Garage r02.rmdoc") == "Garage"
 
 
 def test_revision_title():

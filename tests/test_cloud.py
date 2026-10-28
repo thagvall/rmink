@@ -1,3 +1,4 @@
+import os
 import subprocess
 import zipfile
 from pathlib import Path
@@ -210,7 +211,8 @@ def test_token_storage(tmp_path, monkeypatch):
     monkeypatch.delenv("RMINK_CLOUD_TOKEN", raising=False)
     assert cloud.load_token() is None
     path = cloud.save_token("tok.en-1")
-    assert path.stat().st_mode & 0o777 == 0o600
+    if os.name != "nt":  # Windows has no Unix modes; the profile folder's ACL protects it
+        assert path.stat().st_mode & 0o777 == 0o600
     assert cloud.load_token() == "tok.en-1"
     monkeypatch.setenv("RMINK_CLOUD_TOKEN", "from-env")
     assert cloud.load_token() == "from-env"
