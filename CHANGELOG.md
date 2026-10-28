@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.7.4 — 2026-10-28
+
+- Fewer calls to reMarkable Cloud. Each rmapi run used to start with an empty cache and fetch the metadata of every notebook on the account, so a few rounds in a row got the account rate limited (HTTP 429). The owner's token (`RMINK_CLOUD_TOKEN` on the server, or the token saved for the CLI and MCP server) now keeps rmapi's cache between runs. Other users' uploads still get a fresh temporary cache for each request.
+- A 429 from the cloud says "wait a few minutes and try again" instead of rmapi's internal error.
+- The Glöm button names the drawing on its second step: "Glöm Altan? Tryck igen".
+
 ## 2.7.3 — 2026-10-28
 
 - The rounds page reaches only the `rmink` folder and what is in it. The server refuses any other path before rmapi runs, and the page's folder path starts at rmink with no way up to the tablet's root. "Annan anteckningsbok…" is now "Mappar i rmink…".
