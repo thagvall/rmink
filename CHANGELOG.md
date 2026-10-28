@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.7.2 — 2026-10-28
+
+- A sketch you put in a folder under `rmink/` (for example `rmink/Bastu/Bastuskiss`) now stays in that folder. The drawing is named after the folder ("Bastu r01"), and the sketch moves to `Tidigare/` as "Bastu r00 skiss". Before, the round named the drawing after the notebook and made a new folder `rmink/Bastuskiss/`.
+
 ## 2.7.1 — 2026-10-28
 
 - Open remarks on a large target, such as a long text or a whole wall, are marked with corner marks around it instead of a large ring that runs through other texts. The number goes at the first corner where nothing is drawn. Small targets keep their small ring.
