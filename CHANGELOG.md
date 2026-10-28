@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.7.3 — 2026-10-28
+
+- The rounds page reaches only the `rmink` folder and what is in it. The server refuses any other path before rmapi runs, and the page's folder path starts at rmink with no way up to the tablet's root. "Annan anteckningsbok…" is now "Mappar i rmink…".
+- A "Glöm" button on each drawing card on the rounds page. Two taps remove the drawing from this browser; the notebooks stay on the tablet.
+
 ## 2.7.2 — 2026-10-28
 
 - A sketch you put in a folder under `rmink/` (for example `rmink/Bastu/Bastuskiss`) now stays in that folder. The drawing is named after the folder ("Bastu r01"), and the sketch moves to `Tidigare/` as "Bastu r00 skiss". Before, the round named the drawing after the notebook and made a new folder `rmink/Bastuskiss/`.
