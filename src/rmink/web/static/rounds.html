@@ -28,6 +28,7 @@ input, select { font: inherit; width: 100%; padding: 10px 12px; border: 1px soli
 button { font: inherit; cursor: pointer; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 9px 16px; font-weight: 600; }
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 button.link { border: 0; background: none; padding: 0; color: var(--accent); font-weight: 500; justify-self: start; }
+button.forget { margin-left: auto; color: var(--muted); }
 button:disabled { opacity: .5; cursor: default; }
 button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -76,7 +77,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
 
   <section class="card" id="pick" hidden>
     <h2>Ny skiss</h2>
-    <p class="muted" id="pick-help">Lägg skissen i mappen rmink på plattan. Namnet på anteckningsboken blir ritningens namn.</p>
+    <p class="muted" id="pick-help">Lägg skissen i mappen rmink på plattan, så blir anteckningsbokens namn ritningens namn. Ligger skissen i en egen mapp under rmink får ritningen mappens namn.</p>
     <div class="crumbs" id="crumbs" hidden></div>
     <div class="list" id="list"><p class="muted">Hämtar…</p></div>
     <button class="link" id="browse" type="button">Annan anteckningsbok…</button>
@@ -146,7 +147,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
 
   // The drawings this browser keeps, latest round first, each with its next round one tap away.
   function drawings() {
-    const all = Object.values(memory().drawings).map((raw) => { try { return JSON.parse(raw); } catch { return null; } }).filter(Boolean);
+    const all = Object.entries(memory().drawings).map(([key, raw]) => { try { return { ...JSON.parse(raw), key }; } catch { return null; } }).filter(Boolean);
     all.sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.revision - a.revision);
     const n = all.length;
     $("#memory").textContent = n ? `${n} ${n === 1 ? "ritning sparad" : "ritningar sparade"} i den här webbläsaren.` : "Ritningarna sparas i den här webbläsaren mellan varven.";
@@ -181,7 +182,18 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
         b.onclick = () => { browse(`${INBOX}/${d.name.replace(/[\/*?[\]\\]/g, "-")}`); $("#pick").scrollIntoView({ behavior: "smooth" }); };
         actions.appendChild(b);
       }
+      // Two taps: the drawing and its links leave this browser, the notebooks stay on the tablet.
+      const forget = el("button", "link forget", "Glöm"); forget.type = "button";
+      forget.onclick = () => {
+        if (!forget.dataset.armed) { forget.dataset.armed = "1"; forget.textContent = "Glöm ritningen? Tryck igen"; return; }
+        const m = memory();
+        delete m.drawings[d.key];
+        for (const k of Object.keys(m.links)) if (m.links[k] === d.name) delete m.links[k];
+        try { localStorage.setItem("rmink.roundsMemory", JSON.stringify(m)); } catch {}
+        drawings();
+      };
       actions.appendChild(status);
+      actions.appendChild(forget);
       card.appendChild(actions);
       if ((d.log || []).length) {
         const det = el("details"); det.appendChild(el("summary", null, "Historik"));
