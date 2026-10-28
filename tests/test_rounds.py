@@ -111,6 +111,7 @@ def test_guess_drawing_name():
     assert guess_drawing_name(r"C:\Users\me\AppData\Local\Temp\x\Altan.rmdoc") == "Altan"
     assert guess_drawing_name("C:\\ritningar\\Garage r02.rmdoc") == "Garage"
     assert guess_drawing_name("/rmink/Altan/Tidigare/Altan r00 skiss") == "Altan"
+    assert guess_drawing_name("/rmink/Bastu/Bastuskiss") == "Bastu"
 
 
 def test_revision_title():
@@ -423,6 +424,20 @@ def test_rounds_file_revisions_in_the_drawing_folder(sketch, tmp_path, monkeypat
     assert fake.folders["/rmink/Altan"] == {"Altan r02", "Tidigare"}
     assert fake.folders["/rmink/Altan/Tidigare"] == {"Altan r00 skiss", "Altan r01 · 1 fråga"}
     assert store.linked("/rmink/Altan/Tidigare/Altan r01 · 1 fråga") == "Altan"
+
+
+def test_a_sketch_in_its_own_folder_stays_in_that_folder(sketch, tmp_path, monkeypatch):
+    fake = FakeCloud(
+        monkeypatch,
+        {"/": {"rmink"}, "/rmink": {"Bastu"}, "/rmink/Bastu": {"Bastuskiss"}},
+        {"/rmink/Bastu/Bastuskiss": sketch.read_bytes()},
+    )
+    store = FileStore(tmp_path / "d")
+    r = run_round("/rmink/Bastu/Bastuskiss", "rm2", store, client=FakeClient(_turns()))
+    assert r.sent_as == "/rmink/Bastu/Bastu r01"
+    assert fake.folders["/rmink"] == {"Bastu"}
+    assert fake.folders["/rmink/Bastu"] == {"Bastu r01", "Tidigare"}
+    assert fake.folders["/rmink/Bastu/Tidigare"] == {"Bastu r00 skiss"}
 
 
 def test_notebooks_outside_rmink_stay_put(sketch, tmp_path, monkeypatch):

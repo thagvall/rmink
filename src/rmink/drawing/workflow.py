@@ -419,16 +419,18 @@ def send_revision(rev: Revision, token: str, store: Store | None = None) -> str:
 
     The folder is made on the first round. The drawing is saved again with the
     path, which the next round reads. The notebook this round read moves to the
-    folder's ``Tidigare``: the previous revision as it is, a new sketch from
-    ``/rmink`` as "<name> r00 skiss" so it sorts first. Notebooks anywhere
-    else are the user's and stay put.
+    folder's ``Tidigare``: the previous revision as it is, the sketch of a first
+    round (in ``/rmink`` or already in the drawing's folder) as
+    "<name> r00 skiss" so it sorts first. Notebooks anywhere else are the
+    user's and stay put.
     """
     d, store = rev.drawing, store or FileStore()
     folder = drawing_folder(d.name)
     read = d.sketch.document
     parent, _, base = read.rpartition("/")
     movable = parent in (RMINK_FOLDER, folder) and not _GLOB.search(read)
-    archived_name = f"{safe_name(d.name)} r00 skiss" if parent == RMINK_FOLDER else base
+    first = parent == RMINK_FOLDER or d.revision == 1
+    archived_name = f"{safe_name(d.name)} r00 skiss" if first else base
     if movable and read == folder:
         # The sketch has the drawing's name; rmapi finds entries by name, so
         # free it before making the folder.

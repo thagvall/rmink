@@ -382,7 +382,8 @@ def save_revision(
         include_sketch: Add the sketch page (sketch.document/page) after the clean page.
         send: Upload the notebook to rmink/<name>/ in the user's reMarkable Cloud (needs
             cloud_connect). The notebook the round read moves to rmink/<name>/Tidigare/ when
-            it lies in rmink/.
+            it lies in rmink/. A sketch the user put in a folder rmink/<folder>/ belongs to
+            that folder: name the drawing after the folder.
         svg_path: Also write the clean page as SVG, for sharing.
     """
     d = workflow.drawing_from_json(drawing)

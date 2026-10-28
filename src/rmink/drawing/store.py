@@ -30,9 +30,14 @@ def slug(name: str) -> str:
 
 
 def guess_drawing_name(document: str) -> str:
-    """'/rmink/Altan/Altan r03 · 2 frågor_2' -> 'Altan': the notebook name
-    without folder, file extension, revision (or "r00 skiss"), open-question count and the
-    cloud's _N suffix for taken names. Local Windows paths use backslashes."""
+    """'/rmink/Altan/Altan r03 · 2 frågor_2' -> 'Altan'. A notebook in a folder
+    under /rmink belongs to that folder's drawing ('/rmink/Bastu/Bastuskiss' ->
+    'Bastu'). Elsewhere it is the notebook name without folder, file extension,
+    revision (or "r00 skiss"), open-question count and the cloud's _N suffix for
+    taken names. Local Windows paths use backslashes."""
+    folder = re.match(r"/rmink/([^/]+)/", document)
+    if folder:
+        return folder.group(1)
     name = re.split(r"[/\\]", document.rstrip("/\\"))[-1]
     name = re.sub(r"\.(rmdoc|rm|zip)$", "", name, flags=re.I)
     name = re.sub(r"_\d+$", "", name)
