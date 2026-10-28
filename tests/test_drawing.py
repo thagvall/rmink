@@ -244,3 +244,26 @@ def test_mcp_drawing_tools(sketch, tmp_path):
             assert not res.is_error, res
 
     anyio.run(run)
+
+
+def test_remarks_on_large_targets_mark_the_corners():
+    """A remark on a long text gets corner marks hugging it, not a ring that
+    runs through the texts around it; a small target keeps its ring."""
+    long_text = Element(id="t", kind="text", points=[(200, 600)], text="BETONG 150 C25/30 XC2")
+    d = Drawing(
+        name="x",
+        elements=[long_text, Element(id="s", kind="text", points=[(200, 300)], text="A")],
+        annotations=[
+            Annotation(id="a1", kind="circle", targets=["t"], text="XC2?"),
+            Annotation(id="a2", kind="circle", targets=["s"], text="?"),
+        ],
+    )
+    page = render_drawing(d, get_device("rm2"))
+    comment = [
+        s.points for s in page.strokes if 450 < s.points[:, 1].mean() < 660
+    ]  # not the title block
+    marks = np.vstack(comment)
+    # everything drawn for the remark stays within a band around the text line
+    assert marks[:, 1].min() > 600 - 22 - 60 and marks[:, 1].max() < 600 + 60
+    plain = render_drawing(d.model_copy(update={"annotations": []}), get_device("rm2"))
+    assert len(page.strokes) > len(plain.strokes)

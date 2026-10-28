@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Open remarks on a large target, such as a long text or a whole wall, are marked with corner marks around it instead of a large ring that runs through other texts. The number goes at the first corner where nothing is drawn. Small targets keep their small ring.
+
 ## 2.7.0 — 2026-10-28
 
 - Alternatives. Ask "hur tjock?" or "alternativ?" on a drawing, and the round puts 2–4 solutions on their own page after the drawing. Each one shows:

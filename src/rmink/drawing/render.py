@@ -294,7 +294,13 @@ def _bbox_of(drawing: Drawing, ids: list[str]) -> tuple[np.ndarray, np.ndarray] 
     return allp.min(axis=0), allp.max(axis=0)
 
 
+_RING_MAX = 60.0  # px; larger targets get corner marks instead of a ring
+
+
 def _annotation(pen: _Pen, ann: Annotation, number: int) -> None:
+    """A numbered marker for an open remark: a small ring around a small
+    target, or corner marks around a large one, so it never runs through the
+    drawing's texts."""
     st = pen.style("comment")
     box = _bbox_of(pen.drawing, ann.targets)
     if box is not None:
@@ -305,16 +311,36 @@ def _annotation(pen: _Pen, ann: Annotation, number: int) -> None:
         center, radius = np.array(ann.at, float), 24.0
     else:
         return
-    if ann.at is not None and box is not None:
+    if ann.at is not None and box is not None and radius <= _RING_MAX:
         center = np.array(ann.at, float)
-    if ann.kind == "cross":
-        r = radius * 0.7
-        pen.paths([np.array([center - r, center + r]),
-                   np.array([center + [r, -r], center + [-r, r]])], st)  # fmt: skip
+    if radius > _RING_MAX and box is not None:
+        lo, hi = lo - 10, hi + 10
+        arm = min(24.0, float(min(hi - lo)) / 3)
+        corners = []
+        for (x, y), (dx, dy) in (
+            ((lo[0], lo[1]), (1, 1)), ((hi[0], lo[1]), (-1, 1)),
+            ((hi[0], hi[1]), (-1, -1)), ((lo[0], hi[1]), (1, -1)),
+        ):  # fmt: skip
+            corners.append(np.array([[x + dx * arm, y], [x, y], [x, y + dy * arm]]))
+        pen.paths(corners, st)
+        # The number goes at the first corner, or side, where nothing is drawn.
+        mid = (lo[1] + hi[1]) / 2
+        spots = [(lo[0] - 18, lo[1] - 18), (hi[0] + 18, lo[1] - 18), (hi[0] + 18, hi[1] + 18),
+                 (lo[0] - 18, hi[1] + 18), (lo[0] - 24, mid), (hi[0] + 24, mid)]  # fmt: skip
+        badge = np.array(spots[0])
+        for x, y in spots:
+            if not _hits((x - 18, y - 18, x + 18, y + 18), pen.strokes):
+                badge = np.array([x, y])
+                break
     else:
-        pen.paths([_circle(center, radius)], st)
-    # Number badge at the top-left of the ring (labels sit top-right), matching the remark list.
-    badge = center + np.array([-radius * 0.75, -radius * 0.75])
+        if ann.kind == "cross":
+            r = radius * 0.7
+            pen.paths([np.array([center - r, center + r]),
+                       np.array([center + [r, -r], center + [-r, r]])], st)  # fmt: skip
+        else:
+            pen.paths([_circle(center, radius)], st)
+        # Number badge at the top-left of the ring (labels sit top-right), matching the list.
+        badge = center + np.array([-radius * 0.75, -radius * 0.75])
     pen.paths([_circle(badge, 16)], st, width=1.8)
     label = str(number)
     pen.text(label, badge + [-text_width(label, 16) / 2, 8], 16, st)
