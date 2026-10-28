@@ -11,6 +11,10 @@
 # ama_ref:        lämnas tomt. AMA Hus-koder och rubriker är Svensk Byggtjänsts
 #                 material; användare med licens fyller i via en lokal overlay.
 # synonyms:       handskrivna varianter som ska tolkas som detta varuslag.
+# density:        ungefärlig densitet i kg/m³ (medelvärde, praxis) för vikt-
+#                 och lastuppskattning i rmink.calc. Inte ett dimensionerings-
+#                 värde: trä varierar med fukt och klass (C14 ≈ 350, C30 ≈ 460),
+#                 mineralull 15–150 och tegel 1300–1800 beroende på produkt.
 
 version = "2026-10-28"
 
@@ -73,6 +77,7 @@ label_template = "{produkt} {dim} {klass} c{c}"
 example = "Regel 45×195 C24 c600"
 hatch = "tra_snitt"
 fire_class = "D-s2,d0"
+density = 420
 ama_ref = ""
 rules = ["rmink-material-klass", "rmink-dimension-saknas"]
 note = "Visuellt sorterat virke kan också anges som T1–T3 (ungefär C18–C30). Dimensionen skrivs tjocklek × höjd i mm. Bärande delar dimensioneras av konstruktör för spann och last."
@@ -90,6 +95,7 @@ label_template = "{produkt} {dim} {klass} {ntr}"
 example = "Bärlina 2×45×170 C24 NTR A"
 hatch = "tra_snitt"
 fire_class = "D-s2,d0"
+density = 500
 ama_ref = ""
 rules = ["rmink-material-klass", "praxis-ntr-markkontakt"]
 note = "NTR AB = ovan mark (till exempel trall, reglar med god luftning). NTR A = i markkontakt eller där vatten blir stående (stolpar, plintnära bärlinor). NTR M = i havsvatten. Sågytor ska efterbehandlas."
@@ -107,6 +113,7 @@ label_template = "Trall {dim} {klass}, spalt {spalt} mm"
 example = "Trall 28×120 NTR AB, spalt 5 mm"
 hatch = "tra_snitt"
 fire_class = "D-s2,d0"
+density = 500
 ama_ref = ""
 rules = ["rmink-material-klass"]
 note = "Reglarnas c-avstånd styrs av trallens tjocklek; tillverkarens anvisning gäller (vanligt c600 för 28 mm). Komposit kräver ofta tätare c-avstånd."
@@ -124,6 +131,7 @@ label_template = "Limträ {dim} {klass}"
 example = "Limträ 90×315 GL30c"
 hatch = "tra_snitt"
 fire_class = "D-s2,d0"
+density = 430
 ama_ref = ""
 rules = ["rmink-material-klass"]
 note = "c = kombinerat (svagare lameller inuti), h = homogent."
@@ -141,6 +149,7 @@ label_template = "KL-trä {dim} {klass}"
 example = "KL-trä 100 (3-skikt)"
 hatch = "tra_langs"
 fire_class = "D-s2,d0"
+density = 470
 ama_ref = ""
 rules = ["rmink-material-klass"]
 
@@ -157,6 +166,7 @@ label_template = "LVL {dim} {klass}"
 example = "LVL 45×300 S"
 hatch = "tra_langs"
 fire_class = "D-s2,d0"
+density = 510
 ama_ref = ""
 rules = ["rmink-material-klass"]
 
@@ -173,6 +183,7 @@ label_template = "{profil} {dim}, {ytbehandling}"
 example = "Lockpanel 22×145 + 22×95, grundmålad"
 hatch = "skiva"
 fire_class = "D-s2,d0"
+density = 450
 ama_ref = ""
 rules = ["rmink-material-klass"]
 
@@ -189,6 +200,7 @@ label_template = "{produkt} {dim} c{c}"
 example = "Ströläkt 25×48 c600"
 hatch = "tra_snitt"
 fire_class = "D-s2,d0"
+density = 450
 ama_ref = ""
 rules = ["rmink-dimension-saknas"]
 note = "Ströläkt löper i takfallets riktning och ger luftspalt under bärläkten; bärläkten bär takpannorna."
@@ -206,6 +218,7 @@ label_template = "Råspont {dim}"
 example = "Råspont 23×95"
 hatch = "tra_langs"
 fire_class = "D-s2,d0"
+density = 450
 ama_ref = ""
 rules = []
 
@@ -224,6 +237,7 @@ label_template = "Gips {klass} {dim}"
 example = "Gips typ A 12,5 (1 lag)"
 hatch = "skiva"
 fire_class = "A2-s1,d0"
+density = 680
 ama_ref = ""
 rules = ["rmink-material-klass"]
 note = "'Gips 13' på en skiss betyder nästan alltid 12,5 mm normalskiva. Två lager gips skrivs '2×12,5'. Tändskyddande beklädnad (K2 10) och brandklass för väggen kräver ofta typ F eller två lager – se BFS 2024:7."
@@ -241,6 +255,7 @@ label_template = "Gips {klass} {dim}"
 example = "Gips typ F 15,4"
 hatch = "skiva"
 fire_class = "A2-s1,d0"
+density = 800
 ama_ref = ""
 rules = ["rmink-material-klass", "bfs7-brandcellsgrans-klass"]
 
@@ -257,6 +272,7 @@ label_template = "Gips {klass} {dim}"
 example = "Gips typ H2 12,5"
 hatch = "skiva"
 fire_class = "A2-s1,d0"
+density = 720
 ama_ref = ""
 rules = ["rmink-material-klass", "praxis-vatrum-branschregler"]
 note = "I våtrum avgör tätskiktssystemets godkännande vilken skiva som får användas – inte skivtypen ensam."
@@ -274,6 +290,7 @@ label_template = "Vindskyddsgips {dim}"
 example = "Vindskyddsgips 9,5"
 hatch = "skiva"
 fire_class = "A2-s1,d0"
+density = 750
 ama_ref = ""
 rules = ["rmink-material-klass"]
 
@@ -290,6 +307,7 @@ label_template = "{klass} {dim}"
 example = "OSB/3 12"
 hatch = "skiva"
 fire_class = "D-s2,d0"
+density = 600
 ama_ref = ""
 rules = ["rmink-material-klass"]
 note = "OSB/3 = bärande i fuktig miljö (inomhus/skyddat). OSB/2 = torr miljö."
@@ -307,6 +325,7 @@ label_template = "Plywood {dim} {klass}"
 example = "Plywood 18 (EN 636-2)"
 hatch = "skiva"
 fire_class = "D-s2,d0"
+density = 500
 ama_ref = ""
 rules = ["rmink-material-klass"]
 
@@ -323,6 +342,7 @@ label_template = "Golvspånskiva {dim} {klass}"
 example = "Golvspånskiva 22 P5"
 hatch = "skiva"
 fire_class = "D-s2,d0"
+density = 650
 ama_ref = ""
 rules = ["rmink-material-klass"]
 
@@ -357,6 +377,7 @@ label_template = "Betong {klass} {exp}, {dim}, arm. {armering}"
 example = "Betong C25/30 XC2, 100, arm. nät B500B ø6 s150"
 hatch = "betong"
 fire_class = "A1"
+density = 2400
 ama_ref = ""
 rules = ["rmink-material-klass", "praxis-betong-exponering"]
 note = "Exponeringsklass beskriver miljön: XC1 torrt inne, XC2 fuktigt sällan torrt (grund), XC4 växlande vått/torrt ute, XF frost (XF1 utan, XF3/XF4 med tösalt/vattenmättat). X0 = ingen risk. Täckskikt för armering väljs efter klassen."
@@ -374,6 +395,7 @@ label_template = "{produkt} {dim}"
 example = "Kantelement L 300"
 hatch = "betong"
 fire_class = "A1"
+density = 2400
 ama_ref = ""
 rules = []
 
@@ -390,6 +412,7 @@ label_template = "Plint {klass} {dim}, c{c}, UK {djup}"
 example = "Plint prefab 200×200×600, c1800, på packad makadam"
 hatch = "betong"
 fire_class = "A1"
+density = 2400
 ama_ref = ""
 rules = ["rmink-dimension-saknas", "praxis-frostfritt"]
 note = "Plintens underkant ska ligga på tjälfritt djup eller på frostskyddad, packad makadam. Djupet varierar med ort och mark – fråga om det saknas."
@@ -407,6 +430,7 @@ label_template = "{produkt} {klass} ø{d} s{s}"
 example = "Nät B500B ø6 s150"
 hatch = "stal"
 fire_class = "A1"
+density = 7850
 ama_ref = ""
 rules = ["rmink-material-klass"]
 
@@ -425,6 +449,7 @@ label_template = "Lättbetong {dim}"
 example = "Lättbetong 200"
 hatch = "murverk"
 fire_class = "A1"
+density = 500
 ama_ref = ""
 rules = []
 
@@ -441,6 +466,7 @@ label_template = "Tegel {klass}, bruk {bruk}"
 example = "Fasadtegel, bruk KC 35/65/520"
 hatch = "murverk"
 fire_class = "A1"
+density = 1800
 ama_ref = ""
 rules = []
 
@@ -457,6 +483,7 @@ label_template = "Lättklinkerblock {dim}"
 example = "Lättklinkerblock 290"
 hatch = "murverk"
 fire_class = "A1"
+density = 650
 ama_ref = ""
 rules = []
 
@@ -475,6 +502,7 @@ label_template = "{profil} {klass}, {skydd}"
 example = "VKR 100×100×5 S355, varmförzinkad"
 hatch = "stal"
 fire_class = "A1"
+density = 7850
 ama_ref = ""
 rules = ["rmink-material-klass"]
 
@@ -493,6 +521,7 @@ label_template = "Mineralull {dim} ({klass})"
 example = "Mineralull 195 (λ 0,036)"
 hatch = "isolering_mjuk"
 fire_class = "A1"
+density = 30
 ama_ref = ""
 rules = []
 
@@ -509,6 +538,7 @@ label_template = "Cellplast {klass} {dim}"
 example = "Cellplast EPS 100, 300 (2×150)"
 hatch = "isolering_hard"
 fire_class = "E"
+density = 18
 ama_ref = ""
 rules = ["rmink-material-klass"]
 note = "Gamla beteckningar S80/S100 motsvarar ungefär EPS 80/100. Under kantbalkar och punktlaster krävs högre tryckklass."
@@ -526,6 +556,7 @@ label_template = "XPS {klass} {dim}"
 example = "XPS 300, 100"
 hatch = "isolering_hard"
 fire_class = "E"
+density = 33
 ama_ref = ""
 rules = ["rmink-material-klass"]
 
@@ -542,6 +573,7 @@ label_template = "PIR {dim}"
 example = "PIR 100 (aluminiumfolierad)"
 hatch = "isolering_hard"
 fire_class = "E/B-s1,d0 beroende på produkt"
+density = 32
 ama_ref = ""
 rules = []
 
@@ -710,6 +742,7 @@ label_template = "{produkt} {klass}, {dim}"
 example = "Makadam 16–32, 150, packad"
 hatch = "mark_fyllning"
 fire_class = "A1"
+density = 1800
 ama_ref = ""
 rules = ["rmink-material-klass"]
 note = "0–x = med finmaterial (bärlager, packas tätt). 8–16 och 16–32 = utan finmaterial (dränerande, kapillärbrytande)."
@@ -764,5 +797,6 @@ label_template = "Glas {klass} {dim}"
 example = "Glasräcke härdat laminerat 2×8"
 hatch = "glas"
 fire_class = "A1"
+density = 2500
 ama_ref = ""
 rules = ["bfs9-glas-fall", "bfs9-glas-skar"]

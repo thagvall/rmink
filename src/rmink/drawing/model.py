@@ -7,11 +7,13 @@ revisions so the next round of markings can be matched to element ids.
 
 Coordinates are device pixels on the sketch page (origin top-left), so a clean
 revision lines up with the sketch it came from and with markings drawn on top
-of it. Real-world sizes live in :class:`Dimension` values.
+of it. Real-world sizes live in :class:`Dimension` values, angles in
+:class:`AngleDimension`.
 """
 
 from __future__ import annotations
 
+import math
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -82,6 +84,31 @@ class Dimension(BaseModel):
     source_groups: list[int] = Field(default_factory=list)
 
 
+class AngleDimension(BaseModel):
+    """An angle at ``vertex`` between the legs towards ``start`` and ``end``,
+    drawn as an arc with arrows. ``text`` is shown as written ("45°"); left
+    empty, the drawn angle is written, e.g. "38,7°". ``value`` is the number
+    of degrees when known (from the sketch or rmink.calc)."""
+
+    id: str
+    vertex: Point
+    start: Point
+    end: Point
+    text: str = ""
+    value: float | None = None
+    radius: float = 60.0  # px
+    category: str = "dimension"
+    source_groups: list[int] = Field(default_factory=list)
+
+    def measured(self) -> float | None:
+        """The drawn angle in degrees (0–180), or None for a zero-length leg."""
+        ax, ay = self.start[0] - self.vertex[0], self.start[1] - self.vertex[1]
+        bx, by = self.end[0] - self.vertex[0], self.end[1] - self.vertex[1]
+        if math.hypot(ax, ay) < 1e-6 or math.hypot(bx, by) < 1e-6:
+            return None
+        return abs(math.degrees(math.atan2(ax * by - ay * bx, ax * bx + ay * by)))
+
+
 class Symbol(BaseModel):
     id: str
     kind: str  # see rmink.drawing.symbols.SYMBOLS
@@ -136,6 +163,7 @@ class Drawing(BaseModel):
     categories: list[Category] = Field(default_factory=lambda: list(DEFAULT_CATEGORIES))
     elements: list[Element] = Field(default_factory=list)
     dimensions: list[Dimension] = Field(default_factory=list)
+    angles: list[AngleDimension] = Field(default_factory=list)
     symbols: list[Symbol] = Field(default_factory=list)
     annotations: list[Annotation] = Field(default_factory=list)
     legend: list[LegendEntry] = Field(default_factory=list)
@@ -151,8 +179,8 @@ class Drawing(BaseModel):
                 return c
         return DEFAULT_CATEGORIES[0]
 
-    def find(self, item_id: str) -> Element | Dimension | Symbol | None:
-        for item in (*self.elements, *self.dimensions, *self.symbols):
+    def find(self, item_id: str) -> Element | Dimension | AngleDimension | Symbol | None:
+        for item in (*self.elements, *self.dimensions, *self.angles, *self.symbols):
             if item.id == item_id:
                 return item
         return None

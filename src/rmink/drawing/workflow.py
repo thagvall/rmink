@@ -8,7 +8,8 @@ The steps the MCP server and CLI share:
    returned: the markings to act on.
 2. The interpreter turns the groups into a :class:`Drawing`;
    :func:`rectify` straightens it and :func:`check_dimensions` compares the
-   written measurements with the drawn lengths.
+   written measurements and angles with the drawing. :func:`measure` gives
+   lengths, areas and angles from its geometry.
 3. :func:`build_revision` writes the revision notebook with the clean page
    first and the sketch after it, and saves the drawing for the next round.
 4. :func:`send_revision` puts it in the drawing's folder in the cloud:
@@ -35,7 +36,7 @@ import numpy as np
 from rmink import cloud
 from rmink.devices import DeviceProfile, config_dir, get_device
 from rmink.drawing.fit import Group, analyse, overlay
-from rmink.drawing.model import Drawing, LegendEntry
+from rmink.drawing.model import Dimension, Drawing, Element, LegendEntry
 from rmink.drawing.render import default_legend, render_drawing
 from rmink.drawing.store import FileStore, Store
 from rmink.ingest.rm import read_page, read_rmdoc
@@ -146,6 +147,7 @@ def rectify(drawing: Drawing, angle_tol: float = 4.0, join_tol: float = 12.0) ->
     if not refs:
         return d
     pts = np.array([e.points[i] for e, i in refs], dtype=float)
+    before = pts.copy()
 
     def union_find(n: int):
         parent = list(range(n))
@@ -202,10 +204,20 @@ def rectify(drawing: Drawing, angle_tol: float = 4.0, join_tol: float = 12.0) ->
 
     for k, (e, i) in enumerate(refs):
         e.points[i] = (round(float(pts[k][0]), 1), round(float(pts[k][1]), 1))
+
+    # An angle drawn on a corner or line end moves with it.
+    def follow(p):
+        dist = np.linalg.norm(before - np.asarray(p, float), axis=1)
+        k = int(dist.argmin())
+        return tuple(round(float(c), 1) for c in pts[k]) if dist[k] < join_tol else p
+
+    for ang in d.angles:
+        ang.vertex, ang.start, ang.end = follow(ang.vertex), follow(ang.start), follow(ang.end)
     return d
 
 
 _NUMBER = re.compile(r"-?\d+(?:[.,]\d+)?")
+ANGLE_TOLERANCE = 2.0  # degrees between a written angle and the drawn one
 
 
 def check_dimensions(drawing: Drawing) -> dict:
@@ -219,14 +231,128 @@ def check_dimensions(drawing: Drawing) -> dict:
         px = float(np.linalg.norm(np.subtract(dim.end, dim.start)))
         if value and px > 0:
             rows.append({"id": dim.id, "text": dim.text, "value": value, "drawn_px": round(px, 1)})
+    angles = []
+    for ang in drawing.angles:
+        value = ang.value
+        if value is None and (m := _NUMBER.search(ang.text)):
+            value = float(m.group().replace(",", "."))
+        drawn = ang.measured()
+        if drawn is None:
+            continue
+        row = {"id": ang.id, "text": ang.text, "value": value, "drawn_deg": round(drawn, 1)}
+        if value is not None:
+            row["deviation_deg"] = round(drawn - value, 1)
+            row["consistent"] = abs(drawn - value) <= ANGLE_TOLERANCE
+        angles.append(row)
     if not rows:
-        return {"scale": None, "dimensions": []}
+        return {"scale": None, "dimensions": [], "angles": angles}
     scale = float(np.median([r["value"] / r["drawn_px"] for r in rows]))
     for r in rows:
         expected = r["value"] / scale
         r["deviation_pct"] = round((r["drawn_px"] - expected) / expected * 100, 1)
         r["consistent"] = abs(r["deviation_pct"]) <= 10
-    return {"scale_units_per_px": round(scale, 4), "dimensions": rows}
+    return {"scale_units_per_px": round(scale, 4), "dimensions": rows, "angles": angles}
+
+
+def _segments(e: Element) -> list[tuple[np.ndarray, np.ndarray]]:
+    pts = [np.asarray(p, float) for p in e.points]
+    if e.kind == "rect" and len(pts) == 2:
+        (x0, y0), (x1, y1) = pts
+        pts = [np.array(p, float) for p in ((x0, y0), (x1, y0), (x1, y1), (x0, y1))]
+    closed = e.kind == "rect" or e.closed
+    pairs = list(zip(pts, pts[1:], strict=False))
+    if closed and len(pts) > 2:
+        pairs.append((pts[-1], pts[0]))
+    return pairs
+
+
+def _corner_angle(p: np.ndarray, a: np.ndarray, b: np.ndarray) -> float:
+    u, v = a - p, b - p
+    return abs(math.degrees(math.atan2(u[0] * v[1] - u[1] * v[0], u @ v)))
+
+
+def measure(drawing: Drawing, ids: list[str]) -> dict:
+    """Lengths, areas and angles from the drawing's geometry, so they are
+    read off the drawing rather than estimated. One element gives its length
+    (and area and corner angles when closed); two lines give the angle
+    between them. Real units use the scale of the written dimensions."""
+    check = check_dimensions(drawing)
+    scale = check.get("scale_units_per_px")
+    unit = drawing.dimensions[0].unit if drawing.dimensions else "mm"
+    out: dict = {"scale_units_per_px": scale, "unit": unit if scale else "px", "items": []}
+
+    def real(px: float, power: int = 1) -> float:
+        return round(px * scale**power, 1) if scale else round(px, 1)
+
+    elements = []
+    for item_id in ids:
+        item = drawing.find(item_id)
+        if item is None:
+            out["items"].append({"id": item_id, "error": "no such id"})
+            continue
+        row: dict = {"id": item_id}
+        if isinstance(item, Dimension):
+            row["length"] = real(float(np.linalg.norm(np.subtract(item.end, item.start))))
+        elif isinstance(item, Element) and item.kind in ("circle", "arc") and item.radius:
+            sweep = 360.0 if item.kind == "circle" else abs(item.end_angle - item.start_angle)
+            row["length"] = real(math.radians(sweep) * item.radius)
+            row["radius"] = real(item.radius)
+            if item.kind == "circle":
+                row["area"] = real(math.pi * item.radius**2, 2)
+        elif isinstance(item, Element) and item.kind in ("line", "polyline", "rect"):
+            segs = _segments(item)
+            row["length"] = real(sum(float(np.linalg.norm(b - a)) for a, b in segs))
+            closed = item.kind == "rect" or (item.closed and len(item.points) > 2)
+            corners = [a for a, _ in segs] if closed else [b for _, b in segs[:-1]]
+            if closed:
+                xy = np.array(corners)
+                x, y = xy[:, 0], xy[:, 1]
+                row["area"] = real(abs(x @ np.roll(y, -1) - y @ np.roll(x, -1)) / 2, 2)
+            n = len(corners)
+            row["corners"] = [
+                {
+                    "at": [round(float(c[0]), 1), round(float(c[1]), 1)],
+                    "deg": round(
+                        _corner_angle(
+                            c,
+                            corners[i - 1] if closed else segs[i][0],
+                            corners[(i + 1) % n] if closed else segs[i + 1][1],
+                        ),
+                        2,
+                    ),
+                }
+                for i, c in enumerate(corners)
+            ]
+            elements.append(item)
+        else:
+            row["error"] = "not measurable"
+        out["items"].append(row)
+
+    if len(elements) == 2:
+        out["angle"] = _angle_between(*elements, join_tol=12.0)
+    return out
+
+
+def _angle_between(e1: Element, e2: Element, join_tol: float) -> dict:
+    """The angle at the corner two lines share, or between their directions."""
+    best = None
+    for a1, b1 in _segments(e1):
+        for a2, b2 in _segments(e2):
+            for p, q in ((a1, b1), (b1, a1)):
+                for r, s in ((a2, b2), (b2, a2)):
+                    dist = float(np.linalg.norm(p - r))
+                    if best is None or dist < best[0]:
+                        best = (dist, p, q, s, (a1, b1), (a2, b2))
+    if best is None:
+        return {"error": "no straight segments"}
+    dist, p, q, s, seg1, seg2 = best
+    if dist < join_tol:
+        deg = _corner_angle(p, q, s)
+        return {"deg": round(deg, 2), "vertex": [round(float(c), 1) for c in p], "shared": True}
+    u, v = seg1[1] - seg1[0], seg2[1] - seg2[0]
+    deg = abs(math.degrees(math.atan2(u[0] * v[1] - u[1] * v[0], u @ v))) % 180
+    acute = min(deg, 180 - deg)
+    return {"deg": round(acute, 2), "obtuse": round(180 - acute, 2), "shared": False}
 
 
 @dataclass

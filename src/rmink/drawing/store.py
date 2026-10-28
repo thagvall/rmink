@@ -31,12 +31,12 @@ def slug(name: str) -> str:
 
 def guess_drawing_name(document: str) -> str:
     """'/rmink/Altan/Altan r03 · 2 frågor_2' -> 'Altan': the notebook name
-    without folder, file extension, revision, open-question count and the
+    without folder, file extension, revision (or "r00 skiss"), open-question count and the
     cloud's _N suffix for taken names. Local Windows paths use backslashes."""
     name = re.split(r"[/\\]", document.rstrip("/\\"))[-1]
     name = re.sub(r"\.(rmdoc|rm|zip)$", "", name, flags=re.I)
     name = re.sub(r"_\d+$", "", name)
-    return re.sub(r"\s+r\d+(\s+·.*)?$", "", name)
+    return re.sub(r"\s+r\d+(\s+(·.*|skiss))?$", "", name, flags=re.I)
 
 
 class Store(Protocol):

@@ -59,6 +59,7 @@ If the `rmink` MCP server is connected, prefer its tools (`preview_ink`,
 The user sketches a 2D drawing on the tablet (walls, beams, written lengths and
 angles, symbols, arrows, a legend) and wants a clean, interpreted version back,
 then marks that up in rounds. MCP tools: `read_sketch`, `drawing_reference`, `lookup_knowledge`,
+`calculate`, `measure_drawing`,
 `render_drawing_preview`, `save_revision`, `get_drawing`, plus `cloud_connect` /
 `cloud_list`. CLI: `rmink cloud connect|ls|get|put`, `rmink sketch`, `rmink draw`.
 
@@ -85,7 +86,11 @@ then marks that up in rounds. MCP tools: `read_sketch`, `drawing_reference`, `lo
 3. **Check.** `render_drawing_preview` straightens lines, joins corners and
    compares written measurements with drawn lengths. Show the preview; mention
    dimensions marked inconsistent (they are often a mis-read number, or a real
-   error in the sketch worth pointing out).
+   error in the sketch worth pointing out). Never work out angles, lengths,
+   areas, weights or quantities by hand: `measure_drawing` reads them from the
+   geometry and `calculate` does the arithmetic (degrees, hypot, triangle,
+   slope/pitch, area, volume, weight, count at c/c, sets). Angles the user
+   wants to see go in `angles` as arcs; empty text shows the drawn angle.
 4. **Save and send.** `save_revision(drawing, send=True)` writes
    "<name> r<N>" with the clean page first, the original sketch after it, and an
    empty "Kommentarer" layer for markings.

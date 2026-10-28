@@ -1,3 +1,4 @@
+import json
 from types import SimpleNamespace
 
 import numpy as np
@@ -109,6 +110,7 @@ def test_guess_drawing_name():
     assert guess_drawing_name("/rmink/Altan/Tidigare/Altan r12 · 1 fråga_2") == "Altan"
     assert guess_drawing_name(r"C:\Users\me\AppData\Local\Temp\x\Altan.rmdoc") == "Altan"
     assert guess_drawing_name("C:\\ritningar\\Garage r02.rmdoc") == "Garage"
+    assert guess_drawing_name("/rmink/Altan/Tidigare/Altan r00 skiss") == "Altan"
 
 
 def test_revision_title():
@@ -203,6 +205,23 @@ def test_round_has_building_knowledge(sketch, tmp_path):
     assert "gips_a" in reference["text"] and reference["cache_control"]
     result = client.requests[1]["messages"][-1]["content"][0]
     assert result["is_error"] is False and '"gips_a"' in result["content"]
+
+
+def test_round_calculates_and_measures(sketch, tmp_path):
+    turns = [
+        ([_tool("c1", "calculate", {"expression": "count(4800, 600)"})], "tool_use"),
+        ([_tool("m1", "measure", {"ids": ["V1"]})], "tool_use"),
+        ([_tool("c2", "calculate", {"expression": "x"})], "tool_use"),
+    ]
+    client = FakeClient(_turns()[:1] + turns + _turns()[1:])
+    run_round(str(sketch), "rm2", FileStore(tmp_path / "d"), client=client, send=False)
+    assert {"calculate", "measure"} <= {t["name"] for t in client.requests[0]["tools"]}
+    assert "never work out angles" in client.requests[0]["system"][0]["text"]
+    results = [r["messages"][-1]["content"][0] for r in client.requests[2:5]]
+    assert results[0]["content"] == "9" and not results[0]["is_error"]
+    measured = json.loads(results[1]["content"])
+    assert measured["items"][0]["area"] == pytest.approx(4800 * 3360)
+    assert results[2]["is_error"] and "unknown name" in results[2]["content"]
 
 
 def test_redis_store(monkeypatch):

@@ -86,6 +86,7 @@ def test_materials_reference_existing_groups_hatches_and_rules(kb, ids):
         assert set(m["rules"]) <= ids["rule"], (m["id"], set(m["rules"]) - ids["rule"])
         assert m["required"] is not None and m["label_template"], m["id"]
         assert isinstance(m["ama_ref"], str), m["id"]
+        assert m.get("density", 1) > 0, m["id"]  # kg/m³ for rmink.calc.weight
 
 
 def test_hatches_are_used_by_existing_materials(kb, ids):

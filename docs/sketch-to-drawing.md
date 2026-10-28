@@ -102,19 +102,32 @@ platta ─sync─▶ reMarkable Cloud ─rmapi get─▶ ingest/rm.py (streck, l
 | Lager | `writer/rm_v6.py`, `package/rmdoc.py` | flera lager per sida (ett lager ger samma fil som förut) |
 | Moln | `cloud.py` | `ls`, `get`, `put`; token i `~/.config/rmink/cloud.toml` för CLI/MCP |
 | Anpassning | `drawing/fit.py` | grupperar streck och anpassar former (se nedan); ger en numrerad bild |
-| Modell | `drawing/model.py` | `Drawing`: element, mått, symboler, anmärkningar, legend, logg, kategorier |
+| Modell | `drawing/model.py` | `Drawing`: element, mått, vinkelmått, symboler, anmärkningar, legend, logg, kategorier |
 | Rendering | `drawing/render.py`, `font.py`, `symbols.py` | rena fineliner-streck, versalfont, 33 symboler, titelblock, SVG |
-| Arbetsflöde | `drawing/workflow.py` | `read_sketch`, `rectify`, `check_dimensions`, `build_revision` och lagring |
+| Arbetsflöde | `drawing/workflow.py` | `read_sketch`, `rectify`, `check_dimensions` (längder och vinklar), `measure`, `build_revision` och lagring |
+| Räkning | `calc.py` | säker aritmetik: trigonometri i grader, trianglar, lutning, area, volym, vikt, mängder, mängdlära |
 
 Detaljer:
 - **Anpassning:** små streck nära varandra blir en grupp (text, pilspetsar, små symboler). Långa
   streck anpassas till linje, cirkel, båge eller polylinje.
 - **Rendering:** färg på Pro/Move, linjetyp på rm2/Pure.
+- **Vinklar och räkning:** ett vinkelmått (`AngleDimension`) ritas som en båge med pilar mellan
+  två ben. Gradtalet skrivs som `38,7°`. Lämnas texten tom skrivs den ritade vinkeln.
+  - Skriver man "visa vinklarna" på ritningen tar Claude hörnens vinklar från `measure` och
+    sätter ut dem.
+  - Alla tal kommer från kod, aldrig ur huvudet:
+    - `measure` ger längd, area och hörnvinklar ur geometrin. Skalan tas från de skrivna måtten.
+    - `calculate` räknar uttryck: `hypot(3600, 1200)`, `slope(1200, 3600)` → 18,4° = 1:3 = 33 %,
+      `triangle(a, b, c)`, `count(4800, 600)` → 9 reglar, `weight(0,2 m³, "betong")`.
+      Vikten bygger på ungefärliga densiteter i `materials.toml`.
+  - `check_dimensions` jämför skrivna vinklar med ritningen. Skiljer de mer än 2° blir det en
+    fråga.
 
 ### Gränssnitt
 
 - **MCP:** `cloud_connect`, `cloud_list`, `read_sketch`, `drawing_reference`,
-  `lookup_knowledge`, `render_drawing_preview`, `save_revision`, `get_drawing`
+  `lookup_knowledge`, `calculate`, `measure_drawing`, `render_drawing_preview`, `save_revision`,
+  `get_drawing`
 - **CLI:** `rmink cloud connect|ls|get|put`, `rmink sketch DOC --overlay groups.png`,
   `rmink draw drawing.json [--svg] [--send]`, `rmink round NAMN|DOC`
 - **Webb:** `/rounds` (bara för ägaren): ritningskort med **Kör nästa varv**, nya skisser i

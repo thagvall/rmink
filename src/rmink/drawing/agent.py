@@ -25,7 +25,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from rmink import cloud, knowledge
+from rmink import calc, cloud, knowledge
 from rmink.devices import get_device
 from rmink.drawing import workflow
 from rmink.drawing.model import Drawing
@@ -92,6 +92,18 @@ drawing shows the situation it covers, at most a few per round, the most \
 important first. Read handwritten symbols with the reference's symbol list: \
 use the matching kind, put the text written next to it (+0,00, A, 10x21, \
 1:50) in the symbol's label, and ask when a mark could be two symbols.
+
+Numbers: never work out angles, lengths, areas, volumes, weights or quantities \
+in your head. Call measure for what the drawing's geometry gives (the length \
+or area of an element, its corner angles, the angle between two lines) and \
+calculate for arithmetic (trigonometry in degrees, hypot, triangle, slope and \
+roof pitch, area, volume, weight from density, pieces at c/c spacing, sets). \
+When the user asks to see angles ("visa vinklarna", "vilken vinkel?"), add \
+angle dimensions at the corners measure reports; leave text empty to show the \
+drawn angle, or write the value calculate gave from the measurements. When a \
+written angle and the drawing disagree, ask instead of choosing. Answer a \
+question about a quantity ("hur många reglar?", "vad väger plattan?") in an \
+open annotation with the number and how it was worked out, briefly.
 
 Write annotation texts, log lines and the summary in the user's language: \
 Swedish when the sketch is in Swedish. Keep coordinates in page pixels.
@@ -207,6 +219,34 @@ TOOLS = [
             "required": ["query"],
         },
     },
+    {
+        "name": "calculate",
+        "description": "Evaluate one arithmetic expression exactly. Trigonometry in degrees: "
+        "sin cos tan asin acos atan atan2; sqrt hypot round floor ceil min max sum len; "
+        "leg(c, a) the other leg; triangle(a, b, c) angles A B C and area; slope(rise, run) "
+        "and pitch(deg) as degrees, 1:x and percent; area([(x, y), ...]); circle(d); "
+        "cylinder(d, h); weight(volume_m3, material) in kg from the material's density; "
+        "count(length, cc) pieces at c/c both ends included; pieces(total, length); "
+        "waste(quantity, percent); sets with | & - ^ and in. Units are as given.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"expression": {"type": "string"}},
+            "required": ["expression"],
+        },
+    },
+    {
+        "name": "measure",
+        "description": "Measure the drawing last rendered with render_preview (or the saved "
+        "one): the length of an element or dimension, the area and corner angles of a closed "
+        "shape, the angles at the corners of a polyline, and with two line ids the angle "
+        "between them. Lengths and areas are in real units when the written dimensions give "
+        "a scale.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"ids": {"type": "array", "items": {"type": "string"}}},
+            "required": ["ids"],
+        },
+    },
 ]
 
 
@@ -270,7 +310,7 @@ def run_round(
         },
     ]
 
-    state: dict = {"saved": None, "preview": None}
+    state: dict = {"saved": None, "preview": None, "drawing": previous}
     usage = {
         "input_tokens": 0,
         "output_tokens": 0,
@@ -298,6 +338,17 @@ def run_round(
         if tool_name == "lookup_knowledge":
             hits = knowledge.lookup(str(args.get("query") or ""), args.get("kind"))
             return json.dumps(hits or "No match.", ensure_ascii=False), False
+        if tool_name == "calculate":
+            try:
+                value = calc.evaluate(str(args.get("expression") or ""))
+            except calc.CalcError as e:
+                return str(e), True
+            return json.dumps(value, ensure_ascii=False), False
+        if tool_name == "measure":
+            if state["drawing"] is None:
+                return "Nothing to measure yet: call render_preview first.", True
+            ids = [str(i) for i in args.get("ids") or []]
+            return json.dumps(workflow.measure(state["drawing"], ids)), False
         try:
             d = finalize(Drawing.model_validate(args.get("drawing") or {}))
         except Exception as e:  # pydantic ValidationError or a cut-off input
@@ -305,6 +356,7 @@ def run_round(
         if tool_name == "render_preview":
             png = preview(d)
             state["preview"] = png
+            state["drawing"] = d
             check = json.dumps(workflow.check_dimensions(d))
             return [_image_block(png), {"type": "text", "text": check}], False
         if tool_name == "save_revision":
@@ -330,7 +382,7 @@ def run_round(
         return f"Unknown tool {tool_name}", True
 
     effort = effort or os.environ.get("RMINK_ROUND_EFFORT", "medium")
-    for _ in range(12):
+    for _ in range(16):
         with client.beta.messages.stream(
             model=MODEL,
             max_tokens=32000,

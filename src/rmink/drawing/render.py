@@ -16,9 +16,18 @@ from dataclasses import dataclass
 import numpy as np
 from rmscene.scene_items import Pen, PenColor
 
+from rmink.calc import format_angle
 from rmink.devices import COLOR_PALETTE, DeviceProfile
 from rmink.drawing.font import text_paths, text_width
-from rmink.drawing.model import Annotation, Category, Dimension, Drawing, Element, LineType
+from rmink.drawing.model import (
+    AngleDimension,
+    Annotation,
+    Category,
+    Dimension,
+    Drawing,
+    Element,
+    LineType,
+)
 from rmink.drawing.symbols import SYMBOLS, symbol_paths
 from rmink.model import Page, Stroke
 
@@ -175,6 +184,35 @@ def _dimension(pen: _Pen, dim: Dimension, size: float) -> None:
     pen.text(dim.text, origin, size, text_st, angle)
 
 
+def _angle(pen: _Pen, ang: AngleDimension, size: float) -> None:
+    """An arc from one leg to the other with arrows at both ends and the
+    degrees outside the middle of the arc."""
+    deg = ang.measured()
+    if deg is None:
+        return
+    st = pen.style(ang.category)
+    v = np.array(ang.vertex, float)
+    a, b = np.subtract(ang.start, v), np.subtract(ang.end, v)
+    t0 = math.atan2(a[1], a[0])
+    sweep = math.atan2(a[0] * b[1] - a[1] * b[0], a @ b)  # signed, the smaller way round
+    t = t0 + np.linspace(0, sweep, max(8, int(abs(math.degrees(sweep)) / 4)))
+    r = ang.radius
+    arc = v + r * np.column_stack([np.cos(t), np.sin(t)])
+    paths = [arc]
+    if abs(sweep) * r > 2.5 * _ARROW:
+        s = math.copysign(1.0, sweep)
+        paths.append(_arrowhead(arc[-1], s * np.array([-math.sin(t[-1]), math.cos(t[-1])])))
+        paths.append(_arrowhead(arc[0], -s * np.array([-math.sin(t[0]), math.cos(t[0])])))
+    pen.paths(paths, st)
+    text = ang.text or format_angle(deg)
+    mid = t0 + sweep / 2
+    w = text_width(text, size)
+    at = v + (r + 10 + 0.6 * max(w, size)) * np.array([math.cos(mid), math.sin(mid)])
+    text_st = pen.style("text")
+    text_st.color, text_st.rgb = st.color, st.rgb
+    pen.text(text, (at[0] - w / 2, at[1] + size / 2), size, text_st)
+
+
 def _bbox_of(drawing: Drawing, ids: list[str]) -> tuple[np.ndarray, np.ndarray] | None:
     pts = []
     for item_id in ids:
@@ -190,6 +228,9 @@ def _bbox_of(drawing: Drawing, ids: list[str]) -> tuple[np.ndarray, np.ndarray] 
                 pts.append(np.array([[x, y - item.size], [x + w, y]]))
         elif isinstance(item, Dimension):
             pts.append(np.array([item.start, item.end]))
+        elif isinstance(item, AngleDimension):
+            r = item.radius
+            pts.append(np.array([item.vertex]) + [[-r, -r], [r, r]])
         else:
             r = item.size / 2
             pts.append(
@@ -322,6 +363,8 @@ def render_drawing(drawing: Drawing, device: DeviceProfile, size: float = 22.0) 
             pen.text(s.label, (s.at[0] + s.size * 0.7, s.at[1] - s.size * 0.4), size * 0.8, st)
     for dim in drawing.dimensions:
         _dimension(pen, dim, size)
+    for ang in drawing.angles:
+        _angle(pen, ang, size)
     open_remarks = [
         (i + 1, a) for i, a in enumerate(a for a in drawing.annotations if a.status == "open")
     ]

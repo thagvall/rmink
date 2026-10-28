@@ -90,6 +90,7 @@ Ett begrepp kan visas på sex sätt. Varje sätt motsvarar en mekanism i rmink, 
 | **Skraffering** | Betong: diagonaler med punkter. Mineralull: våglinje. Trä i snitt: kryss | Saknas. `geometry/hatch.py` kan bara rita enkla scanlines |
 | **Text enligt mall** | `Regel 45×195 C24 c600`, `Betong C25/30 XC2` | `Element(kind="text")`, utan struktur |
 | **Symbol** | Norrpil, nivå ▽, sektion, dörr med slagbåge, golvbrunn | ✅ 33 symboler i `SYMBOLS` (`src/rmink/drawing/symbols.py`). Betydelse, disciplin, ritningsslag, när den krävs, text vid symbolen och handritade varianter finns i `symbols.toml` |
+| **Vinkel** | Taklutning 27°, snedskuret hörn | ✅ `AngleDimension` (båge och gradtal), räknas med `rmink.calc` |
 | **Kod som hänvisar** | YV1, D1, A-A, 3/A-50-01 | Saknas |
 | **Ritningshuvud** | Projekt, nummer, skala, skede, revision | Bara namn, revision, skede och datum (`src/rmink/drawing/render.py:234`) |
 

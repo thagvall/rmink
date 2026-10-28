@@ -61,6 +61,14 @@ def test_mcp_tools(examples, tmp_path):
 
             res = await client.call_tool("lookup_knowledge", {"query": "C24"})
             assert not res.is_error and "konstruktionsvirke" in res.content[0].text
+            res = await client.call_tool("calculate", {"expression": "hypot(3, 4)"})
+            assert res.content[0].text == "5.0"
+            res = await client.call_tool("calculate", {"expression": "nope"})
+            assert res.content[0].text.startswith("Error:")
+            line = {"id": "L", "kind": "polyline", "points": [[0, 0], [100, 0], [100, 50]]}
+            drawing = {"name": "x", "elements": [line]}
+            res = await client.call_tool("measure_drawing", {"drawing": drawing, "ids": ["L"]})
+            assert json.loads(res.content[0].text)["items"][0]["corners"][0]["deg"] == 90
             res = await client.call_tool("drawing_reference", {})
             assert "Gipsskiva normal" in res.content[0].text
 

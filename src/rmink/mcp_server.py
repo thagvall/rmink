@@ -14,7 +14,7 @@ from pathlib import Path
 
 from mcp.server.mcpserver import Image, MCPServer
 
-from rmink import api, cloud, knowledge
+from rmink import api, calc, cloud, knowledge
 from rmink.devices import all_devices, get_device
 from rmink.drawing import workflow
 from rmink.drawing.model import Drawing
@@ -258,6 +258,10 @@ def drawing_reference() -> str:
                 "Use 'knowledge' to read Swedish terms and write materials the way a builder "
                 "would; ask in an open annotation when a required class is missing. "
                 "lookup_knowledge gives exact rule values and sources.",
+                "Angles: an AngleDimension in `angles` is drawn as an arc between its legs "
+                "with the degrees; empty text shows the drawn angle. Never work out angles, "
+                "lengths, areas, weights or quantities by hand: use measure_drawing and "
+                "calculate.",
             ],
             "knowledge": knowledge.reference(),
         },
@@ -279,6 +283,45 @@ def lookup_knowledge(query: str, kind: str | None = None) -> str:
     legal source of each rule (BFS, PBL/PBF, ElSL) or "praxis" when it is practice only.
     """
     return json.dumps(knowledge.lookup(query, kind) or "No match.", ensure_ascii=False)
+
+
+@server.tool()
+def calculate(expression: str) -> str:
+    """Evaluate one arithmetic expression exactly, instead of working it out by hand.
+
+    Args:
+        expression: Python-like arithmetic. Trigonometry is in degrees (sin, cos, tan,
+            asin, acos, atan, atan2); also sqrt, hypot, round, floor, ceil, min, max,
+            sum, len; leg(c, a); triangle(a, b, c) -> angles A, B, C and area;
+            slope(rise, run) and pitch(deg) -> degrees, 1:x and percent;
+            area([(x, y), ...]); circle(d); cylinder(d, h); weight(volume_m3, material)
+            in kg from the knowledge base's density; count(length, cc) pieces at c/c
+            spacing, both ends included; pieces(total, length); waste(quantity, percent);
+            sets with |, &, -, ^ and in.
+
+    Returns the value as JSON, or the reason it could not be evaluated.
+    """
+    try:
+        return json.dumps(calc.evaluate(expression), ensure_ascii=False)
+    except calc.CalcError as e:
+        return f"Error: {e}"
+
+
+@server.tool()
+def measure_drawing(drawing: dict, ids: list[str]) -> str:
+    """Lengths, areas and angles read from a Drawing's geometry.
+
+    Args:
+        drawing: Drawing JSON (see drawing_reference).
+        ids: One element or dimension id for its length (plus area and corner angles
+            when it is closed, or corner angles along a polyline); two line ids for the
+            angle between them.
+
+    Returns JSON. Lengths and areas are in the unit of the written dimensions when they
+    give a scale, else in page pixels. Put the corner angles on the drawing as `angles`
+    (AngleDimension) when the user asks to see them.
+    """
+    return json.dumps(workflow.measure(workflow.drawing_from_json(drawing), ids))
 
 
 @server.tool()
