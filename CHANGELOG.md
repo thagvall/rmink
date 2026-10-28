@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- Alternatives. Ask "hur tjock?" or "alternativ?" on a drawing, and the round puts 2–4 solutions on their own page after the drawing. Each one shows:
+  - a small hatched section with a text for each layer
+  - thickness, an estimated U-value, weight per m² and a cost level
+  - pros and cons
+
+  You choose by writing the letter on the remark's SVAR line. The next round sets `chosen` and draws that option's layers.
+- Variants of typical assemblies in `assemblies.toml`:
+  - platta på mark: standard, lågenergi, förstärkt, XPS, skumglas
+  - yttervägg: standard, tjockare, utvändig isolering, PIR invändigt
+  - altan: tryckimpregnerad, värmebehandlad, lärk, komposit
+
+  `lookup_knowledge` lists an assembly's variants and returns each one as a ready option.
+- `calculate` has `u_value(layers, kind)`: an estimated U-value with the λ-value method, counting studs and insulation as one zone and ignoring layers outside a ventilated gap. Materials have typical λ values, and there is a new material, skumglas (cellglasgranulat).
+- The drawing font has · and a lower-case λ.
 - Dimensions say their unit: "4800" is drawn as "4800 mm", and the title block says "Mått i mm". A dimension that already has a unit or text ("2,1 m", "45°", "c600") is drawn as written. `show_units: false` on a drawing leaves only the note in the title block. Rounds write units with every number in remarks.
 - An angle's degrees move along the arc, or out from it, when a line runs where they would go, e.g. a king post down the middle of a ridge angle. They no longer sit on top of the line.
 

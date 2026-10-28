@@ -18,7 +18,7 @@ from rmink import api, calc, cloud, knowledge
 from rmink.devices import all_devices, get_device
 from rmink.drawing import workflow
 from rmink.drawing.model import Drawing
-from rmink.drawing.render import page_svg, render_drawing
+from rmink.drawing.render import page_svg, render_alternatives, render_drawing
 from rmink.drawing.symbols import SYMBOLS
 from rmink.model import Document
 from rmink.options import ConvertOptions
@@ -262,6 +262,12 @@ def drawing_reference() -> str:
                 "with the degrees; empty text shows the drawn angle. Never work out angles, "
                 "lengths, areas, weights or quantities by hand: use measure_drawing and "
                 "calculate.",
+                "Alternatives: for 'which one / how thick?', put 2-4 options in "
+                "`alternatives` (lookup_knowledge on an assembly lists its variants; a "
+                "variant hit has a ready 'option'; letter them A, B, C … in order), add an "
+                "open annotation asking for the "
+                "key, and they are drawn on a page after the drawing. When the user picks "
+                "one, set `chosen` and draw that option's layers.",
             ],
             "knowledge": knowledge.reference(),
         },
@@ -344,12 +350,17 @@ def render_drawing_preview(drawing: dict, rectify: bool = True) -> list:
     from rmink.render.preview import render_lines
     from rmink.writer.rm_v6 import page_lines
 
-    img = render_lines(page_lines(page, dev), dev, page.height)
-    img.thumbnail((1200, 1200))
-    buf = io.BytesIO()
-    img.save(buf, "PNG")
+    images = []
+    for p in [page, render_alternatives(d, dev)]:
+        if p is None:
+            continue
+        img = render_lines(page_lines(p, dev), dev, p.height)
+        img.thumbnail((1200, 1200))
+        buf = io.BytesIO()
+        img.save(buf, "PNG")
+        images.append(Image(data=buf.getvalue(), format="png"))
     report = {"measurements": workflow.check_dimensions(d), "drawing": d.model_dump(mode="json")}
-    return [Image(data=buf.getvalue(), format="png"), json.dumps(report)]
+    return [*images, json.dumps(report)]
 
 
 @server.tool()

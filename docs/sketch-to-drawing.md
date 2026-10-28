@@ -105,12 +105,19 @@ platta ─sync─▶ reMarkable Cloud ─rmapi get─▶ ingest/rm.py (streck, l
 | Modell | `drawing/model.py` | `Drawing`: element, mått, vinkelmått, symboler, anmärkningar, legend, logg, kategorier |
 | Rendering | `drawing/render.py`, `font.py`, `symbols.py` | rena fineliner-streck, versalfont, 33 symboler, titelblock, SVG |
 | Arbetsflöde | `drawing/workflow.py` | `read_sketch`, `rectify`, `check_dimensions` (längder och vinklar), `measure`, `build_revision` och lagring |
-| Räkning | `calc.py` | säker aritmetik: trigonometri i grader, trianglar, lutning, area, volym, vikt, mängder, mängdlära |
+| Räkning | `calc.py` | säker aritmetik: trigonometri i grader, trianglar, lutning, area, volym, vikt, U-värde, mängder, mängdlära |
 
 Detaljer:
 - **Anpassning:** små streck nära varandra blir en grupp (text, pilspetsar, små symboler). Långa
   streck anpassas till linje, cirkel, båge eller polylinje.
 - **Rendering:** färg på Pro/Move, linjetyp på rm2/Pure.
+- **Alternativ:** frågar man "hur tjock?" eller "alternativ?" läggs 2–4 lösningar på en egen sida
+  efter ritningen (`render_alternatives`).
+  - Varje lösning visas med en liten skrafferad sektion, lagertexter, tjocklek, uppskattat U-värde,
+    vikt per m², kostnadsnivå samt för- och nackdelar.
+  - Man väljer genom att skriva bokstaven på SVAR-raden. Nästa varv ritar in valet.
+  - Lösningarna kommer från varianterna i `assemblies.toml`. Konstruktören bestämmer tjocklek och
+    armering, och energiberäkningen avgör U-värdet.
 - **Enheter:** varje mått ritas med sin enhet (`4800 mm`), och ritningshuvudet anger `Mått i mm`.
   Med `show_units: false` står enheten bara i ritningshuvudet, som på många standardritningar.
 - **Vinklar och räkning:** ett vinkelmått (`AngleDimension`) ritas som en båge med pilar mellan

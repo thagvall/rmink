@@ -29,7 +29,7 @@ from rmink import calc, cloud, knowledge
 from rmink.devices import get_device
 from rmink.drawing import workflow
 from rmink.drawing.model import Drawing
-from rmink.drawing.render import render_drawing
+from rmink.drawing.render import render_alternatives, render_drawing
 from rmink.drawing.store import Store, guess_drawing_name
 from rmink.drawing.symbols import SYMBOLS
 from rmink.render.preview import render_lines
@@ -106,6 +106,21 @@ question about a quantity ("hur många reglar?", "vad väger plattan?") in an \
 open annotation with the number and how it was worked out, briefly. Write \
 the unit with every number in remarks, texts and labels (mm, m, m², m³, kg, \
 °); dimensions get theirs from unit, so keep their text to the number as written.
+
+Alternatives: when the user asks for alternatives or what to choose ("alternativ?", \
+"hur tjock?", "vad finns det?"), look up the assembly with lookup_knowledge: it \
+lists its variants, and each variant hit carries a ready "option" (layers, \
+facts with thickness, U-estimate, weight and cost level, pros and cons). Put 2-4 \
+options that fit the question in drawing.alternatives as one choice with a \
+short question, the element ids it is about and a note that a structural \
+engineer decides thickness and reinforcement (and the energy calculation the \
+U-value) when it matters. Letter the options A, B, C … in the order shown, \
+whatever key the variant has. Use the variants' numbers as they are; for an option \
+of your own, calculate its facts with calculate (u_value, weight). Add an open \
+annotation that asks the user to choose, e.g. "Välj bottenplatta A/B/C (se \
+sida 2)". The choices are drawn on their own page after the drawing. When the \
+user answers with a key, set chosen, write that option's layers on the drawing \
+(texts or the section), add a log line and mark the annotation accepted.
 
 Write annotation texts, log lines and the summary in the user's language: \
 Swedish when the sketch is in Swedish. Keep coordinates in page pixels.
@@ -360,7 +375,11 @@ def run_round(
             state["preview"] = png
             state["drawing"] = d
             check = json.dumps(workflow.check_dimensions(d))
-            return [_image_block(png), {"type": "text", "text": check}], False
+            blocks = [_image_block(png)]
+            if alt := render_alternatives(d, device):
+                img = render_lines(page_lines(alt, device), device, alt.height)
+                blocks.append(_image_block(_png(img)))
+            return [*blocks, {"type": "text", "text": check}], False
         if tool_name == "save_revision":
             if state["saved"]:
                 return "Already saved this round.", True

@@ -134,6 +134,39 @@ class Annotation(BaseModel):
     source_groups: list[int] = Field(default_factory=list)
 
 
+class OptionLayer(BaseModel):
+    """One layer of an alternative, top down or outside in."""
+
+    text: str  # as written on a drawing: "Cellplast EPS 100, 300 (2×150)"
+    thickness_mm: float = 0.0
+    material: str = ""  # id in the knowledge base, for the hatch
+
+
+class Option(BaseModel):
+    """One alternative: what it is built of and how it compares."""
+
+    key: str  # "A", "B" …
+    title: str
+    variant: str = ""  # variant id in the knowledge base, when it is one
+    layers: list[OptionLayer] = Field(default_factory=list)
+    facts: list[str] = Field(default_factory=list)  # "U ≈ 0,12 W/m²K", "Kostnad: låg"
+    pros: list[str] = Field(default_factory=list)
+    cons: list[str] = Field(default_factory=list)
+
+
+class Alternatives(BaseModel):
+    """A choice between solutions, drawn on its own page after the drawing.
+    The user picks one by writing its key on the SVAR line of the remark that
+    asks; ``chosen`` then holds it and the page is left out."""
+
+    id: str
+    question: str  # "Bottenplatta: tjocklek och isolering"
+    targets: list[str] = Field(default_factory=list)  # element ids it is about
+    options: list[Option] = Field(default_factory=list)
+    note: str = ""  # e.g. "Tjocklek och armering bestäms av konstruktör."
+    chosen: str = ""
+
+
 class LegendEntry(BaseModel):
     """One legend row: a symbol kind, or ``category:<name>`` for a line style."""
 
@@ -167,6 +200,7 @@ class Drawing(BaseModel):
     symbols: list[Symbol] = Field(default_factory=list)
     annotations: list[Annotation] = Field(default_factory=list)
     legend: list[LegendEntry] = Field(default_factory=list)
+    alternatives: list[Alternatives] = Field(default_factory=list)
     log: list[str] = Field(default_factory=list)  # one line per change, newest last
     # The unit after each dimension ("4800 mm"); the title block always says
     # which unit the dimensions are in.

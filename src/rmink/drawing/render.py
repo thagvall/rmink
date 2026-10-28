@@ -434,6 +434,176 @@ def render_drawing(drawing: Drawing, device: DeviceProfile, size: float = 22.0) 
     return Page(device.width, height, pen.strokes, layer_names=[layer, COMMENT_LAYER])
 
 
+def _clip(p0: np.ndarray, p1: np.ndarray, box) -> np.ndarray | None:
+    """The part of segment p0-p1 inside box (x0, y0, x1, y1) (Liang–Barsky)."""
+    x0, y0, x1, y1 = box
+    d = p1 - p0
+    t0, t1 = 0.0, 1.0
+    for p, q in ((-d[0], p0[0] - x0), (d[0], x1 - p0[0]), (-d[1], p0[1] - y0), (d[1], y1 - p0[1])):
+        if p == 0:
+            if q < 0:
+                return None
+            continue
+        t = q / p
+        if p < 0:
+            t0 = max(t0, t)
+        else:
+            t1 = min(t1, t)
+        if t0 > t1:
+            return None
+    return np.array([p0 + t0 * d, p0 + t1 * d])
+
+
+def _hatch(box, pattern: str, angle: float = 45.0, spacing: float = 10.0) -> list[np.ndarray]:
+    """Hatch lines for a rectangle, after the patterns in hatches.toml."""
+    x0, y0, x1, y1 = box
+    w, h = x1 - x0, y1 - y0
+    if w <= 2 or h <= 2:
+        return []
+
+    def lines(deg: float, step: float) -> list[np.ndarray]:
+        a = math.radians(deg)
+        u = np.array([math.cos(a), -math.sin(a)])  # along the line, y down
+        n = np.array([-u[1], u[0]])
+        c = np.array([(x0 + x1) / 2, (y0 + y1) / 2])
+        reach = math.hypot(w, h)
+        out = []
+        for k in np.arange(-reach / 2, reach / 2 + step, step):
+            seg = _clip(c + n * k - u * reach, c + n * k + u * reach, box)
+            if seg is not None and np.linalg.norm(seg[1] - seg[0]) > 1:
+                out.append(seg)
+        return out
+
+    def dots(step: float) -> list[np.ndarray]:
+        out = []
+        for i, y in enumerate(np.arange(y0 + step / 2, y1, step)):
+            for x in np.arange(x0 + step / 2 + (step / 2 if i % 2 else 0), x1, step):
+                out.append(np.array([[x - 1.2, y], [x + 1.2, y]]))
+        return out
+
+    def waves(step: float, amp: float) -> list[np.ndarray]:
+        xs = np.linspace(x0, x1, max(8, int(w / 4)))
+        out = []
+        for y in np.arange(y0 + step / 2, y1, step):
+            ys = y + amp * np.sin((xs - x0) / step * math.pi)
+            out.append(np.column_stack([xs, np.clip(ys, y0, y1)]))
+        return out
+
+    if pattern == "lines":
+        return lines(angle, spacing)
+    if pattern == "cross":
+        return lines(angle, spacing) + lines(angle + 90, spacing)
+    if pattern == "lines_dots":
+        return lines(angle, spacing * 1.6) + dots(spacing * 0.9)
+    if pattern == "dots":
+        return dots(spacing)
+    if pattern == "wave":
+        return waves(min(spacing, h), min(spacing, h) / 3)
+    if pattern == "grain":
+        return waves(spacing * 0.7, 1.5)
+    if pattern == "earth":
+        return [np.array([[x, y1], [x + 6, y1 - 6]]) for x in np.arange(x0 + 2, x1 - 6, spacing)]
+    if pattern == "solid":
+        return lines(0, 2.5)
+    return []
+
+
+def _material_hatch(material: str) -> tuple[str, float]:
+    from rmink import knowledge
+
+    kb = knowledge.load()
+    hatch_id = next((m["hatch"] for m in kb["materials"]["material"] if m["id"] == material), "")
+    h = next((h for h in kb["hatches"]["hatch"] if h["id"] == hatch_id), None)
+    return (h["pattern"], float(h["angle"])) if h else ("blank", 0.0)
+
+
+def _option(pen: _Pen, opt, x0: float, x1: float, y: float) -> float:
+    """One alternative: key, title, a small section with hatched layers and
+    their texts, then facts, pros and cons. Returns the y below it."""
+    st_text, st_line = pen.style("text"), pen.style("default")
+    thin = _Style(st_line.color, st_line.rgb, "solid", 1.2)
+    pen.paths([_circle((x0 + 22, y - 10), 22)], st_text)
+    pen.text(opt.key, (x0 + 22 - text_width(opt.key, 24) / 2, y + 2), 24, st_text)
+    tx = x0 + 64
+    for i, line in enumerate(_wrap(opt.title, 24, x1 - tx, 2)):
+        pen.text(line, (tx, y + i * 32), 24, st_text)
+    y += 32 * min(2, len(_wrap(opt.title, 24, x1 - tx, 2))) + 16
+
+    layers = opt.layers
+    if layers:
+        total = sum(max(layer.thickness_mm, 0) for layer in layers) or 1
+        scale = min(0.6, 280 / total)
+        sx0, sx1 = tx, tx + 170
+        top, rows, last_text = y, [], y - 24
+        for layer in layers:
+            h = max(layer.thickness_mm * scale, 6 if layer.thickness_mm > 0 else 0)
+            box = (sx0, top, sx1, top + h)
+            if h > 0:
+                pattern, angle = _material_hatch(layer.material)
+                pen.paths([np.array([[sx0, top], [sx1, top], [sx1, top + h], [sx0, top + h],
+                                     [sx0, top]])], st_line)  # fmt: skip
+                pen.paths(_hatch(box, pattern, angle, 9.0), thin)
+            else:
+                pen.paths([np.array([[sx0 - 6, top], [sx1 + 6, top]])], thin)
+            mid = top + h / 2
+            ty = max(mid + 6, last_text + 24)
+            rows.append((mid, ty, layer.text))
+            last_text = ty
+            top += h
+        for mid, ty, text in rows:
+            pen.paths([np.array([[sx1, mid], [sx1 + 14, ty - 6]])], thin)
+            (line,) = _wrap(text, 16, x1 - sx1 - 24, 1) or [""]
+            pen.text(line, (sx1 + 18, ty), 16, st_text)
+        y = max(top, last_text) + 34
+    if opt.facts:
+        for line in _wrap("  ·  ".join(opt.facts), 17, x1 - tx, 3):
+            pen.text(line, (tx, y), 17, st_text)
+            y += 26
+        y += 6
+    for sign, items in (("+", opt.pros), ("-", opt.cons)):
+        for item in items:
+            for i, line in enumerate(_wrap(item, 16, x1 - tx - 24, 2)):
+                if i == 0:
+                    pen.text(sign, (tx, y), 16, st_text)
+                pen.text(line, (tx + 24, y), 16, st_text)
+                y += 24
+    return y
+
+
+def render_alternatives(drawing: Drawing, device: DeviceProfile) -> Page | None:
+    """The open choices as a page to put after the drawing: each alternative
+    with a small hatched section, facts, pros and cons. None when there are
+    no open choices."""
+    open_sets = [a for a in drawing.alternatives if not a.chosen and a.options]
+    if not open_sets:
+        return None
+    layer = drawing_layer(drawing.revision)
+    pen = _Pen(drawing, device, layer)
+    st_text = pen.style("text")
+    frame = _Style(st_text.color, st_text.rgb, "solid", 2.0)
+    x0, x1 = _MARGIN, device.width - _MARGIN
+    y = _MARGIN + 30
+    pen.text(f"ALTERNATIV · {drawing.name}", (x0, y), 30, st_text)
+    y += 20
+    for alt in open_sets:
+        y += 40
+        for line in _wrap(alt.question, 22, x1 - x0, 2):
+            pen.text(line, (x0, y), 22, st_text)
+            y += 30
+        pen.paths([np.array([[x0, y - 14], [x1, y - 14]])], frame)
+        for opt in alt.options:
+            y = _option(pen, opt, x0, x1, y + 36)
+            y += 12
+        keys = "/".join(o.key for o in alt.options)
+        tail = f"Välj {keys}: skriv bokstaven på SVAR-raden på ritningen."
+        for line in [*_wrap(alt.note, 16, x1 - x0, 3), *_wrap(tail, 16, x1 - x0, 2)]:
+            y += 24
+            pen.text(line, (x0, y), 16, st_text)
+        y += 12
+    height = max(device.height, int(y + _MARGIN))
+    return Page(device.width, height, pen.strokes, layer_names=[layer, COMMENT_LAYER])
+
+
 def default_legend(drawing: Drawing) -> list[tuple[str, str]]:
     """Legend rows for every symbol kind and non-default category in use."""
     rows: dict[str, str] = {}

@@ -64,6 +64,7 @@ _GLYPHS: dict[str, str] = {
     "²": "0,0.6 0.5,0 1.5,0 2,0.6 2,1.2 0,3 2,3",
     "³": "0,0.4 0.5,0 1.5,0 2,0.5 1.5,1.5 0.8,1.5; 1.5,1.5 2,2.2 1.5,3 0.5,3 0,2.6",
     ".": "0.3,5.7 0.7,6",
+    "·": "0.3,2.8 0.7,3.1",
     ",": "0.8,5.4 0.2,7",
     "-": "0.5,3 3.5,3",
     "+": "0.5,3 3.5,3; 2,1.5 2,4.5",
@@ -96,6 +97,7 @@ _GLYPHS: dict[str, str] = {
     "≥": "0,0.5 4,2.3 0,4.1; 0,5.5 4,5.5",
     "≈": "0,2.4 1,1.8 3,2.6 4,2; 0,4.4 1,3.8 3,4.6 4,4",
     "Λ": "0,6 2,0 4,6",
+    "λ": "0,6 2.2,2.6; 0.6,0 1.2,0 4,6",  # thermal conductivity stays lower case
     "√": "0,3.6 1,3.2 2,6 4,0 5,0",  # calculations in remarks: "√(3600² + 1800²)"
     "É": "4,0 0,0 0,6 4,6; 0,3 3,3; 1.6,-0.6 2.6,-1.4",
 }
@@ -120,9 +122,9 @@ def _glyph(ch: str) -> list[np.ndarray] | None:
 
 
 def _letters(text: str) -> str:
-    """Upper-case ``text`` but keep the m of units lower case."""
+    """Upper-case ``text`` but keep the m of units and λ lower case."""
     keep = {i for m in _UNIT.finditer(text) for i in range(m.start(), m.end())}
-    return "".join(ch if i in keep else ch.upper() for i, ch in enumerate(text))
+    return "".join(ch if i in keep or ch == "λ" else ch.upper() for i, ch in enumerate(text))
 
 
 def text_width(text: str, size: float) -> float:

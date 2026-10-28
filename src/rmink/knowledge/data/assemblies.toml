@@ -7,6 +7,14 @@
 #
 # layers: utifrån och in (vägg), uppifrån och ned (bjälklag, tak, platta).
 #         material = id i materials.toml. thickness_mm = 0 för folier.
+# variant: alternativ till en typkonstruktion, som rundan kan jämföra på en
+#         alternativsida (A, B, C …). Samma lagerformat, och dessutom:
+#         when/pros/cons med egna ord, cost = låg | medel | hög (relativt
+#         varandra, inga priser), u_kind = wall | roof | floor | ground | ""
+#         för ett ungefärligt U-värde ur materialens λ (rmink.calc.u_value).
+#         Lager som delar zon (reglar och isolering) har fraction, andelen av
+#         ytan; ventilated = true på luftspalten, så att den och allt utanför
+#         inte räknas. lambda på ett lager ersätter materialets typvärde.
 # Dimensioner och c-avstånd är TYPEXEMPEL. Bärande delar dimensioneras för
 # aktuellt spann och last av konstruktör eller enligt tillverkarens tabeller.
 
@@ -285,4 +293,263 @@ layers = [
   { material = "trall", thickness_mm = 28, note = "Plansteg 2×28×120" },
   { material = "tryckimpregnerat", thickness_mm = 220, note = "Vange 45×220 NTR A" },
   { material = "plint_betong", thickness_mm = 0, note = "Upplag mot mark" },
+]
+
+# =================================================================== VARIANTER
+
+# -------------------------------------------------- platta på mark (PL1)
+
+[[variant]]
+id = "pl1_a"
+assembly = "platta_pa_mark"
+key = "A"
+name = "Standard: 100 betong på 300 EPS"
+u_kind = "ground"
+cost = "låg"
+when = "Vanligt småhus på packad, dränerande mark, utan tunga punktlaster."
+pros = ["Beprövad och billig", "Lätt att få tag på material och hantverkare"]
+cons = ["Klarar inte alltid dagens energikrav ensam: följ energiberäkningen"]
+note = ""
+layers = [
+  { material = "betong_platsgjuten", thickness_mm = 100, note = "C25/30 XC2, nät B500B ø6 s150" },
+  { material = "cellplast_eps", thickness_mm = 300, note = "EPS 100 (2×150), EPS 200 under kantbalk" },
+  { material = "makadam", thickness_mm = 150, note = "16–32, packad, kapillärbrytande" },
+  { material = "geotextil", thickness_mm = 0, note = "N2 mot finkornig mark" },
+]
+
+[[variant]]
+id = "pl1_b"
+assembly = "platta_pa_mark"
+key = "B"
+name = "Lågenergi: 100 betong på 400 EPS"
+u_kind = "ground"
+cost = "medel"
+when = "När energiberäkningen kräver lägre U-värde, eller för golvvärme."
+pros = ["Lägre värmeförlust genom golvet", "Samma arbetssätt som standard"]
+cons = ["Djupare schakt och mer fyllning", "Mer material"]
+note = ""
+layers = [
+  { material = "betong_platsgjuten", thickness_mm = 100, note = "C25/30 XC2, nät B500B ø6 s150" },
+  { material = "cellplast_eps", thickness_mm = 400, lambda = 0.034, note = "EPS 200 (2×200), λ ≈ 0,034" },
+  { material = "makadam", thickness_mm = 150, note = "16–32, packad, kapillärbrytande" },
+  { material = "geotextil", thickness_mm = 0, note = "N2 mot finkornig mark" },
+]
+
+[[variant]]
+id = "pl1_c"
+assembly = "platta_pa_mark"
+key = "C"
+name = "Förstärkt: 150 betong på 300 EPS 200"
+u_kind = "ground"
+cost = "medel"
+when = "Punktlaster eller tunga innerväggar på plattan (bärande vägg, kakelugn, murad spis)."
+pros = ["Bär mer och sprider lasten", "Stabilare mot sprickor"]
+cons = ["Mer betong och armering"]
+note = "Tjocklek och armering ska bestämmas av konstruktör för den verkliga lasten."
+layers = [
+  { material = "betong_platsgjuten", thickness_mm = 150, note = "C25/30 XC2, armering enligt konstruktör" },
+  { material = "cellplast_eps", thickness_mm = 300, lambda = 0.034, note = "EPS 200 (2×150) för högre tryck" },
+  { material = "makadam", thickness_mm = 150, note = "16–32, packad, kapillärbrytande" },
+  { material = "geotextil", thickness_mm = 0, note = "N2 mot finkornig mark" },
+]
+
+[[variant]]
+id = "pl1_d"
+assembly = "platta_pa_mark"
+key = "D"
+name = "XPS: 100 betong på 300 XPS"
+u_kind = "ground"
+cost = "hög"
+when = "Hög grundvattennivå, fuktig mark eller höga laster på isoleringen."
+pros = ["Tar upp mycket lite vatten", "Tål högt tryck"]
+cons = ["Dyrare per m² än EPS", "Ungefär samma U-värde som EPS vid samma tjocklek"]
+note = ""
+layers = [
+  { material = "betong_platsgjuten", thickness_mm = 100, note = "C25/30 XC2, nät B500B ø6 s150" },
+  { material = "cellplast_xps", thickness_mm = 300, note = "XPS 300 (3×100)" },
+  { material = "makadam", thickness_mm = 150, note = "16–32, packad, kapillärbrytande" },
+  { material = "geotextil", thickness_mm = 0, note = "N2 mot finkornig mark" },
+]
+
+[[variant]]
+id = "pl1_e"
+assembly = "platta_pa_mark"
+key = "E"
+name = "Skumglas: 100 betong på 400 skumglas"
+u_kind = "ground"
+cost = "medel"
+when = "Lös eller fuktig mark, eller när isolering, dränering och kapillärbrytning ska vara ett lager."
+pros = ["Ett lager i stället för makadam och cellplast", "Dränerar och bryter kapillärt", "Obrännbart"]
+cons = ["Tjockare för samma U-värde", "Måste packas rätt; leverantörens anvisning gäller"]
+note = ""
+layers = [
+  { material = "betong_platsgjuten", thickness_mm = 100, note = "C25/30 XC2, nät B500B ø6 s150" },
+  { material = "skumglas", thickness_mm = 400, note = "10–60, packad 1,3:1" },
+  { material = "geotextil", thickness_mm = 0, note = "Runt och under skumglaset" },
+]
+
+# ------------------------------------------------------- yttervägg (YV1)
+
+[[variant]]
+id = "yv1_a"
+assembly = "yv_tra"
+key = "A"
+name = "Standard: 195 + 45 mineralull"
+u_kind = "wall"
+cost = "låg"
+when = "Vanlig yttervägg i ett småhus eller en tillbyggnad."
+pros = ["Beprövad", "Installationsskikt skyddar ångspärren"]
+cons = ["Reglarna ger köldbryggor genom isoleringen"]
+note = ""
+layers = [
+  { material = "panel_tra", thickness_mm = 22, note = "Lockpanel 22×145 + 22×95" },
+  { material = "lakt", thickness_mm = 28, ventilated = true, note = "Spikläkt 28×70 c600, luftspalt" },
+  { material = "gips_utv", thickness_mm = 9.5, note = "Vindskydd" },
+  { material = "konstruktionsvirke", thickness_mm = 195, fraction = 0.12, note = "Regel 45×195 C24 c600" },
+  { material = "mineralull", thickness_mm = 195, fraction = 0.88, note = "Mellan reglarna" },
+  { material = "angsparr", thickness_mm = 0, note = "PE 0,2, tejpade skarvar" },
+  { material = "konstruktionsvirke", thickness_mm = 45, fraction = 0.1, note = "Installationsregel 45×45 c600" },
+  { material = "mineralull", thickness_mm = 45, fraction = 0.9, note = "I installationsskiktet" },
+  { material = "gips_a", thickness_mm = 12.5, note = "Invändig beklädnad" },
+]
+
+[[variant]]
+id = "yv1_b"
+assembly = "yv_tra"
+key = "B"
+name = "Tjockare: 220 + 70 mineralull"
+u_kind = "wall"
+cost = "medel"
+when = "När energiberäkningen kräver lägre U-värde."
+pros = ["Lägre U-värde med samma byggsätt"]
+cons = ["Tjockare vägg tar golvyta", "Djupare fönstersmygar"]
+note = ""
+layers = [
+  { material = "panel_tra", thickness_mm = 22, note = "Lockpanel 22×145 + 22×95" },
+  { material = "lakt", thickness_mm = 28, ventilated = true, note = "Spikläkt 28×70 c600, luftspalt" },
+  { material = "gips_utv", thickness_mm = 9.5, note = "Vindskydd" },
+  { material = "konstruktionsvirke", thickness_mm = 220, fraction = 0.12, note = "Regel 45×220 C24 c600" },
+  { material = "mineralull", thickness_mm = 220, fraction = 0.88, note = "Mellan reglarna" },
+  { material = "angsparr", thickness_mm = 0, note = "PE 0,2, tejpade skarvar" },
+  { material = "konstruktionsvirke", thickness_mm = 70, fraction = 0.1, note = "Installationsregel 45×70 c600" },
+  { material = "mineralull", thickness_mm = 70, fraction = 0.9, note = "I installationsskiktet" },
+  { material = "gips_a", thickness_mm = 12.5, note = "Invändig beklädnad" },
+]
+
+[[variant]]
+id = "yv1_c"
+assembly = "yv_tra"
+key = "C"
+name = "Utvändig isolering: 50 mineralull utanpå 170"
+u_kind = "wall"
+cost = "medel"
+when = "För att bryta köldbryggorna från reglarna."
+pros = ["Hel isolering utanför stommen bryter köldbryggor", "Varmare och torrare stomme"]
+cons = ["Fasadskivan kräver rätt infästning av läkt", "Dyrare än vindskyddsgips"]
+note = ""
+layers = [
+  { material = "panel_tra", thickness_mm = 22, note = "Lockpanel 22×145 + 22×95" },
+  { material = "lakt", thickness_mm = 28, ventilated = true, note = "Spikläkt 28×70 c600, luftspalt" },
+  { material = "mineralull", thickness_mm = 50, lambda = 0.033, note = "Fasadskiva, vindskyddande" },
+  { material = "konstruktionsvirke", thickness_mm = 170, fraction = 0.12, note = "Regel 45×170 C24 c600" },
+  { material = "mineralull", thickness_mm = 170, fraction = 0.88, note = "Mellan reglarna" },
+  { material = "angsparr", thickness_mm = 0, note = "PE 0,2, tejpade skarvar" },
+  { material = "konstruktionsvirke", thickness_mm = 45, fraction = 0.1, note = "Installationsregel 45×45 c600" },
+  { material = "mineralull", thickness_mm = 45, fraction = 0.9, note = "I installationsskiktet" },
+  { material = "gips_a", thickness_mm = 12.5, note = "Invändig beklädnad" },
+]
+
+[[variant]]
+id = "yv1_d"
+assembly = "yv_tra"
+key = "D"
+name = "PIR invändigt: 170 mineralull + 50 PIR"
+u_kind = "wall"
+cost = "hög"
+when = "När väggen måste vara tunn, t.ex. vid tilläggsisolering inifrån."
+pros = ["Lågt U-värde i tunn vägg", "Folierad PIR med tejpade skarvar är ångspärr"]
+cons = ["Dyrare", "Skarvar och genomföringar måste tejpas noga"]
+note = ""
+layers = [
+  { material = "panel_tra", thickness_mm = 22, note = "Lockpanel 22×145 + 22×95" },
+  { material = "lakt", thickness_mm = 28, ventilated = true, note = "Spikläkt 28×70 c600, luftspalt" },
+  { material = "gips_utv", thickness_mm = 9.5, note = "Vindskydd" },
+  { material = "konstruktionsvirke", thickness_mm = 170, fraction = 0.12, note = "Regel 45×170 C24 c600" },
+  { material = "mineralull", thickness_mm = 170, fraction = 0.88, note = "Mellan reglarna" },
+  { material = "pir", thickness_mm = 50, note = "Aluminiumfolierad, tejpade skarvar (ångspärr)" },
+  { material = "gips_a", thickness_mm = 12.5, note = "Invändig beklädnad" },
+]
+
+# ------------------------------------------------------ altan på plint (ALT1)
+
+[[variant]]
+id = "alt1_a"
+assembly = "altan_plint"
+key = "A"
+name = "Tryckimpregnerad trall NTR AB"
+u_kind = ""
+cost = "låg"
+when = "Det vanligaste valet för en altan som ska hålla länge till lågt pris."
+pros = ["Billig och lätt att få tag på", "Tål röta"]
+cons = ["Spricker och kupar sig utan underhåll", "Kemiskt skyddsmedel: spill och kap ska tas om hand"]
+note = ""
+layers = [
+  { material = "trall", thickness_mm = 28, note = "28×120 NTR AB, spalt 5 mm" },
+  { material = "tryckimpregnerat", thickness_mm = 145, note = "Regel 45×145 C24 NTR AB c600" },
+  { material = "tryckimpregnerat", thickness_mm = 170, note = "Bärlina 2×45×170 C24 NTR A" },
+  { material = "plint_betong", thickness_mm = 600, note = "c1800" },
+]
+
+[[variant]]
+id = "alt1_b"
+assembly = "altan_plint"
+key = "B"
+name = "Värmebehandlad trall"
+u_kind = ""
+cost = "medel"
+when = "När man vill undvika kemiskt impregnerat virke men ha god formstabilitet."
+pros = ["Utan skyddsmedel", "Formstabil, slår sig mindre"]
+cons = ["Sprödare: förborra vid ändar", "Grånar utan oljning"]
+note = "Reglar och bärlinor är fortfarande NTR; trallen byts."
+layers = [
+  { material = "trall", thickness_mm = 26, note = "26×117 värmebehandlad, spalt 5 mm" },
+  { material = "tryckimpregnerat", thickness_mm = 145, note = "Regel 45×145 C24 NTR AB c600" },
+  { material = "tryckimpregnerat", thickness_mm = 170, note = "Bärlina 2×45×170 C24 NTR A" },
+  { material = "plint_betong", thickness_mm = 600, note = "c1800" },
+]
+
+[[variant]]
+id = "alt1_c"
+assembly = "altan_plint"
+key = "C"
+name = "Lärktrall"
+u_kind = ""
+cost = "medel"
+when = "Ett naturligt trä som tål väder bra, för den som gillar att det grånar."
+pros = ["Naturligt beständig kärnved", "Utan skyddsmedel"]
+cons = ["Kan spricka och kåda", "Kräver rostfria skruvar (A4)"]
+note = "Reglar och bärlinor är fortfarande NTR; trallen byts."
+layers = [
+  { material = "trall", thickness_mm = 28, note = "28×120 lärk, rostfri skruv A4, spalt 5 mm" },
+  { material = "tryckimpregnerat", thickness_mm = 145, note = "Regel 45×145 C24 NTR AB c600" },
+  { material = "tryckimpregnerat", thickness_mm = 170, note = "Bärlina 2×45×170 C24 NTR A" },
+  { material = "plint_betong", thickness_mm = 600, note = "c1800" },
+]
+
+[[variant]]
+id = "alt1_d"
+assembly = "altan_plint"
+key = "D"
+name = "Komposittrall"
+u_kind = ""
+cost = "hög"
+when = "När altanen ska klara sig nästan utan underhåll."
+pros = ["Inget oljande, spricker inte", "Jämn färg"]
+cons = ["Blir varm i sol och rör sig med temperaturen", "Kräver tätare reglar enligt tillverkaren, ofta c400"]
+note = "Tillverkarens anvisning för c-avstånd, infästning och expansionsspalter gäller."
+layers = [
+  { material = "trall", thickness_mm = 25, note = "Komposit 25×140, dold infästning" },
+  { material = "tryckimpregnerat", thickness_mm = 145, note = "Regel 45×145 C24 NTR AB c400" },
+  { material = "tryckimpregnerat", thickness_mm = 170, note = "Bärlina 2×45×170 C24 NTR A" },
+  { material = "plint_betong", thickness_mm = 600, note = "c1800" },
 ]

@@ -154,6 +154,24 @@ En **kontrollansvarig** behövs inte för anmälan, komplementbyggnad, mur, plan
 
 **Kommande ändringar:** drygt 30 bestämmelser i PBL och PBF har nya lydelser som börjar gälla 2027-01-01, bland annat om kontrollplan och den nya rollen **byggbedömare** (SFS 2026:712). PBF 6 kap. 3 § upphör 2027-12-01. `process.toml` och lagreglerna behöver kontrolleras igen efter de datumen.
 
+### Varianter och alternativsidan
+
+`assemblies.toml` har varianter (`[[variant]]`) av de typkonstruktioner där valet är vanligast:
+
+| Typ | Varianter |
+|---|---|
+| PL1 platta på mark | A standard 300 EPS · B lågenergi 400 EPS · C förstärkt 150 betong · D XPS · E skumglas |
+| YV1 yttervägg | A 195+45 · B 220+70 · C utvändig isolering · D PIR invändigt |
+| ALT1 altan | A tryckimpregnerad · B värmebehandlad · C lärk · D komposit |
+
+Varje variant har:
+- lager i samma format som typkonstruktionen
+- när den passar, för- och nackdelar med egna ord
+- en kostnadsnivå (låg, medel eller hög), relativt de andra och utan priser
+- `u_kind`, så att ett ungefärligt U-värde kan räknas ur materialens λ
+
+Tjocklek, vikt per m² och U-värde räknas med `knowledge.variant_facts` och `calc.u_value`. U-värdet räknas med λ-värdesmetoden, där reglar och isolering utgör en zon och allt utanför luftspalten utelämnas. Köldbryggor vid anslutningar räknas inte, och för platta på mark inte heller markens isolerande verkan. Värdet är alltså en jämförelse mellan alternativen, inte en energiberäkning.
+
 ## 5. Hur rmink kan använda kunskapen (senare etapper)
 
 Varje punkt anger var i koden den kopplas in.

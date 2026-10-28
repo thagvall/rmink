@@ -37,7 +37,7 @@ from rmink import cloud
 from rmink.devices import DeviceProfile, config_dir, get_device
 from rmink.drawing.fit import Group, analyse, overlay
 from rmink.drawing.model import Dimension, Drawing, Element, LegendEntry
-from rmink.drawing.render import default_legend, render_drawing
+from rmink.drawing.render import default_legend, render_alternatives, render_drawing
 from rmink.drawing.store import FileStore, Store
 from rmink.ingest.rm import read_page, read_rmdoc
 from rmink.model import Document, Page
@@ -370,7 +370,8 @@ def build_revision(
     seed: int | None = None,
     store: Store | None = None,
 ) -> Revision:
-    """Write the clean revision (and the sketch after it) as a notebook, and
+    """Write the clean revision (then a page of open alternatives, if any, and
+    the sketch) as a notebook, and
     save the drawing with the ids of the strokes rmink wrote, in ``store``
     (the local drawings folder by default)."""
     device = get_device(drawing.sketch.device)
@@ -378,7 +379,9 @@ def build_revision(
     if not drawing.legend:
         drawing.legend = [LegendEntry(key=k, meaning=m) for k, m in default_legend(drawing)]
     clean = render_drawing(drawing, device)
-    pages = [clean] + ([sketch] if sketch is not None and sketch.strokes else [])
+    alternatives = render_alternatives(drawing, device)
+    pages = [clean] + ([alternatives] if alternatives else [])
+    pages += [sketch] if sketch is not None and sketch.strokes else []
 
     uuids = UuidFactory(seed)
     author = uuids()

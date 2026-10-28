@@ -23,6 +23,7 @@ FILES = (
 KINDS = {
     "material": ("materials", "material"),
     "assembly": ("assemblies", "assembly"),
+    "variant": ("assemblies", "variant"),
     "rule": ("rules", "rule"),
     "action": ("process", "action"),
     "symbol": ("symbols", "symbol"),
@@ -34,7 +35,9 @@ KINDS = {
 
 # Fields that name an entry (a hit here ranks above a hit in the description).
 _NAME_FIELDS = ("id", "term", "abbr", "en", "name", "code", "title", "syn", "synonyms", "classes")
-_TEXT_FIELDS = ("def", "note", "meaning", "duty", "shows", "message_sv", "exempt_if", "unless")
+_TEXT_FIELDS = (
+    "def", "note", "meaning", "duty", "shows", "message_sv", "exempt_if", "unless", "when",
+)  # fmt: skip
 
 
 @functools.cache
@@ -95,7 +98,77 @@ def _expand(kind: str, item: dict) -> dict:
         hatches = {h["id"]: h for h in load()["hatches"]["hatch"]}
         if h := hatches.get(item.get("hatch", "")):
             out["hatch"] = {"id": h["id"], "name": h["name"], "note": h["note"]}
+    if kind == "assembly":
+        out["variants"] = [f"{v['key']} {v['id']}: {v['name']}" for v in variants(item["id"])]
+    if kind == "variant":
+        out.update(variant_facts(item))
+        out["option"] = option(item)
     return out
+
+
+def _sv(x: float) -> str:
+    return f"{x:g}".replace(".", ",")
+
+
+def option(variant: dict, key: str | None = None) -> dict:
+    """A variant as an alternative for a drawing's alternatives page
+    (rmink.drawing.model.Option): layer texts, facts, pros and cons."""
+    materials = {m["id"]: m for m in load()["materials"]["material"]}
+    layers = []
+    for layer in variant["layers"]:
+        name = materials[layer["material"]]["name"].split(" (")[0]
+        d = layer["thickness_mm"]
+        head = f"{name} {_sv(d)}" if d else name
+        text = f"{head}: {layer['note']}" if layer.get("note") else head
+        layers.append({"text": text, "thickness_mm": d, "material": layer["material"]})
+    f = variant_facts(variant)
+    facts = [f"Tjocklek ≈ {_sv(f['thickness_mm'])} mm"]
+    if "u_estimate" in f:
+        facts.append(f"U ≈ {_sv(round(f['u_estimate'], 2))} W/m²K (uppskattning)")
+    if f["weight_kg_m2"]:
+        facts.append(f"Vikt ≈ {f['weight_kg_m2']} kg/m²")
+    facts.append(f"Kostnad: {variant['cost']}")
+    return {
+        "key": key or variant["key"],
+        "title": variant["name"],
+        "variant": variant["id"],
+        "layers": layers,
+        "facts": facts,
+        "pros": list(variant["pros"]),
+        "cons": list(variant["cons"]) + ([variant["note"]] if variant.get("note") else []),
+    }
+
+
+def variants(assembly_id: str) -> list[dict]:
+    """The alternatives to an assembly, A first."""
+    found = [v for v in load()["assemblies"].get("variant", []) if v["assembly"] == assembly_id]
+    return sorted(found, key=lambda v: v["key"])
+
+
+def variant_facts(variant: dict) -> dict:
+    """Computed facts for comparing variants: total thickness, weight per m²
+    from the materials' densities and, for heated parts, an estimated U-value."""
+    from rmink import calc
+
+    materials = {m["id"]: m for m in load()["materials"]["material"]}
+    thickness = weight = 0.0
+    seen_zone = None
+    for layer in variant["layers"]:
+        d = layer["thickness_mm"]
+        share = layer.get("fraction", 1.0)
+        # layers sharing a zone (studs and insulation) add their thickness once
+        if share < 1 and seen_zone == d:
+            pass
+        else:
+            thickness += d
+        seen_zone = d if share < 1 else None
+        weight += d / 1000 * share * materials[layer["material"]].get("density", 0)
+    facts = {"thickness_mm": round(thickness, 1), "weight_kg_m2": round(weight)}
+    if variant.get("u_kind"):
+        u = calc.u_value(variant["layers"], variant["u_kind"])
+        facts["u_estimate"] = round(u["U"], 3)
+        facts["u_note"] = u["note"]
+    return facts
 
 
 def _table(kind: str) -> list[dict]:
@@ -168,6 +241,12 @@ def reference() -> str:
         lines.append(line)
     lines += ["", "Assemblies (code id: name):"]
     lines += [f"- {a['code']} {a['id']}: {a['name']}" for a in kb["assemblies"]["assembly"]]
+    lines += ["", "Variants to compare (assembly: key id name, cost, U≈ estimate):"]
+    for a in kb["assemblies"]["assembly"]:
+        for v in variants(a["id"]):
+            facts = variant_facts(v)
+            u = f", U≈{facts['u_estimate']}" if "u_estimate" in facts else ""
+            lines.append(f"- {a['code']}: {v['key']} {v['id']} {v['name']}, {v['cost']}{u}")
     lines += ["", "Rules (id: title [source ref] severity):"]
     lines += [
         f"- {r['id']}: {r['title']} [{r['source']} {r['ref']}] {r['severity']}"

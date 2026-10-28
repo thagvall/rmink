@@ -12,6 +12,8 @@ drawing. Helpers cover what a builder reaches for:
   ``cylinder(d, h)``
 - weight from a material's density in the knowledge base:
   ``weight(0.045 * 0.195 * 4.8, "C24")`` in kg for a volume in m³
+- an estimated U-value from layers, outside in:
+  ``u_value([(195, "mineralull"), (12.5, "gips_a")], "wall")``
 - quantities: ``count(4800, 600)`` pieces at c/c spacing including both ends,
   ``pieces(23.5, 4.8)`` lengths to buy, ``waste(42, 10)`` with 10 % waste
 - sets: ``{"A1", "A2"} | {"A2", "A3"}``, ``&``, ``-``, ``^``, ``len``, ``in``
@@ -114,14 +116,101 @@ def cylinder(d: float, h: float) -> float:
     return circle(d) * _number(h)
 
 
-def density(material: str) -> float:
-    """Approximate density in kg/m³ of a material in the knowledge base."""
+def _material(name: str) -> dict:
+    """A material from the knowledge base, by id or the best lookup match."""
     from rmink import knowledge
 
-    hits = knowledge.lookup(str(material), kind="material", limit=1)
-    if not hits or not hits[0].get("density"):
+    for m in knowledge.load()["materials"]["material"]:
+        if m["id"] == name:
+            return m
+    hits = knowledge.lookup(str(name), kind="material", limit=1)
+    if not hits:
+        raise CalcError(f"unknown material {name!r}")
+    return hits[0]
+
+
+def density(material: str) -> float:
+    """Approximate density in kg/m³ of a material in the knowledge base."""
+    m = _material(material)
+    if not m.get("density"):
         raise CalcError(f"no density for {material!r}")
-    return hits[0]["density"]
+    return m["density"]
+
+
+# Surface resistances (m²K/W), inside and outside, by heat flow direction.
+SURFACE_R = {
+    "wall": (0.13, 0.04),
+    "roof": (0.10, 0.04),
+    "floor": (0.17, 0.04),
+    "ground": (0.17, 0.0),
+}
+VENTILATED = {"luftspalt", "luftad", "ventilated"}
+
+
+def _layer(layer) -> dict:
+    if isinstance(layer, dict):
+        return layer
+    thickness, what, *rest = layer
+    out = {"thickness_mm": _number(thickness), "fraction": rest[0] if rest else 1.0}
+    if isinstance(what, str) and what.casefold() in VENTILATED:
+        out["ventilated"] = True
+    elif isinstance(what, str):
+        out["material"] = what
+    else:
+        out["lambda"] = _number(what)
+    return out
+
+
+def u_value(layers, kind: str = "wall") -> dict:
+    """An estimated U-value in W/(m²K) for layers listed from the outside in
+    (or top down), each (thickness_mm, material or λ[, area fraction]).
+
+    Layers next to each other with the same thickness and fractions below 1
+    share a zone, such as studs and insulation (λ-value method). A layer named
+    "luftspalt" is a ventilated gap: it and everything outside it do not count,
+    and the outer surface resistance becomes the inner one. Joints, thermal
+    bridges at connections and, for "ground", the ground itself are left out,
+    so the estimate is not an energy calculation."""
+    if kind not in SURFACE_R:
+        raise CalcError(f"kind must be one of {', '.join(SURFACE_R)}")
+    rsi, rse = SURFACE_R[kind]
+    items = [_layer(x) for x in layers]
+    for i in range(len(items) - 1, -1, -1):
+        if items[i].get("ventilated"):
+            items, rse = items[i + 1 :], rsi
+            break
+    total, skipped = rsi + rse, []
+    i = 0
+    while i < len(items):
+        layer = items[i]
+        d = layer["thickness_mm"] / 1000
+        zone = [layer]
+        while (
+            layer.get("fraction", 1.0) < 1
+            and i + len(zone) < len(items)
+            and items[i + len(zone)].get("fraction", 1.0) < 1
+            and items[i + len(zone)]["thickness_mm"] == layer["thickness_mm"]
+        ):
+            zone.append(items[i + len(zone)])
+        i += len(zone)
+        if d <= 0:
+            continue
+        lambdas = []
+        for z in zone:
+            lam = z.get("lambda") or (
+                _material(z["material"]).get("lambda") if "material" in z else None
+            )
+            if not lam:
+                skipped.append(z.get("material", "?"))
+                break
+            lambdas.append((z.get("fraction", 1.0), lam))
+        else:
+            share = sum(f for f, _ in lambdas)
+            total += d / (sum(f * lam for f, lam in lambdas) / share)
+    note = "Uppskattning med λ-värdesmetoden, utan köldbryggor vid anslutningar"
+    if kind == "ground":
+        note += " och utan markens isolerande verkan, så verkligt U blir lägre"
+    return {"U": 1 / total, "R": total, "skipped": skipped, "note": note + "."}
 
 
 def weight(volume_m3: float, material: str) -> float:
@@ -185,6 +274,7 @@ FUNCTIONS = {
     "circle": circle,
     "cylinder": cylinder,
     "density": density,
+    "u_value": u_value,
     "weight": weight,
     "count": count,
     "pieces": pieces,

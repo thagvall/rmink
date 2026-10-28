@@ -224,6 +224,18 @@ def test_round_calculates_and_measures(sketch, tmp_path):
     assert results[2]["is_error"] and "unknown name" in results[2]["content"]
 
 
+def test_round_shows_the_alternatives_page(sketch, tmp_path):
+    from rmink import knowledge
+
+    option = knowledge.lookup("pl1_a", kind="variant", limit=1)[0]["option"]
+    drawing = {**DRAWING, "alternatives": [{"id": "x", "question": "Platta?", "options": [option]}]}
+    client = FakeClient(_turns(drawing))
+    run_round(str(sketch), "rm2", FileStore(tmp_path / "d"), client=client, send=False)
+    assert "Alternatives:" in client.requests[0]["system"][0]["text"]
+    result = client.requests[1]["messages"][-1]["content"][0]["content"]
+    assert [b["type"] for b in result] == ["image", "image", "text"]
+
+
 def test_redis_store(monkeypatch):
     data = {}
 

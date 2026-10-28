@@ -91,6 +91,10 @@ then marks that up in rounds. MCP tools: `read_sketch`, `drawing_reference`, `lo
    geometry and `calculate` does the arithmetic (degrees, hypot, triangle,
    slope/pitch, area, volume, weight, count at c/c, sets). Angles the user
    wants to see go in `angles` as arcs; empty text shows the drawn angle.
+   For "which one / how thick?", put 2–4 options in `alternatives` (an
+   assembly's variants from `lookup_knowledge` come as ready options, lettered
+   A, B, C …); they are drawn on a page after the drawing, and the user writes
+   the letter on the SVAR line of the remark that asks.
 4. **Save and send.** `save_revision(drawing, send=True)` writes
    "<name> r<N>" with the clean page first, the original sketch after it, and an
    empty "Kommentarer" layer for markings.
