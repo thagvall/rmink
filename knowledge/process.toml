@@ -1,0 +1,339 @@
+# Byggprocessen enligt PBL/PBF och behörighet för elarbete – småhusfokus.
+#
+# Här står inte vad byggnaden ska klara (det står i rules.toml och BFS),
+# utan vilket tillstånd en åtgärd kräver, vem som ansvarar för vad, i vilken
+# ordning saker sker och vilka handlingar som behövs.
+#
+# Källtexter: konsoliderade lydelser från data.riksdagen.se, hämtade
+# 2026-10-28:
+#   PBL  (2010:900)  ändrad t.o.m. SFS 2026:1583
+#   PBF  (2011:338)  ändrad t.o.m. SFS 2026:1722
+#   ElSL (2016:732)  ändrad t.o.m. SFS 2026:1294
+#
+# OBS – kommande ändringar: drygt 30 bestämmelser i PBL och PBF har
+# lydelser som träder i kraft 2027-01-01 (bland annat kontrollplan och
+# byggbedömare), och PBF 6 kap. 3 § upphör 2027-12-01. Kontrollera
+# lydelsen igen efter de datumen.
+
+version = "2026-10-28"
+
+[[source]]
+id = "pbl"
+name = "Plan- och bygglag (2010:900)"
+url = "https://data.riksdagen.se/dokument/sfs-2010-900.text"
+consolidated_to = "SFS 2026:1583"
+
+[[source]]
+id = "pbf"
+name = "Plan- och byggförordning (2011:338)"
+url = "https://data.riksdagen.se/dokument/sfs-2011-338.text"
+consolidated_to = "SFS 2026:1722"
+
+[[source]]
+id = "elsl"
+name = "Elsäkerhetslag (2016:732)"
+url = "https://data.riksdagen.se/dokument/sfs-2016-732.text"
+consolidated_to = "SFS 2026:1294"
+
+[[source]]
+id = "elsak_fs_2017_2"
+name = "ELSÄK-FS 2017:2 (undantag för vissa elinstallationsarbeten)"
+url = "https://www.elsakerhetsverket.se/globalassets/foreskrifter/elsak-fs-2017-2.pdf"
+consolidated_to = "ej kontrollerad – länken leder om till en webbsida (2026-10-28)"
+
+# ======================================================== tillståndsformer
+# Vilken prövning en åtgärd kräver. Ordningen är från mest till minst krävande.
+
+[[permit]]
+id = "bygglov"
+name = "Bygglov"
+ref = "PBL 9 kap. 3, 9, 15, 19–38 §§"
+meaning = "Kommunens prövning av att åtgärden passar på platsen och följer detaljplanen. Följs av startbesked innan arbetet får börja."
+
+[[permit]]
+id = "rivningslov"
+name = "Rivningslov"
+ref = "PBL 9 kap. 43–50 §§"
+meaning = "Krävs för rivning inom detaljplan om planen inte säger annat. Utanför detaljplan räcker ofta en anmälan (PBF 6 kap. 1 § 1)."
+
+[[permit]]
+id = "marklov"
+name = "Marklov"
+ref = "PBL 9 kap. 43–50 §§"
+meaning = "Schaktning, fyllning eller trädfällning som ändrar markens höjdläge, främst inom detaljplan."
+
+[[permit]]
+id = "anmalan"
+name = "Anmälan"
+ref = "PBF 6 kap. 1–6 §§"
+meaning = "Ingen lovprövning, men kommunen ger startbesked. Gäller till exempel bärande ändringar, eldstad och VA (se rule pbf-anmalan)."
+
+[[permit]]
+id = "lovfri"
+name = "Lov- och anmälningsfri"
+ref = "PBL 9 kap. 4–17 a §§"
+meaning = "Varken lov eller anmälan, men de tekniska kraven (8 kap. 4 §, BFS) gäller ändå. Lovfriheten bryts av 9 kap. 34–38 §§ (nära gräns, värdefullt område)."
+
+[[permit]]
+id = "frivilligt_lov"
+name = "Frivilligt lov"
+ref = "PBL 9 kap. 52 §"
+meaning = "Man får alltid söka lov för en lovfri åtgärd, till exempel för att få besked om att den är tillåten."
+
+# ======================================================== beslutsträd småhus
+# Vanliga åtgärder i småhusprojekt och vilken prövning de kräver.
+# Regel-ID:n i rules.toml innehåller de exakta villkoren.
+
+[[action]]
+id = "komplementbyggnad"
+name = "Komplementbyggnad eller komplementbostadshus (förr friggebod/attefall)"
+default = "bygglov"
+exempt_if = "Inom detaljplan högst 30,0 m² och nock 4,0 m; utanför detaljplan högst 50,0 m² och nock 4,5 m; mindre än huvudbyggnaden; summan på tomten högst 45,0 resp. 65,0 m²"
+then = "lovfri"
+unless = "Närmare gräns än 4,5 m utan grannens skriftliga medgivande (9 kap. 34–35 §§), eller särskilt värdefull byggnad eller område (37 §)"
+rules = ["pbl-komplementbyggnad", "pbl-narhet-grans", "pbl-varde", "bfs7-avstand-byggnader"]
+
+[[action]]
+id = "tillbyggnad"
+name = "Tillbyggnad av bostadshus"
+default = "bygglov"
+exempt_if = "Högst 30,0 m² bruttoarea/öppenarea sammanlagt med tidigare lovfria tillbyggnader, och inte över husets taknock"
+then = "lovfri"
+unless = "Närmare gräns än 4,5 m utan medgivande (34 §) eller värdefullt (37 §). Ändras bärande delar väsentligt krävs ändå anmälan (PBF 6 kap. 1 § 2)."
+rules = ["pbl-tillbyggnad-30", "pbl-narhet-grans", "pbl-varde", "pbf-anmalan"]
+
+[[action]]
+id = "altan"
+name = "Altan, mur eller plank"
+default = "lovfri"
+exempt_if = ""
+then = "bygglov"
+unless = "Inom detaljplan: högre än 1,8 m över mark inom 3,6 m från byggnad, eller högre än 1,2 m längre bort (9 kap. 19 §). Mur/plank över 1,2 m närmare gräns än 4,5 m (34 § 3)."
+rules = ["pbl-altan-mur-plank", "pbl-narhet-grans", "bfs9-skydd-mot-fall"]
+
+[[action]]
+id = "barande_andring"
+name = "Ta bort eller ändra bärande vägg/bjälklag"
+default = "anmalan"
+exempt_if = "Ändringen påverkar inte konstruktionen väsentligt"
+then = "lovfri"
+unless = ""
+rules = ["pbf-anmalan"]
+
+[[action]]
+id = "eldstad"
+name = "Ny eldstad, rökkanal eller ventilation"
+default = "anmalan"
+exempt_if = ""
+then = "anmalan"
+unless = ""
+rules = ["pbf-anmalan"]
+
+[[action]]
+id = "va_installation"
+name = "Ny eller väsentligt ändrad vatten- eller avloppsinstallation (till exempel nytt badrum)"
+default = "anmalan"
+exempt_if = ""
+then = "anmalan"
+unless = ""
+rules = ["pbf-anmalan", "praxis-vatrum-branschregler"]
+
+[[action]]
+id = "ny_bostad"
+name = "Inreda ytterligare en bostad"
+default = "bygglov"
+exempt_if = "En ytterligare bostad i ett enbostadshus (inte komplementbostadshus)"
+then = "lovfri"
+unless = "Totalförsvarsområde (36 §) eller värdefullt (37 §)"
+rules = ["pbl-varde"]
+
+[[action]]
+id = "solceller"
+name = "Solenergianläggning på fasad eller tak"
+default = "lovfri"
+exempt_if = "Högst 11 kW"
+then = "lovfri"
+unless = "Särskilt värdefullt område (37 §) eller totalförsvarsområde inom detaljplan (36 § 2)"
+rules = []
+
+[[action]]
+id = "elinstallation"
+name = "Elinstallation (uttag, belysning, central, fast anslutning)"
+default = "elinstallator"
+exempt_if = "Vissa enklare arbeten enligt Elsäkerhetsverkets föreskrifter (ej kontrollerat)"
+then = "elinstallator"
+unless = ""
+rules = ["elsl-behorighet", "elsak-undantag"]
+
+# =============================================================== roller
+
+[[role]]
+id = "byggherre"
+name = "Byggherre"
+ref = "PBL 10 kap. 5–5 c §§"
+duty = "Ansvarar för att åtgärden och projekteringen uppfyller kraven, och för att kontrollplan och avfallshanteringsplan följs. För ett småhus är det oftast fastighetsägaren."
+
+[[role]]
+id = "kontrollansvarig"
+name = "Kontrollansvarig (KA)"
+ref = "PBL 10 kap. 9–11 c §§, PBF 7 kap. 5 §"
+duty = "Certifierad person som tar fram kontrollplan med byggherren och ser till att den följs. Krävs INTE för anmälan, komplementbyggnad, mur/plank/altan eller små ändringar av en- och tvåbostadshus, om nämnden inte beslutar annat."
+
+[[role]]
+id = "sakkunnig"
+name = "Sakkunnig"
+ref = "PBL 10 kap. 8, 12–12 d §§"
+duty = "Certifierad kontrollant för särskilda delar, till exempel brand eller tillgänglighet, när kontrollplanen eller föreskrifter kräver det."
+
+[[role]]
+id = "byggbedomare"
+name = "Byggbedömare"
+ref = "PBL 1 kap. 7 §, 9 kap. 68 §, 10 kap. 13–13 e §§"
+duty = "Nytt (SFS 2026:712): certifierat företag som kan användas vid lovprövning och kontroll av viss nybyggnad. Då ersätter dess kontroll kontrollplanen."
+
+[[role]]
+id = "byggnadsnamnd"
+name = "Byggnadsnämnden"
+ref = "PBL 9–10 kap."
+duty = "Kommunens nämnd som ger lov, tar emot anmälan, håller tekniskt samråd och ger start- och slutbesked."
+
+[[role]]
+id = "elinstallator"
+name = "Auktoriserad elinstallatör"
+ref = "ElSL 5 §, 20 §"
+duty = "Person med auktorisation från Elsäkerhetsverket för alla eller vissa slag av elinstallationsarbete."
+
+[[role]]
+id = "elinstallationsforetag"
+name = "Elinstallationsföretag"
+ref = "ElSL 23–25 §§"
+duty = "Företag som yrkesmässigt utför elinstallationsarbete. Ska ha minst en auktoriserad elinstallatör, ett egenkontrollprogram och vara anmält till Elsäkerhetsverket innan arbete på andras anläggningar."
+
+# =============================================================== steg
+# Ordningen för en lov- eller anmälningspliktig åtgärd. "rmink" säger hur
+# steget kan synas i ritningsvarven.
+
+[[step]]
+order = 1
+id = "ansokan"
+name = "Ansökan om lov eller anmälan"
+ref = "PBL 9 kap. 86 §, PBF 6 kap. 5–6 §§"
+needs = ["fastighetsbeteckning", "byggherre", "kontrollansvarig (om krävs)", "planerad start", "ritningar och beskrivningar som behövs för prövningen"]
+rmink = "Skede Bygglovshandling. Ritningshuvudet ska ha fastighetsbeteckning och byggherre."
+
+[[step]]
+order = 2
+id = "tekniskt_samrad"
+name = "Tekniskt samråd"
+ref = "PBL 10 kap. 14–21 §§"
+needs = ["förslag till kontrollplan", "avfallshanteringsplan", "övriga handlingar"]
+rmink = "Hålls när KA krävs, när byggherren begär det eller om det inte är uppenbart obehövligt."
+
+[[step]]
+order = 3
+id = "startbesked"
+name = "Startbesked"
+ref = "PBL 10 kap. 3, 23–25 §§"
+needs = ["fastställd kontrollplan"]
+rmink = "Arbetet får inte börja före startbesked. Ritningen kan bli Bygghandling."
+
+[[step]]
+order = 4
+id = "utforande"
+name = "Utförande, kontroller och arbetsplatsbesök"
+ref = "PBL 10 kap. 2 c, 26–28 §§"
+needs = ["egenkontroller enligt kontrollplanen", "utstakning om nämnden kräver det"]
+rmink = "Ändringar under bygget = nya revisionsvarv; SVAR-rader dokumenterar beslut (underlag för ÄTA)."
+
+[[step]]
+order = 5
+id = "slutbesked"
+name = "Slutsamråd och slutbesked"
+ref = "PBL 10 kap. 4, 34–38 §§"
+needs = ["intyg om utförda kontroller", "relationshandlingar vid behov"]
+rmink = "Ritningen kan bli Relationshandling. Byggnaden får inte tas i bruk före slutbesked (om nämnden inte beslutar annat)."
+
+# ============================================================ handlingar
+
+[[document]]
+id = "kontrollplan"
+name = "Kontrollplan"
+ref = "PBL 10 kap. 6–8 §§"
+contains = [
+  "vilka kontroller som ska göras och vilka krav de avser",
+  "vem som gör kontrollerna och hur",
+  "vilka anmälningar som ska göras till byggnadsnämnden",
+  "vilka arbetsplatsbesök nämnden bör göra och när",
+  "vad som kontrolleras genom egenkontroll respektive av sakkunnig",
+]
+note = "Nämnden får besluta att kontrollplan inte behövs för enklare åtgärder (6 a §). rmink kan föreslå kontrollpunkter från reglerna som träffar ritningen."
+
+[[document]]
+id = "avfallshanteringsplan"
+name = "Avfallshanteringsplan"
+ref = "PBL 10 kap. 8 a §"
+contains = [
+  "byggprodukter som kan återanvändas och hur",
+  "avfall som uppstår och hur det tas om hand",
+  "hur farliga ämnen hanteras och avlägsnas säkert",
+]
+note = "Behövs inte om det är uppenbart att behov saknas."
+
+# =================================================== tekniska egenskapskrav
+# PBL 8 kap. 4 § räknar upp de väsentliga tekniska egenskaperna. Detta är
+# kopplingen till Boverkets föreskrifter som innehåller kraven.
+
+[[technical_requirement]]
+n = 1
+name = "Bärförmåga, stadga och beständighet"
+bfs = "BFS 2024:6"
+
+[[technical_requirement]]
+n = 2
+name = "Säkerhet i händelse av brand"
+bfs = "BFS 2024:7"
+
+[[technical_requirement]]
+n = 3
+name = "Skydd med hänsyn till hygien, hälsa och miljön"
+bfs = "BFS 2024:8"
+
+[[technical_requirement]]
+n = 4
+name = "Säkerhet vid användning"
+bfs = "BFS 2024:9"
+
+[[technical_requirement]]
+n = 5
+name = "Skydd mot buller"
+bfs = "BFS 2024:10"
+
+[[technical_requirement]]
+n = 6
+name = "Energihushållning och värmeisolering"
+bfs = "BFS 2026:9"
+
+[[technical_requirement]]
+n = 7
+name = "Lämplighet för det avsedda ändamålet"
+bfs = "BFS 2024:11"
+
+[[technical_requirement]]
+n = 8
+name = "Tillgänglighet och användbarhet"
+bfs = "BFS 2024:12 (tomter: BFS 2024:13)"
+
+[[technical_requirement]]
+n = 9
+name = "Hushållning med vatten och avfall"
+bfs = "BFS 2024:8"
+
+[[technical_requirement]]
+n = 10
+name = "Bredbandsanslutning"
+bfs = ""
+
+[[technical_requirement]]
+n = 11
+name = "Hållbar mobilitet"
+bfs = ""

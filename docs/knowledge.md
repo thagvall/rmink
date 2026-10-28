@@ -1,6 +1,6 @@
 # Kunskapsbas för byggritningar – analys och struktur
 
-*Etapp 0, 2026-10-28.*
+*Etapp 0 och 0b (process enligt PBL/PBF och behörighet för el), 2026-10-28.*
 
 Detta dokument beskriver kunskapen som behövs för att rmink ska kunna stödja dagligt ritande och avstämning av byggritningar. Det gäller både när en ritning skapas, ändras, ses över och kvalitetsgranskas, och när en lösning från ett tidigare projekt ska återanvändas. Datan ligger i [`knowledge/`](../knowledge) som TOML-filer. Den är ännu inte inkopplad i appen, och avsnitt 6 visar var den ska kopplas in.
 
@@ -11,7 +11,8 @@ Fokus är **småhus, altaner och hantverkare**: trä, gips, plintar och trall, m
 | Källa | Vad den är | Licens | I rmink |
 |---|---|---|---|
 | **BFS 2024:4–13** | Boverkets nya byggregler. De ersatte BBR och EKS den 1 juli 2025, och de gamla reglerna gick inte att använda efter 1 juli 2026. Energi regleras separat i BFS 2026:9. | Offentliga föreskrifter som är fria att citera | Regel-ID, paragraf, parametervärde och URL. Värdena är kontrollerade mot källtexten (`verified = true`). |
-| **PBL 9 kap.** (lovbefriade åtgärder) | Lag. Ändrad 2025-12-01: *friggebod* och *attefallshus* heter nu **komplementbyggnad** och **komplementbostadshus**. | Offentlig | En regel som ställer en fråga. Värdena kommer från kommunala sammanfattningar och är **inte** verifierade mot lagtexten. |
+| **PBL (2010:900) och PBF (2011:338)** | Lov, anmälan, startbesked, kontrollplan och kontrollansvarig. Konsoliderad lydelse t.o.m. SFS 2026:1583 respektive 2026:1722. Sedan 2025-12-01 heter *friggebod* och *attefallshus* **komplementbyggnad** och **komplementbostadshus**. | Offentlig | `process.toml` (beslutsträd, roller, steg) plus 9 regler, alla kontrollerade mot lagtexten på data.riksdagen.se. |
+| **Elsäkerhetslag (2016:732)** | Vem som får utföra elinstallationsarbete | Offentlig | Regeln `elsl-behorighet` är kontrollerad. Undantagen för privatpersoner (ELSÄK-FS 2017:2) är **inte** kontrollerade, eftersom föreskriftens PDF leder om till en webbsida. |
 | **AMA Hus 24, AMA AF** (Svensk Byggtjänst) | Referensverk som blir bindande först när en kod åberopas i en teknisk beskrivning | Upphovsrätt och licens | Bara ett tomt fält `ama_ref` per varuslag. Den som har licens fyller i via en lokal overlay (avsnitt 6). |
 | **CoClass / BSAB** | Klassning av byggdelar och referensbeteckningar | Licens | Inte med ännu. Kan bli ett valfritt kodfält. |
 | **Bygghandlingar 90**, **SS-EN ISO 128 / 129 / 5455 / 7200 / 7519** | Hur ritningar redovisas: linjer, mått, skalor, ritningshuvud, beteckningar | Betalda standarder | Bara allmänt kända begrepp med egna ord. Skrafferingarna är märkta *rmink-konvention* och ska alltid förklaras på ritningen. |
@@ -52,13 +53,14 @@ BFS 2024-serien är **funktionsbaserad**. Flera BBR-värden som hantverkare kan 
 
 | Fil | Innehåll | Omfång |
 |---|---|---|
-| `terms.toml` | Termer och förkortningar SV/EN, med synonymer för handskrift | 139 termer |
+| `terms.toml` | Termer och förkortningar SV/EN, med synonymer för handskrift | 160 termer |
 | `drawing_standard.toml` | Ritningsslag, skalor, skeden, revision, ritningshuvud, numrering, discipliner, linjer, måttsättning, beteckningar, pappersformat | 9 ritningsslag, 7 skeden, 8 linjetyper |
 | `materials.toml` | Varuslag i 11 grupper med klasser, obligatoriska uppgifter, textmall, skraffering och brandklass | 42 varuslag |
 | `assemblies.toml` | Typkonstruktioner med lager, krav och granskningsfrågor | 12 byggdelar |
-| `rules.toml` | Granskningsregler med källa och paragraf | 43 regler (10 rmink, 24 BFS, 1 PBL, 8 praxis) |
+| `rules.toml` | Granskningsregler med källa och paragraf | 53 regler (10 rmink, 24 BFS, 7 PBL, 2 PBF, 1 ElSL, 9 praxis) |
 | `markup.toml` | Typer, status, prioritet och CSV-kolumner för anmärkningar | 5 typer, 5 statusar |
 | `hatches.toml` | Skrafferingsmönster per material | 12 mönster |
+| `process.toml` | Tillståndsformer, beslutsträd för småhusåtgärder, roller, processteg, handlingar, PBL 8 kap. 4 § kopplat till BFS | 6 tillståndsformer, 9 åtgärder, 7 roller, 5 steg |
 
 ### Kvaliteter: varför klassen är det viktiga
 
@@ -110,10 +112,34 @@ Detaljerat per byggdel. Tabellen visar vad som ska synas i varje ritningsslag oc
 
 | Projekt | Ritningar som behövs | Skede | Viktigaste granskningspunkter (regel-ID) |
 |---|---|---|---|
-| **Altan på plint** | Plan 1:50, sektion 1:20, eventuellt detalj räcke 1:5 | Skiss → granskning → bygghandling | `bfs9-skydd-mot-fall`, `bfs9-racke-barn`, `bfs9-plan-dorr-trappa`, `praxis-ntr-markkontakt`, `praxis-frostfritt`, `praxis-infastning-korrosion` |
-| **Komplementbyggnad / uthus** | Situationsplan 1:400, plan, sektion och fasad 1:50 | Bygglovs- eller anmälningshandling | `pbl-komplementbyggnad` (yta, nockhöjd, 4,5 m till gräns), `bfs7-avstand-byggnader` (8 m; undantag ≤ 15 m²), `praxis-taklutning` |
-| **Tillbyggnad** | Situationsplan, plan, sektion, fasad, konstruktion | Bygglov → bygghandling | `bfs12-tillbyggnad-niva`, `bfs7-byggnadsklass`, `bfs8-dagsljus`, `bfs8-fukt-75rf`, YV1/BJL1 enligt typlistan |
-| **Badrum (våtrum)** | Plan 1:20 med brunn och fall, väggutveckling | Bygghandling | `praxis-vatrum-branschregler`, `bfs12-hygienrum`, `bfs9-tappvarmvatten`, IV-V |
+| **Altan på plint** | Plan 1:50, sektion 1:20, eventuellt detalj räcke 1:5 | Skiss → granskning → bygghandling | `pbl-altan-mur-plank`, `bfs9-skydd-mot-fall`, `bfs9-racke-barn`, `bfs9-plan-dorr-trappa`, `praxis-ntr-markkontakt`, `praxis-frostfritt`, `praxis-infastning-korrosion` |
+| **Komplementbyggnad / uthus** | Situationsplan 1:400, plan, sektion och fasad 1:50 | Bygglovs- eller anmälningshandling | `pbl-komplementbyggnad`, `pbl-narhet-grans` (4,5 m), `pbl-varde`, `bfs7-avstand-byggnader` (8 m; undantag ≤ 15 m²), `praxis-taklutning` |
+| **Tillbyggnad** | Situationsplan, plan, sektion, fasad, konstruktion | Bygglov → bygghandling | `pbl-tillbyggnad-30`, `pbl-narhet-grans`, `pbf-anmalan`, `bfs12-tillbyggnad-niva`, `bfs7-byggnadsklass`, `bfs8-dagsljus`, `bfs8-fukt-75rf`, YV1/BJL1 enligt typlistan |
+| **Badrum (våtrum)** | Plan 1:20 med brunn och fall, väggutveckling | Bygghandling | `praxis-vatrum-branschregler`, `bfs12-hygienrum`, `bfs9-tappvarmvatten`, IV-V, `pbf-anmalan` (VA-installation), `elsl-behorighet` |
+
+### 4b. Vilken prövning krävs? (`process.toml`)
+
+Lagtexten ger en snabb första sortering för varje småhusåtgärd. rmink vet inte om tomten ligger inom detaljplan, så svaret blir alltid en **fråga** och aldrig ett fel.
+
+| Åtgärd | Utgångsläge | Lovfri när | Lovplikten kommer tillbaka när |
+|---|---|---|---|
+| Komplementbyggnad / komplementbostadshus | Bygglov | Inom plan: ≤ 30,0 m² BYA, nock ≤ 4,0 m, ≤ 45,0 m² totalt. Utanför plan: 50,0 m², 4,5 m och 65,0 m² (PBL 9:4–5) | < 4,5 m till gräns utan skriftligt grannmedgivande (9:34–35), q-märkt eller värdefullt (9:37) |
+| Tillbyggnad av bostadshus | Bygglov | ≤ 30,0 m² bruttoarea eller öppenarea sammanlagt, inte över taknocken (9:10) | Samma som ovan. Väsentlig ändring av bärande delar kräver ändå **anmälan** (PBF 6:1) |
+| Altan, mur, plank | Lovfri | – | Inom plan: > 1,8 m över mark inom 3,6 m från byggnad, eller > 1,2 m längre bort (9:19) |
+| Bärande ändring, eldstad, ventilation, VA | **Anmälan** | – | – (PBF 6:1) |
+| Ytterligare bostad i enbostadshus | Bygglov | Alltid, utom komplementbostadshus (9:17) | Totalförsvarsområde, värdefullt (9:36–37) |
+| Solceller | Lovfri | ≤ 11 kW (9:17 a) | Värdefullt område (9:37) |
+| Elinstallation | – | – | Får bara utföras av auktoriserad elinstallatör eller via ett elinstallationsföretags egenkontrollprogram (ElSL 27 §) |
+
+**Processen** för en lov- eller anmälningspliktig åtgärd är: ansökan eller anmälan → tekniskt samråd → **startbesked** → utförande med kontroller → **slutbesked**. Varje steg har en motsvarighet i rmink:
+- Skede *Bygglovshandling*: ritningshuvudet behöver fastighetsbeteckning och byggherre (PBL 9:86).
+- Skede *Bygghandling*: först efter startbesked.
+- Ändringar under bygget blir nya revisionsvarv, och SVAR-raderna dokumenterar besluten. Det ger underlag för ÄTA.
+- Skede *Relationshandling*: inför slutbesked.
+
+En **kontrollansvarig** behövs inte för anmälan, komplementbyggnad, mur, plank eller altan, eller små ändringar av småhus (PBF 7:5). Kontrollplanens innehåll (PBL 10:6) kan genereras från de regler som träffar ritningen.
+
+**Kommande ändringar:** drygt 30 bestämmelser i PBL och PBF har nya lydelser som börjar gälla 2027-01-01, bland annat om kontrollplan och den nya rollen **byggbedömare** (SFS 2026:712). PBF 6 kap. 3 § upphör 2027-12-01. `process.toml` och lagreglerna behöver kontrolleras igen efter de datumen.
 
 ## 5. Hur rmink kan använda kunskapen (senare etapper)
 
@@ -143,8 +169,13 @@ Ordningen ovan går från liten insats och stor nytta till större insats. Punkt
 
 ## 6. Underhåll
 
-- Varje fil har `version` (datum). Regler från BFS har `checked` (datum) och en URL till grundförfattningen på rinfo.boverket.se. **Ändringsförfattningar som tillkommit efter 2026-10-28 är inte kontrollerade.**
-- `pytest tests/test_knowledge_data.py` kontrollerar att ID:n är unika, att alla korsreferenser finns, att BFS-regler har källa och datum, att praxisregler aldrig blir *fel* och att en handskriven synonym bara pekar på ett varuslag.
+- Varje fil har `version` (datum). Regler från BFS har `checked` (datum) och en URL till grundförfattningen på rinfo.boverket.se. **Ändringsförfattningar som tillkommit efter 2026-10-28 är inte kontrollerade.** Lagregler (PBL, PBF, ElSL) länkar till den konsoliderade texten på data.riksdagen.se.
+- `pytest tests/test_knowledge_data.py` kontrollerar:
+  - att ID:n är unika och att alla korsreferenser finns
+  - att BFS- och lagregler har källa, länk och datum
+  - att praxisregler aldrig blir *fel*
+  - att en handskriven synonym bara pekar på ett varuslag
+  - att åtgärderna i `process.toml` leder till kända tillståndsformer och regler
 
 ### Stickprov att kontrollera mot källan
 
@@ -155,10 +186,15 @@ Ordningen ovan går från liten insats och stor nytta till större insats. Punkt
 | `bfs12-ramp-lutning` | 1:12 | [BFS 2024:12](https://rinfo.boverket.se/BFS2024-12/pdf/BFS2024-12.pdf) 2 kap. 4 § |
 | `bfs7-avstand-byggnader` | 8 m; komplementbyggnad ≤ 15 m² undantagen | [BFS 2024:7](https://rinfo.boverket.se/BFS2024-7/pdf/BFS2024-7.pdf) 6 kap. 5 § och 10 § |
 | `bfs8-fukt-75rf` | 75 % RF | [BFS 2024:8](https://rinfo.boverket.se/BFS2024-8/pdf/BFS2024-8.pdf) 7 kap. 1 § |
+| `pbl-altan-mur-plank` | 1,8 m inom 3,6 m · 1,2 m längre bort | [PBL](https://data.riksdagen.se/dokument/sfs-2010-900.text) 9 kap. 19 § |
+| `pbl-tillbyggnad-30` | 30,0 m², inte över nock | PBL 9 kap. 10 § |
+| `pbf-anmalan` | Rivning > 50,0 m², bärande, brand, eldstad/ventilation, VA | [PBF](https://data.riksdagen.se/dokument/sfs-2011-338.text) 6 kap. 1 § |
+| `elsl-behorighet` | Auktoriserad elinstallatör eller egenkontrollprogram | [ElSL](https://data.riksdagen.se/dokument/sfs-2016-732.text) 4 §, 27 § |
 
 ### Att verifiera med användare eller fackperson
 
-- **PBL komplementbyggnad.** Värdena 30 m², nock 4,0 m, 45 m² totalt och 4,5 m till gräns kommer från kommunala sammanfattningar och ska kontrolleras mot lagtexten i 9 kap.
+- **Elarbeten som privatpersoner får göra själva.** Exemplet "byta uttag eller strömbrytare mot likvärdig, högst 16 A och 400 V" kommer från sekundära källor. Det behöver kontrolleras mot Elsäkerhetsverkets gällande föreskrift.
+- **Lagändringar 2027.** Kontrollera PBL 10 kap. och PBF 7 kap. igen efter 2027-01-01.
 - **Skrafferingar.** Stämmer rmink-konventionen med det hantverkare och konstruktörer förväntar sig?
 - **Typkonstruktioner.** Dimensionerna (bärlina 2×45×170, plint c1800 och så vidare) är typexempel. Vilka varianter används oftast?
 - **Förkortningar.** Tillverkarnas prefix (GN/GF/GU) varierar. Vilka skriver användarna faktiskt?

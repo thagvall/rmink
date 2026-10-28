@@ -13,7 +13,10 @@ import pytest
 from rmink.drawing.model import DEFAULT_CATEGORIES
 
 ROOT = Path(__file__).resolve().parents[1] / "knowledge"
-FILES = ["terms", "drawing_standard", "materials", "assemblies", "rules", "markup", "hatches"]
+FILES = [
+    "terms", "drawing_standard", "materials", "assemblies", "rules", "markup", "hatches", "process",
+]
+LAW_SOURCES = {"PBL", "PBF", "ElSL"}
 RULE_KINDS = {"geometric", "attribute", "completeness", "manual"}
 SEVERITIES = {"fel", "fråga", "info"}
 
@@ -46,6 +49,11 @@ def ids(kb):
         "rule": set(_ids(kb["rules"]["rule"])),
         "hatch": set(_ids(kb["hatches"]["hatch"])),
         "vocabulary": set(kb["rules"]["vocabulary"]["targets"]),
+        "permit": set(_ids(kb["process"]["permit"])),
+        "action": set(_ids(kb["process"]["action"])),
+        "role": set(_ids(kb["process"]["role"])),
+        "step": set(_ids(kb["process"]["step"])),
+        "document": set(_ids(kb["process"]["document"])),
     }
 
 
@@ -101,7 +109,7 @@ def test_assemblies_are_built_from_known_materials(kb, ids):
 
 
 def test_rules_are_sourced_and_target_known_things(kb, ids):
-    targets = _known(ids, "drawing_type", "material", "assembly", "vocabulary")
+    targets = _known(ids, "drawing_type", "phase", "material", "assembly", "vocabulary")
     for r in kb["rules"]["rule"]:
         assert r["kind"] in RULE_KINDS, r["id"]
         assert r["severity"] in SEVERITIES, r["id"]
@@ -111,9 +119,23 @@ def test_rules_are_sourced_and_target_known_things(kb, ids):
         if r["source"].startswith("BFS"):
             assert r["url"].startswith("https://rinfo.boverket.se/"), r["id"]
             assert r["verified"] and r.get("checked"), r["id"]
+        if r["source"] in LAW_SOURCES:
+            assert r["url"].startswith("https://data.riksdagen.se/"), r["id"]
+            assert r["verified"] and r.get("checked"), r["id"]
         if r["source"] == "praxis":
             # practice values never block: they are asked, not flagged as errors
             assert not r["verified"] and r["severity"] != "fel", r["id"]
+
+
+def test_process_actions_lead_to_known_permits_and_rules(kb, ids):
+    outcomes = ids["permit"] | ids["role"]
+    for a in kb["process"]["action"]:
+        assert a["default"] in outcomes and a["then"] in outcomes, a["id"]
+        assert set(a["rules"]) <= ids["rule"], (a["id"], set(a["rules"]) - ids["rule"])
+    orders = [s["order"] for s in kb["process"]["step"]]
+    assert orders == sorted(orders) == list(range(1, len(orders) + 1))
+    sources = {s["id"] for s in kb["process"]["source"]}
+    assert {"pbl", "pbf", "elsl"} <= sources
 
 
 def test_term_refs_resolve(kb, ids):

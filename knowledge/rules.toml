@@ -11,7 +11,7 @@
 #
 # Fält
 #   id          unik nyckel, refereras från materials.toml och assemblies.toml
-#   source      "BFS 2024:9" | "PBL" | "rmink" | "praxis"
+#   source      "BFS 2024:9" | "PBL" | "PBF" | "ElSL" | "rmink" | "praxis"
 #   ref         kapitel och paragraf i källan
 #   url         länk till källtexten
 #   verified    true = värdet är kontrollerat mot källtexten (datum i `checked`)
@@ -36,7 +36,7 @@ targets = [
   "forklaring", "niva", "trappa", "racke", "ramp", "dorr", "fonster", "glasyta",
   "hygienrum", "kok", "sovrum", "kommunikationsutrymme", "entre", "tomt",
   "komplementbyggnad", "byggnad", "brandcellsgrans", "ventilation", "tappvatten",
-  "tak", "grund", "tillbyggnad",
+  "tak", "grund", "tillbyggnad", "elinstallation",
 ]
 
 # ======================================================== rmink – ritningens kvalitet
@@ -515,22 +515,168 @@ severity = "fråga"
 params = { distance_m = 8.0, exempt_outbuilding_max_m2 = 15 }
 message_sv = "Avstånd till annan byggnad {avstand} m – under 8 m krävs brandavskiljning (BFS 2024:7 6 kap. 5 §). Komplementbyggnad ≤ 15 m² är undantagen (10 §)."
 
-# ===================================================== PBL – lovbefriat (lag)
+# ============================================ PBL / PBF – lov, anmälan, kontroll
+# Lagtext: konsoliderad lydelse på data.riksdagen.se (PBL t.o.m. SFS
+# 2026:1583, PBF t.o.m. SFS 2026:1722). Lovreglerna ger alltid en *fråga*:
+# rmink vet inte om tomten ligger inom detaljplan eller vad planen säger.
+# Se även process.toml för beslutsträd, roller och steg.
 
 [[rule]]
 id = "pbl-komplementbyggnad"
 title = "Lovbefriad komplementbyggnad / komplementbostadshus"
 source = "PBL"
-ref = "9 kap. PBL i lydelse från 2025-12-01"
-url = "https://www.riksdagen.se/sv/dokument-och-lagar/dokument/svensk-forfattningssamling/plan-och-bygglag-2010900_sfs-2010-900/"
-verified = false
-checked = "2026-10-28 (kommunala sammanfattningar, ej lagtext)"
+ref = "9 kap. 4–5 §§ (lydelse SFS 2025:974)"
+url = "https://data.riksdagen.se/dokument/sfs-2010-900.text"
+verified = true
+checked = "2026-10-28"
 applies_to = ["komplementbyggnad", "situationsplan"]
 kind = "geometric"
 severity = "fråga"
-params = { inside_plan_max_m2 = 30.0, inside_plan_ridge_max_m = 4.0, inside_plan_total_m2 = 45.0, outside_plan_max_m2 = 50.0, outside_plan_ridge_max_m = 4.5, boundary_min_m = 4.5 }
-message_sv = "Lovbefriad komplementbyggnad: kontrollera yta, nockhöjd och avstånd till tomtgräns (4,5 m utan grannens medgivande). Reglerna ändrades 1 december 2025 – friggebod och attefallshus heter nu komplementbyggnad och komplementbostadshus."
-note = "Värdena kommer från kommunala sammanfattningar (Arvidsjaur, Östhammar) och ska verifieras mot lagtexten innan regeln används som annat än en fråga."
+params = { inside_plan_max_m2 = 30.0, inside_plan_ridge_max_m = 4.0, inside_plan_total_m2 = 45.0, outside_plan_max_m2 = 50.0, outside_plan_ridge_max_m = 4.5, outside_plan_total_m2 = 65.0 }
+message_sv = "Lovfri komplementbyggnad inom detaljplan: högst 30,0 m² byggnadsarea, nock högst 4,0 m, mindre än huvudbyggnaden, högst 45,0 m² sammanlagt på tomten (utanför detaljplan 50,0 m², 4,5 m, 65,0 m²) (PBL 9 kap. 4–5 §§). Ligger tomten inom detaljplan?"
+note = "Begreppen friggebod och attefallshus ersattes 2025-12-01. Lovfriheten bryts av 9 kap. 34–38 §§ – se pbl-narhet-grans och pbl-varde."
+
+[[rule]]
+id = "pbl-tillbyggnad-30"
+title = "Lovfri tillbyggnad upp till 30 m²"
+source = "PBL"
+ref = "9 kap. 10 §"
+url = "https://data.riksdagen.se/dokument/sfs-2010-900.text"
+verified = true
+checked = "2026-10-28"
+applies_to = ["tillbyggnad", "planritning", "fasad"]
+kind = "geometric"
+severity = "fråga"
+params = { max_area_m2 = 30.0, area_kind = "bruttoarea eller öppenarea", not_above_ridge = true }
+message_sv = "Tillbyggnaden är {area} m². Lovfri om högst 30,0 m² (bruttoarea/öppenarea, sammanlagt med tidigare lovfria tillbyggnader) och inte över husets taknock (PBL 9 kap. 10 §). Bärande ändringar kan ändå kräva anmälan."
+
+[[rule]]
+id = "pbl-altan-mur-plank"
+title = "Bygglov för altan, mur och plank inom detaljplan"
+source = "PBL"
+ref = "9 kap. 19 §"
+url = "https://data.riksdagen.se/dokument/sfs-2010-900.text"
+verified = true
+checked = "2026-10-28"
+applies_to = ["altan_plint", "altan_mark", "racke_altan", "situationsplan"]
+kind = "geometric"
+severity = "fråga"
+params = { near_building_m = 3.6, max_height_near_m = 1.8, max_height_far_m = 1.2 }
+message_sv = "Altanen är {hojd} m över mark. Inom detaljplan krävs bygglov om den är högre än 1,8 m inom 3,6 m från byggnaden, eller högre än 1,2 m längre bort (PBL 9 kap. 19 §)."
+
+[[rule]]
+id = "pbl-narhet-grans"
+title = "Bygglov nära tomtgräns – 4,5 m"
+source = "PBL"
+ref = "9 kap. 34–35 §§"
+url = "https://data.riksdagen.se/dokument/sfs-2010-900.text"
+verified = true
+checked = "2026-10-28"
+applies_to = ["situationsplan", "komplementbyggnad", "tillbyggnad", "tomt"]
+kind = "geometric"
+severity = "fråga"
+params = { boundary_min_m = 4.5, railway_min_m = 30.0, wall_fence_height_m = 1.2 }
+message_sv = "Avstånd till tomtgräns {avstand} m. Närmare än 4,5 m kräver lovfria åtgärder bygglov, om inte de berörda grannarna skriftligen har medgett åtgärden och den följer detaljplanen (PBL 9 kap. 34–35 §§). Finns medgivande?"
+
+[[rule]]
+id = "pbl-varde"
+title = "Särskilt värdefull byggnad eller område"
+source = "PBL"
+ref = "9 kap. 37–38 §§"
+url = "https://data.riksdagen.se/dokument/sfs-2010-900.text"
+verified = true
+checked = "2026-10-28"
+applies_to = ["byggnad", "komplementbyggnad", "tillbyggnad"]
+kind = "manual"
+severity = "fråga"
+params = {}
+message_sv = "Har byggnaden eller området skyddsbestämmelser i detaljplanen (q-märkning) eller är den särskilt värdefull? Då krävs bygglov även för annars lovfria åtgärder (PBL 9 kap. 37 §)."
+
+[[rule]]
+id = "pbf-anmalan"
+title = "Anmälningspliktiga åtgärder"
+source = "PBF"
+ref = "6 kap. 1 §"
+url = "https://data.riksdagen.se/dokument/sfs-2011-338.text"
+verified = true
+checked = "2026-10-28"
+applies_to = ["tillbyggnad", "konstruktion", "brandcellsgrans", "ventilation", "vvs", "iv_vatrum", "bjl_tra"]
+kind = "manual"
+severity = "fråga"
+params = { demolition_min_area_m2 = 50.0, triggers = ["rivning av byggnad > 50,0 m² byggnadsarea", "väsentlig påverkan på bärande delar", "väsentlig påverkan på brandskyddet", "hiss, eldstad, rökkanal eller ventilation", "vatten- eller avloppsinstallation", "vindkraftverk"] }
+message_sv = "Ändringen påverkar {vad}. Det kräver anmälan och startbesked innan arbetet börjar (PBF 6 kap. 1 §, PBL 10 kap. 3 §)."
+
+[[rule]]
+id = "pbl-startbesked"
+title = "Startbesked före arbetet"
+source = "PBL"
+ref = "10 kap. 3–4 §§"
+url = "https://data.riksdagen.se/dokument/sfs-2010-900.text"
+verified = true
+checked = "2026-10-28"
+applies_to = ["bygghandling"]
+kind = "manual"
+severity = "info"
+params = {}
+message_sv = "Lov- eller anmälningspliktig åtgärd: arbetet får inte påbörjas före startbesked, och byggnaden får inte tas i bruk före slutbesked (PBL 10 kap. 3–4 §§)."
+
+[[rule]]
+id = "pbl-kontrollplan"
+title = "Kontrollplanens innehåll"
+source = "PBL"
+ref = "10 kap. 6–8 §§"
+url = "https://data.riksdagen.se/dokument/sfs-2010-900.text"
+verified = true
+checked = "2026-10-28"
+applies_to = ["bygghandling"]
+kind = "completeness"
+severity = "info"
+params = { contains = ["kontroller och krav", "vem och hur", "anmälningar till nämnden", "arbetsplatsbesök"] }
+message_sv = "Kontrollplanen ska ange vilka kontroller som görs och mot vilka krav, vem som gör dem och hur, anmälningar till nämnden och arbetsplatsbesök (PBL 10 kap. 6 §). Reglerna som träffar ritningen kan bli kontrollpunkter."
+
+[[rule]]
+id = "pbl-kontrollansvarig"
+title = "Behövs kontrollansvarig?"
+source = "PBF"
+ref = "PBL 10 kap. 9–10 §§, PBF 7 kap. 5 §"
+url = "https://data.riksdagen.se/dokument/sfs-2011-338.text"
+verified = true
+checked = "2026-10-28"
+applies_to = ["bygghandling", "komplementbyggnad", "altan_plint", "tillbyggnad"]
+kind = "manual"
+severity = "info"
+params = { not_needed_for = ["anmälningspliktig åtgärd", "komplementbyggnad/komplementbostadshus", "mur, plank eller altan", "ytterligare bostad i enbostadshus", "små ändringar av en- och tvåbostadshus"] }
+message_sv = "Kontrollansvarig krävs inte för anmälan, komplementbyggnad, mur/plank/altan eller små ändringar av småhus, om byggnadsnämnden inte beslutar annat (PBF 7 kap. 5 §). Annars föreslås en KA i ansökan."
+
+# ==================================================== ElSL – behörighet för el
+
+[[rule]]
+id = "elsl-behorighet"
+title = "Elinstallationsarbete av behörig"
+source = "ElSL"
+ref = "4 §, 24–27 §§"
+url = "https://data.riksdagen.se/dokument/sfs-2016-732.text"
+verified = true
+checked = "2026-10-28"
+applies_to = ["el", "elinstallation"]
+kind = "completeness"
+severity = "info"
+params = {}
+message_sv = "Elinstallationen (utföra, ändra, reparera eller fast ansluta till starkström) får bara utföras av en auktoriserad elinstallatör eller någon i ett elinstallationsföretags egenkontrollprogram (ElSL 4 §, 27 §). Skriv 'Elinstallation utförs av elinstallationsföretag' på ritningen."
+
+[[rule]]
+id = "elsak-undantag"
+title = "Elarbeten som en privatperson får göra själv"
+source = "praxis"
+ref = "Elsäkerhetsverkets föreskrifter ELSÄK-FS 2017:2 3 kap. (ej kontrollerat mot källtexten)"
+url = ""
+verified = false
+applies_to = ["el", "elinstallation"]
+kind = "manual"
+severity = "fråga"
+params = { examples = ["byta vägguttag eller strömbrytare mot likvärdig (högst 16 A, 400 V)"] }
+message_sv = "Ska ägaren göra något elarbete själv? Bara vissa enkla byten är undantagna från kravet på behörighet – kontrollera Elsäkerhetsverkets föreskrifter."
+note = "Värdet kommer från sekundära källor. Föreskriftens PDF leder om till en webbsida (2026-10-28), så det är oklart vilken föreskrift som gäller nu."
 
 # ===================================================== praxis – frågor, inte fel
 
