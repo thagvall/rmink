@@ -1,7 +1,19 @@
 # Changelog
 
-## Unreleased
+## 2.6.0 — 2026-10-28
 
+- Angles on drawings. An angle dimension is drawn as an arc with arrows between two legs and its degrees ("38,7°"). Write "visa vinklarna" on a drawing and the round puts out the corner angles. A written angle that disagrees with the drawing by more than 2° becomes a question.
+- Numbers come from code, not from Claude's head. Two new tools, in rounds and over MCP:
+  - `measure` (MCP: `measure_drawing`) reads lengths, areas and corner angles off the drawing, in mm using the scale of the written dimensions.
+  - `calculate` evaluates an expression safely. It covers:
+    - trigonometry in degrees, hypotenuse and legs, any triangle from three sides
+    - roof pitch as degrees, 1:x and percent
+    - areas and volumes
+    - weight from the approximate densities now in `materials.toml`
+    - pieces at c/c spacing, lengths to buy, waste
+    - set operations
+- The drawing font has √, so a worked-out length such as "√(3600² + 1800²) ≈ 4025 mm" is drawn in full.
+- A sketch archived as "Altan r00 skiss" names its drawing "Altan" when a round is run on it.
 - 18 new drawing symbols for small-house plans, 33 in all:
   - el: elcentral, dubbeluttag, brandvarnare
   - VVS: WC, tvättställ, dusch, radiator, fallriktning
