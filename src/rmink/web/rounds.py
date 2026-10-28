@@ -4,8 +4,10 @@ round of a new sketch in the rmink folder, and see the result.
 Owner-only. The router is mounted only when ``RMINK_ROUNDS_SECRET`` and
 ``ANTHROPIC_API_KEY`` are set, and every API call must carry the secret in the
 ``X-Rmink-Secret`` header. The reMarkable connection comes from
-``RMINK_CLOUD_TOKEN``. Drawings are kept in the owner's browser: the page sends
-them with each round and stores what comes back. With Upstash Redis configured
+``RMINK_CLOUD_TOKEN``, and the page only reaches the rmink folder and what is
+in it: other paths are refused before rmapi runs. Drawings are kept in the
+owner's browser: the page sends them with each round and stores what comes
+back. With Upstash Redis configured
 (see :func:`rmink.drawing.store.redis_from_env`) they are kept there instead.
 """
 
@@ -42,6 +44,16 @@ def _token() -> str:
     return token
 
 
+def _in_rmink(path: str, folder_ok: bool = True) -> str:
+    """``path`` as "/rmink/...", or 403 if it points anywhere else."""
+    parts = [p for p in path.strip().split("/") if p]
+    if not parts or parts[0] != "rmink" or any(p in (".", "..") for p in parts):
+        raise HTTPException(403, "Bara mappen rmink och det som ligger i den")
+    if len(parts) == 1 and not folder_ok:
+        raise HTTPException(403, "Välj en anteckningsbok i rmink")
+    return "/" + "/".join(parts)
+
+
 class RunRequest(BaseModel):
     document: str
     device: str = "rm2"
@@ -59,8 +71,9 @@ def router() -> APIRouter:
         return (STATIC / "rounds.html").read_text(encoding="utf-8")
 
     @r.get("/api/rounds/documents")
-    async def documents(path: str = "/", x_rmink_secret: str | None = Header(None)) -> dict:
+    async def documents(path: str = "/rmink", x_rmink_secret: str | None = Header(None)) -> dict:
         _check(x_rmink_secret)
+        path = _in_rmink(path)
         token = _token()
         try:
             entries = await anyio.to_thread.run_sync(cloud.ls, token, path)
@@ -82,15 +95,14 @@ def router() -> APIRouter:
     @r.post("/api/rounds/run")
     async def run(req: RunRequest, x_rmink_secret: str | None = Header(None)) -> dict:
         _check(x_rmink_secret)
+        document = _in_rmink(req.document, folder_ok=False)
         _token()
         from rmink.drawing.agent import RoundError, run_round
         from rmink.drawing.store import MemoryStore, redis_from_env
 
         store = redis_from_env() or MemoryStore(req.drawings, req.links)
         try:
-            result = await anyio.to_thread.run_sync(
-                lambda: run_round(req.document, req.device, store)
-            )
+            result = await anyio.to_thread.run_sync(lambda: run_round(document, req.device, store))
         except RoundError as e:
             raise HTTPException(422, str(e)) from e
         except cloud.CloudAuthError as e:

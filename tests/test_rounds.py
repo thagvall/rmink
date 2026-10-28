@@ -275,9 +275,21 @@ def test_rounds_router(monkeypatch):
         client.get("/api/rounds/documents", headers={"X-Rmink-Secret": "nope"}).status_code == 401
     )
 
-    monkeypatch.setattr(cloud, "ls", lambda token, path="/": [cloud.Entry("Altan r1", False)])
-    r = client.get("/api/rounds/documents", headers={"X-Rmink-Secret": "s3cret"})
-    assert r.json()["entries"] == [{"name": "Altan r1", "folder": False, "path": "/Altan r1"}]
+    listed = []
+
+    def ls(token, path="/"):
+        listed.append(path)
+        return [cloud.Entry("Altan r1", False)]
+
+    monkeypatch.setattr(cloud, "ls", ls)
+    auth = {"X-Rmink-Secret": "s3cret"}
+    r = client.get("/api/rounds/documents", headers=auth)
+    assert r.json()["entries"] == [{"name": "Altan r1", "folder": False, "path": "/rmink/Altan r1"}]
+    # The page reaches the rmink folder and nothing above or beside it.
+    for path in ("/", "/Projekt", "/rminkx", "/rmink/../Projekt", "rmink/./x"):
+        r = client.get("/api/rounds/documents", params={"path": path}, headers=auth)
+        assert r.status_code == 403, path
+    assert listed == ["/rmink"]
 
     def no_folder(token, path="/"):
         raise cloud.CloudNotFoundError(path)
@@ -303,8 +315,11 @@ def test_rounds_router(monkeypatch):
         return fake
 
     monkeypatch.setattr(agent, "run_round", fake_round)
+    for document in ("/Altan r1", "/rmink", "Altan", "/rmink/../Altan r1", "/etc/passwd"):
+        r = client.post("/api/rounds/run", json={"document": document}, headers=auth)
+        assert r.status_code == 403, document
     body = {
-        "document": "/Altan r1",
+        "document": "/rmink/Altan r1",
         "drawings": {"altan": Drawing(name="Altan", revision=1).model_dump_json()},
         "links": {"Altan r1": "Altan"},
     }

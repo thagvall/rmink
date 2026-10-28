@@ -80,7 +80,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
     <p class="muted" id="pick-help">Lägg skissen i mappen rmink på plattan, så blir anteckningsbokens namn ritningens namn. Ligger skissen i en egen mapp under rmink får ritningen mappens namn.</p>
     <div class="crumbs" id="crumbs" hidden></div>
     <div class="list" id="list"><p class="muted">Hämtar…</p></div>
-    <button class="link" id="browse" type="button">Annan anteckningsbok…</button>
+    <button class="link" id="browse" type="button">Mappar i rmink…</button>
     <div class="row">
       <label for="device" style="flex:none">Platta</label>
       <select id="device" style="width:auto">
@@ -209,7 +209,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
     const c = $("#crumbs"); c.innerHTML = ""; c.hidden = !browsing;
     const parts = path.split("/").filter(Boolean);
     const add = (label, p) => { const b = el("button", null, label); b.type = "button"; b.onclick = () => load(p); c.appendChild(b); };
-    add("Mina filer", "/");
+    // The page stays in rmink: its crumbs start there, never at the tablet's root.
     parts.forEach((part, i) => add(part, "/" + parts.slice(0, i + 1).join("/")));
   }
 
@@ -220,7 +220,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
   }
 
   $("#browse").addEventListener("click", () => {
-    if (browsing) { browsing = false; $("#browse").textContent = "Annan anteckningsbok…"; load(INBOX); }
+    if (browsing) { browsing = false; $("#browse").textContent = "Mappar i rmink…"; load(INBOX); }
     else browse(INBOX);
   });
 
