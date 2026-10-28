@@ -185,7 +185,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
       // Two taps: the drawing and its links leave this browser, the notebooks stay on the tablet.
       const forget = el("button", "link forget", "Glöm"); forget.type = "button";
       forget.onclick = () => {
-        if (!forget.dataset.armed) { forget.dataset.armed = "1"; forget.textContent = "Glöm ritningen? Tryck igen"; return; }
+        if (!forget.dataset.armed) { forget.dataset.armed = "1"; forget.textContent = `Glöm ${d.name}? Tryck igen`; return; }
         const m = memory();
         delete m.drawings[d.key];
         for (const k of Object.keys(m.links)) if (m.links[k] === d.name) delete m.links[k];
