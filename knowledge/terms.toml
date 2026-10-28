@@ -1,0 +1,178 @@
+# Terminologi och förkortningar på svenska byggritningar – småhusfokus.
+#
+# En rad per term:
+#   id    unik nyckel
+#   term  det korrekta uttrycket (så skrivs det i FÖRKLARINGAR)
+#   abbr  förkortning som skrivs på ritningen ("" om ingen)
+#   en    engelsk motsvarighet
+#   cat   ritning | matt | process | byggdel | grund | vagg | bjalklag | tak |
+#         altan | oppning | installation | material | regel
+#   syn   handskrivna varianter och synonymer (för tolkning av skisser)
+#   ref   valfri koppling till materials.toml / assemblies.toml / rules.toml /
+#         drawing_standard.toml
+#   def   kort förklaring med egna ord
+
+version = "2026-10-28"
+
+term = [
+  # ------------------------------------------------------------ ritning
+  { id = "plan", term = "Planritning", abbr = "PLAN", en = "Floor plan", cat = "ritning", syn = ["plan", "planlösning"], ref = "planritning", def = "Våningsplan sett ovanifrån, snittat ca 1 m över golv." },
+  { id = "sektion", term = "Sektion", abbr = "SEKT", en = "Section", cat = "ritning", syn = ["snitt", "genomskärning", "sektion A-A"], ref = "sektion", def = "Vertikalt snitt genom byggnaden längs en markerad snittlinje." },
+  { id = "fasad", term = "Fasad", abbr = "FAS", en = "Elevation", cat = "ritning", syn = ["fasad mot söder", "vy"], ref = "fasad", def = "Byggnaden sedd utifrån, namnges efter väderstreck (Fasad mot söder)." },
+  { id = "detalj", term = "Detalj", abbr = "DET", en = "Detail", cat = "ritning", syn = ["detaljritning", "nedslag", "anslutning"], ref = "detalj", def = "Förstorat utsnitt som visar skikt och infästning." },
+  { id = "situationsplan", term = "Situationsplan", abbr = "SITU", en = "Site plan", cat = "ritning", syn = ["situationsplan", "tomtkarta", "nybyggnadskarta"], ref = "situationsplan", def = "Tomten med byggnadens placering och mått till gräns." },
+  { id = "ritningshuvud", term = "Ritningshuvud", abbr = "", en = "Title block", cat = "ritning", syn = ["namnruta", "titelfält", "stämpel"], ref = "ritningshuvud", def = "Rutan nere till höger med projekt, innehåll, nummer, skala, datum, skede och revision." },
+  { id = "ritningsnummer", term = "Ritningsnummer", abbr = "RITN NR", en = "Drawing number", cat = "ritning", syn = ["ritn.nr", "nr"], ref = "ritningsnummer", def = "Unik beteckning för ritningen, ofta disciplin + typ + löpnummer." },
+  { id = "skala", term = "Skala", abbr = "SKALA", en = "Scale", cat = "ritning", syn = ["1:50", "1:20", "1:100", "skalenlig"], ref = "skala", def = "Förhållandet mellan ritad och verklig längd." },
+  { id = "norrpil", term = "Norrpil", abbr = "N", en = "North arrow", cat = "ritning", syn = ["norr", "N-pil", "väderstreck"], ref = "norrpil", def = "Pil som visar norr på plan och situationsplan." },
+  { id = "snittlinje", term = "Snittlinje / sektionsmarkering", abbr = "A-A", en = "Section line", cat = "ritning", syn = ["snittmarkering", "sektionspil"], ref = "sektion", def = "Linje i plan som visar var sektionen är tagen och åt vilket håll man ser." },
+  { id = "forklaring", term = "Förklaringar / teckenförklaring", abbr = "", en = "Legend", cat = "ritning", syn = ["legend", "symbolförklaring", "teckenförklaring"], ref = "forklaring", def = "Lista som förklarar symboler, linjetyper och skrafferingar." },
+  { id = "typlista", term = "Typlista", abbr = "", en = "Type schedule", cat = "ritning", syn = ["väggtyper", "konstruktionstyper", "typförteckning"], ref = "", def = "Förteckning över väggtyper, bjälklagstyper med mera, som ritningen hänvisar till med kod." },
+  { id = "revision", term = "Revision", abbr = "REV", en = "Revision", cat = "ritning", syn = ["rev", "rev A", "r03", "ändring"], ref = "revision", def = "Utgåva av ritningen efter ändring; markeras med bokstav eller nummer." },
+  { id = "andringsmoln", term = "Ändringsmoln", abbr = "", en = "Revision cloud", cat = "ritning", syn = ["moln", "revideringsmoln"], ref = "revision", def = "Molnformad ring runt det som ändrats sedan förra revisionen." },
+  { id = "skraffering", term = "Skraffering", abbr = "", en = "Hatching", cat = "ritning", syn = ["skraffur", "fyllnadsmönster", "mönster"], ref = "", def = "Mönster i snittade ytor som visar material." },
+  { id = "skede", term = "Skede / handlingsstatus", abbr = "", en = "Issue status", cat = "process", syn = ["status", "handlingsstatus"], ref = "skede", def = "Vilken användning ritningen är utgiven för (granskning, bygglov, bygghandling)." },
+  { id = "bygglovshandling", term = "Bygglovshandling", abbr = "BL", en = "Planning application drawing", cat = "process", syn = ["bygglovsritning", "lovhandling"], ref = "bygglovshandling", def = "Ritningar som lämnas till kommunen för lov eller anmälan." },
+  { id = "bygghandling", term = "Bygghandling", abbr = "BH", en = "Construction drawing", cat = "process", syn = ["arbetsritning", "byggritning"], ref = "bygghandling", def = "Ritning som gäller för utförandet." },
+  { id = "relationshandling", term = "Relationshandling", abbr = "REL", en = "As-built drawing", cat = "process", syn = ["relationsritning", "som byggt"], ref = "relationshandling", def = "Ritning som visar hur det faktiskt byggdes." },
+  { id = "fu", term = "Förfrågningsunderlag", abbr = "FU", en = "Tender documents", cat = "process", syn = ["förfrågan", "anbudsunderlag"], ref = "forfragningsunderlag", def = "Handlingar som entreprenörer räknar anbud på." },
+  { id = "teknisk_beskrivning", term = "Teknisk beskrivning", abbr = "TB", en = "Specification", cat = "process", syn = ["beskrivning", "rambeskrivning", "byggbeskrivning"], ref = "", def = "Text som anger material och utförande. Hänvisar ofta till AMA-koder." },
+  { id = "ama", term = "AMA (Allmän material- och arbetsbeskrivning)", abbr = "AMA", en = "Swedish general specification", cat = "process", syn = ["AMA Hus", "AMA Hus 24", "enligt AMA"], ref = "", def = "Branschgemensamt referensverk (Svensk Byggtjänst). Blir bindande först när en kod åberopas i beskrivningen." },
+  { id = "kontrollplan", term = "Kontrollplan", abbr = "KP", en = "Inspection plan", cat = "process", syn = ["kontrollplan PBL"], ref = "", def = "Plan för vilka kontroller som görs, av vem och hur de dokumenteras." },
+  { id = "granskning", term = "Granskning", abbr = "", en = "Review", cat = "process", syn = ["granskningsvarv", "kvalitetsgranskning", "egenkontroll"], ref = "", def = "Genomgång av handlingen mot krav och andra handlingar; ger anmärkningar." },
+  { id = "anmarkning", term = "Anmärkning", abbr = "ANM", en = "Remark / markup", cat = "process", syn = ["kommentar", "markering", "notering"], ref = "", def = "En punkt från granskning som ska besvaras eller åtgärdas." },
+  { id = "svar", term = "Svar", abbr = "SVAR", en = "Reply", cat = "process", syn = ["svar:", "åtgärd"], ref = "", def = "Rad under en anmärkning där den som ritar svarar." },
+
+  # --------------------------------------------------------------- mått
+  { id = "mattkedja", term = "Måttkedja", abbr = "", en = "Chain dimension", cat = "matt", syn = ["kedjemått", "måttserie"], ref = "mattkedja", def = "Rad av delmått som tillsammans ger totalmåttet." },
+  { id = "c_matt", term = "Centrumavstånd", abbr = "c", en = "Centre spacing", cat = "matt", syn = ["c600", "c-c", "cc", "c/c"], ref = "", def = "Avstånd mellan mittlinjerna, till exempel c600 för reglar." },
+  { id = "ok", term = "Överkant", abbr = "ÖK", en = "Top of", cat = "matt", syn = ["ök", "överkant"], ref = "", def = "Nivån för överkanten av en del (ÖK bjälklag)." },
+  { id = "uk", term = "Underkant", abbr = "UK", en = "Bottom of", cat = "matt", syn = ["uk", "underkant"], ref = "", def = "Nivån för underkanten (UK plint)." },
+  { id = "fg", term = "Färdigt golv", abbr = "FG", en = "Finished floor level", cat = "matt", syn = ["färdigt golv", "FFG", "golvnivå"], ref = "niva", def = "Golvets nivå efter ytskikt. Entréplanets FG är ofta ±0." },
+  { id = "nollniva", term = "Nollnivå", abbr = "±0", en = "Datum level", cat = "matt", syn = ["±0", "+-0", "nollan"], ref = "niva", def = "Referensnivån som andra nivåer räknas från." },
+  { id = "nivå", term = "Nivå", abbr = "+", en = "Level", cat = "matt", syn = ["höjd", "+12,350", "nivåmått"], ref = "niva", def = "Höjd i meter, relativt ±0 eller i höjdsystemet (RH 2000)." },
+  { id = "rh2000", term = "RH 2000", abbr = "RH 2000", en = "Swedish height datum", cat = "matt", syn = ["höjdsystem", "rikets höjdsystem"], ref = "", def = "Sveriges nationella höjdsystem. Används på situationsplaner." },
+  { id = "fm", term = "Färdig mark", abbr = "FM", en = "Finished ground level", cat = "matt", syn = ["färdig mark", "marknivå"], ref = "", def = "Markens nivå efter planering." },
+  { id = "bta", term = "Bruttoarea", abbr = "BTA", en = "Gross floor area", cat = "matt", syn = ["bruttoyta"], ref = "", def = "Area till ytterväggarnas utsida." },
+  { id = "boa", term = "Boarea", abbr = "BOA", en = "Living area", cat = "matt", syn = ["boyta"], ref = "", def = "Area för boende, mätt till väggarnas insida." },
+  { id = "bya", term = "Byggnadsarea", abbr = "BYA", en = "Building footprint", cat = "matt", syn = ["byggyta", "fotavtryck"], ref = "", def = "Den yta byggnaden upptar på marken. Styr byggnadsklass och lovbefriade åtgärder." },
+  { id = "nockhojd", term = "Nockhöjd", abbr = "", en = "Ridge height", cat = "matt", syn = ["taknock", "nock"], ref = "", def = "Höjden till takets högsta punkt." },
+  { id = "taklutning", term = "Taklutning", abbr = "", en = "Roof pitch", cat = "matt", syn = ["lutning", "takvinkel", "°"], ref = "", def = "Takets lutning i grader eller som 1:x." },
+  { id = "fall", term = "Fall", abbr = "", en = "Fall / slope", cat = "matt", syn = ["fall mot brunn", "lutning", "1:50"], ref = "", def = "Lutning för vattenavrinning, till exempel mot golvbrunn eller bort från huset." },
+  { id = "modul", term = "Modulmått", abbr = "M", en = "Module", cat = "matt", syn = ["9×21", "10×21", "12×12", "moduler"], ref = "", def = "Mått i moduler om 100 mm, till exempel dörr 9×21 = 900×2100 karmyttermått." },
+  { id = "fri_hojd", term = "Fri höjd", abbr = "", en = "Clear height", cat = "matt", syn = ["takhöjd", "frihöjd"], ref = "bfs9-fri-hojd", def = "Minsta höjd utan hinder; minst 2,00 m i passager, trappor och dörrar." },
+  { id = "fri_bredd", term = "Fri bredd / fri passage", abbr = "", en = "Clear width", cat = "matt", syn = ["fri öppning", "passagemått"], ref = "bfs13-dimensionerande-matt", def = "Den bredd man faktiskt kan passera, mindre än karmmåttet." },
+
+  # -------------------------------------------------------- byggdelar/vägg
+  { id = "yv", term = "Yttervägg", abbr = "YV", en = "External wall", cat = "vagg", syn = ["yttervägg", "ytterväggar"], ref = "yv_tra", def = "Vägg mot det fria; kod som YV1 hänvisar till typlistan." },
+  { id = "iv", term = "Innervägg", abbr = "IV", en = "Internal wall", cat = "vagg", syn = ["innervägg", "mellanvägg"], ref = "iv1", def = "Vägg inne i byggnaden." },
+  { id = "barande_vagg", term = "Bärande vägg", abbr = "", en = "Load-bearing wall", cat = "vagg", syn = ["bärande", "bär"], ref = "", def = "Vägg som tar last från bjälklag eller tak. Ritas grövre." },
+  { id = "regel", term = "Regel", abbr = "", en = "Stud", cat = "vagg", syn = ["reglar", "stående regel"], ref = "konstruktionsvirke", def = "Stående virke i väggstomme, oftast c600." },
+  { id = "syll", term = "Syll", abbr = "", en = "Sole plate", cat = "vagg", syn = ["bottensyll", "syllar"], ref = "konstruktionsvirke", def = "Liggande virke under reglarna, mot grunden." },
+  { id = "hammarband", term = "Hammarband", abbr = "", en = "Top plate", cat = "vagg", syn = ["hammarbandet", "överliggare"], ref = "konstruktionsvirke", def = "Liggande virke ovanpå reglarna." },
+  { id = "kortling", term = "Kortling", abbr = "", en = "Noggin", cat = "vagg", syn = ["kortlingar", "nogging"], ref = "", def = "Kort virkesbit mellan reglar för stabilitet eller infästning." },
+  { id = "avvaxling", term = "Avväxling", abbr = "", en = "Header / trimmer", cat = "vagg", syn = ["överliggare", "balk över öppning"], ref = "", def = "Förstärkning över en öppning i en bärande vägg eller ett bjälklag." },
+  { id = "installationsskikt", term = "Installationsskikt", abbr = "", en = "Service void", cat = "vagg", syn = ["installationsregel", "inst.skikt"], ref = "yv_tra", def = "Skikt innanför ångspärren för el och rör." },
+  { id = "luftspalt", term = "Luftspalt", abbr = "", en = "Ventilated cavity", cat = "vagg", syn = ["luftning", "ventilerad spalt"], ref = "", def = "Spalt bakom fasaden eller under taket som låter fukt torka ut." },
+  { id = "kolbrygga", term = "Köldbrygga", abbr = "", en = "Thermal bridge", cat = "vagg", syn = ["köldbryggor", "värmebrygga"], ref = "", def = "Ställe där värme leds ut lättare, till exempel vid kantbalk." },
+  { id = "brandcellsgrans", term = "Brandcellsgräns", abbr = "", en = "Fire compartment boundary", cat = "vagg", syn = ["brandvägg", "EI30", "EI60", "brandcell"], ref = "bfs7-brandcellsgrans-klass", def = "Konstruktion som begränsar en brandcell; markeras med klass, till exempel EI 30." },
+  { id = "ei", term = "Brandteknisk klass EI", abbr = "EI", en = "Fire resistance class", cat = "regel", syn = ["EI 30", "EI 60", "EI2 30"], ref = "bfs7-brandcellsgrans-klass", def = "Avskiljande förmåga: E = integritet, I = isolering, siffran = minuter." },
+  { id = "euroklass", term = "Euroklass (ytskikt)", abbr = "", en = "Reaction to fire class", cat = "regel", syn = ["A1", "A2-s1,d0", "B-s1,d0", "D-s2,d0"], ref = "", def = "Materialets bidrag till brand: A1 obrännbart … F; s = rök, d = brinnande droppar." },
+  { id = "k210", term = "Tändskyddande beklädnad", abbr = "K2 10", en = "Fire protection cladding", cat = "regel", syn = ["K210", "tändskydd"], ref = "", def = "Beklädnad i lägst K2 10 och B-s1,d0 enligt BFS 2024:7." },
+  { id = "byggnadsklass", term = "Byggnadsklass", abbr = "BK", en = "Building fire class", cat = "regel", syn = ["Br3", "Br2", "Br1", "BK3", "byggnadsklass 3"], ref = "bfs7-byggnadsklass", def = "Brandskyddsbehov 0–3 enligt BFS 2024:7; ersätter tidigare Br0–Br3. Småhus i 1–2 plan = BK3." },
+  { id = "verksamhetsklass", term = "Verksamhetsklass", abbr = "Vk", en = "Occupancy class", cat = "regel", syn = ["Vk1", "Vk3A", "VK"], ref = "", def = "Klass efter hur personer i lokalen kan utrymma. Bostäder i småhus = 3A." },
+
+  # ------------------------------------------------------------- bjälklag
+  { id = "bjl", term = "Bjälklag", abbr = "BJL", en = "Floor structure", cat = "bjalklag", syn = ["bjälklag", "mellanbjälklag", "vindsbjälklag"], ref = "bjl_tra", def = "Horisontell bärande del mellan våningar eller mot vind." },
+  { id = "bjalke", term = "Bjälke", abbr = "", en = "Joist", cat = "bjalklag", syn = ["golvbjälke", "bjälkar"], ref = "konstruktionsvirke", def = "Liggande bärande virke i bjälklag." },
+  { id = "upplag", term = "Upplag", abbr = "", en = "Bearing", cat = "bjalklag", syn = ["upplagsyta", "vilar på"], ref = "", def = "Där en balk eller bjälke vilar på något bärande." },
+  { id = "spann", term = "Spännvidd", abbr = "L", en = "Span", cat = "bjalklag", syn = ["spann", "fri längd"], ref = "", def = "Avstånd mellan upplag; styr dimensionen." },
+  { id = "glespanel", term = "Glespanel", abbr = "", en = "Battens", cat = "bjalklag", syn = ["glesp.", "läkt i tak"], ref = "lakt", def = "Läkt i tak eller undertak, till exempel c300–400." },
+  { id = "undertak", term = "Undertak", abbr = "", en = "Ceiling", cat = "bjalklag", syn = ["innertak", "tak inne"], ref = "", def = "Beklädnad under bjälklaget." },
+
+  # ----------------------------------------------------------------- grund
+  { id = "platta_pa_mark", term = "Platta på mark", abbr = "", en = "Slab on grade", cat = "grund", syn = ["platta", "bottenplatta", "betongplatta"], ref = "platta_pa_mark", def = "Gjuten betongplatta med isolering under, direkt på mark." },
+  { id = "kantbalk", term = "Kantbalk", abbr = "", en = "Edge beam", cat = "grund", syn = ["kantförstyvning", "kantelement", "L-element"], ref = "betong_prefab", def = "Förtjockning eller element längs plattans kant." },
+  { id = "plint", term = "Plint", abbr = "", en = "Pad footing / pier", cat = "grund", syn = ["plintar", "betongplint", "plintrör", "markskruv"], ref = "plint_betong", def = "Punktvis grundläggning under stolpe eller bärlina." },
+  { id = "krypgrund", term = "Krypgrund", abbr = "", en = "Crawl space", cat = "grund", syn = ["kryprum", "torpargrund"], ref = "", def = "Grund med luftat utrymme under bjälklaget." },
+  { id = "sula", term = "Grundsula", abbr = "", en = "Strip footing", cat = "grund", syn = ["sula", "grundsula"], ref = "betong_platsgjuten", def = "Bred gjuten list under vägg eller grundmur." },
+  { id = "kapillarbrytande", term = "Kapillärbrytande skikt", abbr = "", en = "Capillary break", cat = "grund", syn = ["kapillärbrytning", "dränerande lager"], ref = "makadam", def = "Lager som hindrar fukt att sugas upp, till exempel makadam 16–32." },
+  { id = "tjalfritt", term = "Tjälfritt djup", abbr = "", en = "Frost depth", cat = "grund", syn = ["frostfritt", "tjäldjup", "frostskydd"], ref = "praxis-frostfritt", def = "Djup där marken inte fryser; beror på ort och jordart." },
+  { id = "dranering", term = "Dränering", abbr = "", en = "Drainage", cat = "grund", syn = ["dränrör", "dränledning"], ref = "", def = "Rör och fyllning som leder bort vatten från grunden." },
+  { id = "radon", term = "Radonskydd", abbr = "", en = "Radon protection", cat = "grund", syn = ["radonsäkert", "radonsug"], ref = "", def = "Åtgärd mot markradon; behovet beror på kommunens kartläggning." },
+
+  # ------------------------------------------------------------------- tak
+  { id = "sadeltak", term = "Sadeltak", abbr = "", en = "Gable roof", cat = "tak", syn = ["sadel", "åstak"], ref = "tak_sadel", def = "Tak med två fall mot en nock." },
+  { id = "pulpettak", term = "Pulpettak", abbr = "", en = "Mono-pitch roof", cat = "tak", syn = ["pulpet", "enkelfall"], ref = "tak_pulpet", def = "Tak med ett fall." },
+  { id = "takstol", term = "Takstol", abbr = "", en = "Roof truss", cat = "tak", syn = ["takstolar", "fackverk"], ref = "tak_sadel", def = "Prefabricerat fackverk som bär taket, oftast c1200." },
+  { id = "taksparre", term = "Taksparre", abbr = "", en = "Rafter", cat = "tak", syn = ["sparre", "takbalk", "sparrar"], ref = "konstruktionsvirke", def = "Lutande balk i takkonstruktionen." },
+  { id = "nock", term = "Nock", abbr = "", en = "Ridge", cat = "tak", syn = ["nocken", "taknock"], ref = "", def = "Takets högsta linje där två fall möts." },
+  { id = "takfot", term = "Takfot", abbr = "", en = "Eaves", cat = "tak", syn = ["takfoten", "takutsprång"], ref = "", def = "Takets nedre kant mot fasaden." },
+  { id = "gavel", term = "Gavel", abbr = "", en = "Gable", cat = "tak", syn = ["gavelspets", "gavelvägg"], ref = "", def = "Kortsidan på ett sadeltak, ofta med triangulär vägg." },
+  { id = "underlagstak", term = "Underlagstak", abbr = "", en = "Roof underlay", cat = "tak", syn = ["råspont och papp", "underlagsduk"], ref = "raspont", def = "Det täta skiktet under taktäckningen." },
+  { id = "barlakt", term = "Bärläkt", abbr = "", en = "Tile batten", cat = "tak", syn = ["bärläkt", "pannläkt"], ref = "lakt", def = "Läkt som takpannorna hänger på." },
+  { id = "strolakt", term = "Ströläkt", abbr = "", en = "Counter batten", cat = "tak", syn = ["ströläkt", "distans"], ref = "lakt", def = "Läkt i fallriktningen som ger luft under bärläkten." },
+  { id = "hangranna", term = "Hängränna och stuprör", abbr = "", en = "Gutter and downpipe", cat = "tak", syn = ["ränna", "stuprör", "takavvattning"], ref = "", def = "Takavvattning. Placering och anslutning visas på fasad eller plan." },
+  { id = "kallvind", term = "Kallvind", abbr = "", en = "Cold attic", cat = "tak", syn = ["vind", "ventilerad vind"], ref = "tak_sadel", def = "Oisolerad, ventilerad vind ovanför isolerat bjälklag." },
+
+  # ----------------------------------------------------------------- altan
+  { id = "altan", term = "Altan / trädäck", abbr = "", en = "Deck", cat = "altan", syn = ["altan", "trädäck", "uteplats", "terrass"], ref = "altan_plint", def = "Golv av trall utomhus, i marknivå eller upphöjt." },
+  { id = "trall", term = "Trall", abbr = "", en = "Decking board", cat = "altan", syn = ["trallbräda", "trallvirke", "altanbräda"], ref = "trall", def = "Golvbrädor utomhus, läggs med spalt." },
+  { id = "barlina", term = "Bärlina", abbr = "", en = "Bearer", cat = "altan", syn = ["bärlinor", "bärbalk", "underliggare"], ref = "tryckimpregnerat", def = "Balk som vilar på plintarna och bär reglarna." },
+  { id = "trallregel", term = "Regel (under trall)", abbr = "", en = "Joist (deck)", cat = "altan", syn = ["trallregel", "reglar"], ref = "tryckimpregnerat", def = "Virke tvärs bärlinorna som trallen skruvas i, oftast c600." },
+  { id = "racke", term = "Räcke", abbr = "", en = "Guardrail", cat = "altan", syn = ["räcken", "staket", "skyddsräcke"], ref = "racke_altan", def = "Skydd mot fall vid kant med fallhöjd." },
+  { id = "handledare", term = "Handledare", abbr = "", en = "Handrail cap", cat = "altan", syn = ["överliggare räcke", "handlist"], ref = "racke_altan", def = "Överliggaren på ett räcke." },
+  { id = "ledstang", term = "Ledstång", abbr = "", en = "Handrail", cat = "altan", syn = ["ledstänger", "handräcke"], ref = "bfs9-ledstang", def = "Stöd för handen i trappa eller ramp." },
+  { id = "spjala", term = "Spjäla", abbr = "", en = "Baluster", cat = "altan", syn = ["spjälor", "baluster"], ref = "bfs9-racke-barn", def = "Stående smal del i räcket; fritt avstånd högst 100 mm där barn vistas." },
+  { id = "trappa", term = "Trappa", abbr = "TR", en = "Stair", cat = "altan", syn = ["trappa", "trappsteg", "steg"], ref = "trappa_ute", def = "Trapplopp med plansteg; mått anges som steghöjd × stegdjup." },
+  { id = "plansteg", term = "Plansteg", abbr = "", en = "Tread", cat = "altan", syn = ["steg", "trappsteg"], ref = "trappa_ute", def = "Den vågräta delen man kliver på." },
+  { id = "sattsteg", term = "Sättsteg", abbr = "", en = "Riser", cat = "altan", syn = ["stegets framsida"], ref = "trappa_ute", def = "Den lodräta delen mellan två plansteg." },
+  { id = "vange", term = "Vange", abbr = "", en = "Stringer", cat = "altan", syn = ["vangstycke", "trappvange"], ref = "trappa_ute", def = "Den lutande balken som bär stegen." },
+  { id = "vilplan", term = "Vilplan", abbr = "", en = "Landing", cat = "altan", syn = ["trapplan", "podest"], ref = "bfs9-plan-dorr-trappa", def = "Plant parti i eller vid trappa eller ramp." },
+  { id = "ramp", term = "Ramp", abbr = "", en = "Ramp", cat = "altan", syn = ["ramp", "lutande gång"], ref = "bfs12-ramp-lutning", def = "Lutande gångyta; högst 1:12 för en tillgänglig ramp." },
+  { id = "fallhojd", term = "Fallhöjd", abbr = "", en = "Fall height", cat = "altan", syn = ["höjd över mark"], ref = "bfs9-skydd-mot-fall", def = "Höjden man kan falla från en kant." },
+
+  # -------------------------------------------------------------- öppningar
+  { id = "dorr", term = "Dörr", abbr = "D", en = "Door", cat = "oppning", syn = ["dörr", "D1", "9×21"], ref = "dorr", def = "Ritas i plan med slagbåge åt det håll den öppnar." },
+  { id = "fonster", term = "Fönster", abbr = "F", en = "Window", cat = "oppning", syn = ["fönster", "F1", "12×12"], ref = "fonster", def = "Ritas i plan som linjer i väggöppningen; i fasad med karm och båge." },
+  { id = "karmytter", term = "Karmyttermått", abbr = "", en = "Frame outside size", cat = "oppning", syn = ["karmmått", "KYM"], ref = "", def = "Fönstrets eller dörrens yttermått på karmen." },
+  { id = "slagriktning", term = "Slagriktning", abbr = "", en = "Swing direction", cat = "oppning", syn = ["slagbåge", "öppningsriktning"], ref = "", def = "Åt vilket håll dörren eller fönstret öppnas." },
+  { id = "brostning", term = "Bröstningshöjd", abbr = "BH", en = "Sill height", cat = "oppning", syn = ["bröstning", "karmhöjd över golv"], ref = "bfs9-fonster-barn", def = "Höjd från golv till fönstrets underkant." },
+  { id = "tröskel", term = "Tröskel", abbr = "", en = "Threshold", cat = "oppning", syn = ["tröskelhöjd", "trösklar"], ref = "", def = "Nivåskillnad i dörröppning." },
+  { id = "foder", term = "Foder och bleck", abbr = "", en = "Trim and flashing", cat = "oppning", syn = ["fönsterbleck", "foder"], ref = "", def = "Avslutning runt öppningar; blecket leder bort vatten." },
+
+  # ------------------------------------------------------------ installation
+  { id = "golvbrunn", term = "Golvbrunn", abbr = "GB", en = "Floor drain", cat = "installation", syn = ["brunn", "GB"], ref = "iv_vatrum", def = "Brunn i våtrumsgolv; fall mot brunnen anges." },
+  { id = "vatrum", term = "Våtrum", abbr = "", en = "Wet room", cat = "installation", syn = ["badrum", "dusch", "tvättstuga", "WC/D"], ref = "iv_vatrum", def = "Rum där golv och väggar utsätts för vatten. Utförs enligt branschregler." },
+  { id = "wc", term = "Toalett", abbr = "WC", en = "Toilet", cat = "installation", syn = ["wc", "toa", "klosett"], ref = "", def = "Symbol i plan." },
+  { id = "frd", term = "Frånluftsdon", abbr = "FD", en = "Exhaust valve", cat = "installation", syn = ["frånluft", "ventil"], ref = "bfs8-ventilation", def = "Ventilationsdon för frånluft, ofta i kök, bad och WC." },
+  { id = "tilluft", term = "Tilluftsdon", abbr = "TD", en = "Supply valve", cat = "installation", syn = ["tilluft", "uteluftsventil", "spaltventil"], ref = "bfs8-ventilation", def = "Don för uteluft, i sovrum och vardagsrum." },
+  { id = "eluttag", term = "Eluttag", abbr = "", en = "Socket outlet", cat = "installation", syn = ["uttag", "vägguttag"], ref = "", def = "Elsymbol i plan (rmink: symbol outlet)." },
+  { id = "elcentral", term = "Elcentral", abbr = "C", en = "Distribution board", cat = "installation", syn = ["central", "proppskåp"], ref = "", def = "Elsymbol i plan." },
+
+  # ----------------------------------------------------------- material
+  { id = "k_virke", term = "Konstruktionsvirke", abbr = "K-virke", en = "Structural timber", cat = "material", syn = ["K-virke", "konstruktionsvirke", "C24"], ref = "konstruktionsvirke", def = "Hållfasthetssorterat virke, klass C14–C30." },
+  { id = "ntr", term = "Tryckimpregnerat (NTR-klass)", abbr = "NTR", en = "Pressure-treated (class)", cat = "material", syn = ["NTR A", "NTR AB", "tryckimp"], ref = "tryckimpregnerat", def = "Träskyddsklass: AB ovan mark, A i markkontakt, M i havsvatten." },
+  { id = "limtra_t", term = "Limträ", abbr = "GL", en = "Glulam", cat = "material", syn = ["limträ", "GL30c"], ref = "limtra", def = "Limmade lameller; klass GL28h–GL32c." },
+  { id = "gips_t", term = "Gipsskiva", abbr = "GN/GF", en = "Plasterboard", cat = "material", syn = ["gips", "gips 13", "GN 13", "GF 15"], ref = "gips_a", def = "Typ A normal, F brand, H fukt, E utvändig. 'Gips 13' = 12,5 mm." },
+  { id = "osb_t", term = "OSB-skiva", abbr = "OSB", en = "OSB", cat = "material", syn = ["OSB/3", "OSB3"], ref = "osb", def = "Skiva av riktade spån, klass OSB/2–OSB/4." },
+  { id = "betong_t", term = "Betong", abbr = "", en = "Concrete", cat = "material", syn = ["betong", "C25/30"], ref = "betong_platsgjuten", def = "Anges med hållfasthetsklass (C25/30) och exponeringsklass (XC2, XF3)." },
+  { id = "exponeringsklass", term = "Exponeringsklass", abbr = "X", en = "Exposure class", cat = "material", syn = ["XC2", "XF3", "XC4", "X0"], ref = "praxis-betong-exponering", def = "Miljön betongen ska klara: XC = karbonatisering, XF = frost, XD = klorider." },
+  { id = "armering_t", term = "Armering", abbr = "", en = "Reinforcement", cat = "material", syn = ["armering", "nät", "ø6 s150", "B500B"], ref = "armering", def = "Stål i betong; anges med sort, diameter (ø) och delning (s)." },
+  { id = "isolering_t", term = "Isolering", abbr = "ISOL", en = "Insulation", cat = "material", syn = ["isol", "mineralull", "cellplast"], ref = "mineralull", def = "Värmeisolering; anges med typ, tjocklek och för energiberäkning λ-värde." },
+  { id = "lambda", term = "Värmeledningsförmåga", abbr = "λ", en = "Thermal conductivity", cat = "material", syn = ["lambda", "λ-värde"], ref = "", def = "W/mK; lägre värde = bättre isolering." },
+  { id = "u_varde", term = "U-värde", abbr = "U", en = "U-value", cat = "regel", syn = ["U-värde", "värmegenomgångskoefficient"], ref = "", def = "W/m²K för en hel byggdel. Energikraven finns i BFS 2026:9." },
+  { id = "angsparr_t", term = "Ångspärr", abbr = "", en = "Vapour barrier", cat = "material", syn = ["plast", "byggplast", "PE-folie"], ref = "angsparr", def = "Tätt skikt på varma sidan mot fuktvandring." },
+  { id = "vindskydd_t", term = "Vindskydd", abbr = "", en = "Wind barrier", cat = "material", syn = ["vindskyddsskiva", "vindduk"], ref = "gips_utv", def = "Skikt utanför isoleringen som hindrar luft att blåsa igenom." },
+  { id = "rostfri", term = "Rostfritt A2/A4", abbr = "A2/A4", en = "Stainless steel", cat = "material", syn = ["rostfritt", "syrafast", "A4"], ref = "infastning", def = "Infästning ute; A4 nära hav eller pool." },
+  { id = "varmforzinkat", term = "Varmförzinkat", abbr = "VFZ", en = "Hot-dip galvanised", cat = "material", syn = ["varmgalv", "förzinkat"], ref = "infastning", def = "Korrosionsskydd för stål och infästning utomhus." },
+
+  # --------------------------------------------------------------- regler
+  { id = "bbr", term = "BBR (Boverkets byggregler) – upphävd", abbr = "BBR", en = "Former Swedish building code", cat = "regel", syn = ["BBR", "BBR 29", "BBR 31"], ref = "", def = "Ersatt av BFS 2024:4–13 från 1 juli 2025; de gamla reglerna gick inte att använda efter 1 juli 2026 (energi: särskilda övergångsregler, BFS 2026:9)." },
+  { id = "bfs", term = "Boverkets författningssamling", abbr = "BFS", en = "Boverket regulations", cat = "regel", syn = ["BFS 2024:9", "föreskrift"], ref = "", def = "Boverkets föreskrifter. Gäller som tvingande krav; allmänna råd visar ett sätt att uppfylla dem." },
+  { id = "pbl", term = "Plan- och bygglagen", abbr = "PBL", en = "Planning and Building Act", cat = "regel", syn = ["PBL", "bygglov", "anmälan"], ref = "pbl-komplementbyggnad", def = "Lagen som styr lov, anmälan och kontroll." },
+  { id = "komplementbyggnad", term = "Komplementbyggnad / komplementbostadshus", abbr = "", en = "Outbuilding / annex dwelling", cat = "regel", syn = ["friggebod", "attefall", "attefallshus", "uthus", "förråd"], ref = "pbl-komplementbyggnad", def = "Från 1 december 2025 ersätter dessa begrepp friggebod och attefallshus i lovbefriade åtgärder." },
+  { id = "tillbyggnad", term = "Tillbyggnad", abbr = "", en = "Extension", cat = "regel", syn = ["tillbygge", "utbyggnad"], ref = "bfs12-tillbyggnad-niva", def = "Ändring som ökar byggnadens volym." },
+  { id = "tillganglighet", term = "Tillgänglighet och användbarhet", abbr = "", en = "Accessibility", cat = "regel", syn = ["tillgängligt", "rullstol", "vändcirkel"], ref = "bfs12-hygienrum", def = "Krav för personer med nedsatt rörelse- eller orienteringsförmåga (BFS 2024:12)." },
+  { id = "vandcirkel", term = "Vändcirkel", abbr = "ø1500", en = "Turning circle", cat = "regel", syn = ["vändyta", "ø1,5", "1500"], ref = "bfs13-dimensionerande-matt", def = "Cirkel med diameter 1,50 m där en rullstol kan vända." },
+]

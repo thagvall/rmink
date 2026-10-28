@@ -1,0 +1,288 @@
+# Typkonstruktioner (byggdelar) och lösningsmönster för småhus.
+#
+# En typkonstruktion är en beprövad lagerföljd som kan återanvändas mellan
+# projekt: Claude föreslår en typ, användaren väljer, och ritningen hänvisar
+# till typen med sin kod (YV1, IV1 …) i stället för att rita varje skikt i
+# varje vy.
+#
+# layers: utifrån och in (vägg), uppifrån och ned (bjälklag, tak, platta).
+#         material = id i materials.toml. thickness_mm = 0 för folier.
+# Dimensioner och c-avstånd är TYPEXEMPEL. Bärande delar dimensioneras för
+# aktuellt spann och last av konstruktör eller enligt tillverkarens tabeller.
+
+version = "2026-10-28"
+
+[[assembly]]
+id = "yv_tra"
+code = "YV1"
+name = "Yttervägg, träregelstomme med luftad panel"
+drawing_label = "YV1 – se typlista"
+used_in = ["planritning", "sektion", "detalj"]
+typical_thickness_mm = 340
+requirements = ["U-värde enligt energiberäkning", "luftspalt bakom panel", "ångspärr på varm sida"]
+review_points = [
+  "Är luftspalten öppen nedtill och upptill (insektsnät)?",
+  "Ligger ångspärren innanför högst en tredjedel av isoleringen?",
+  "Är syllen skyddad med syllisolering mot grunden?",
+  "Fönsteranslutningar: drevning, foder, bleck.",
+]
+rules = ["bfs8-fukt-75rf", "rmink-material-klass"]
+layers = [
+  { material = "panel_tra", thickness_mm = 22, note = "Lockpanel 22×145 + 22×95" },
+  { material = "lakt", thickness_mm = 28, note = "Spikläkt 28×70 c600, luftspalt" },
+  { material = "gips_utv", thickness_mm = 9.5, note = "Vindskydd" },
+  { material = "konstruktionsvirke", thickness_mm = 195, note = "Regel 45×195 C24 c600" },
+  { material = "mineralull", thickness_mm = 195, note = "Mellan reglarna" },
+  { material = "angsparr", thickness_mm = 0, note = "PE 0,2, tejpade skarvar" },
+  { material = "konstruktionsvirke", thickness_mm = 45, note = "Installationsregel 45×45 c600" },
+  { material = "mineralull", thickness_mm = 45, note = "I installationsskiktet" },
+  { material = "gips_a", thickness_mm = 12.5, note = "Invändig beklädnad" },
+]
+
+[[assembly]]
+id = "iv1"
+code = "IV1"
+name = "Innervägg, träregel med gips"
+drawing_label = "IV1"
+used_in = ["planritning", "sektion"]
+typical_thickness_mm = 95
+requirements = ["Ljud: isolering i hålrum om sovrum eller bad gränsar", "Brandcellsgräns kräver klassad konstruktion"]
+review_points = [
+  "Är väggen en brandcellsgräns (till exempel mot garage eller mellan bostäder)? Då gäller en EI-klass.",
+  "Är förstärkning för överskåp eller tv markerad?",
+]
+rules = ["bfs7-brandcellsgrans-klass"]
+layers = [
+  { material = "gips_a", thickness_mm = 12.5, note = "" },
+  { material = "konstruktionsvirke", thickness_mm = 70, note = "Regel 45×70 c600" },
+  { material = "mineralull", thickness_mm = 70, note = "Ljudisolering (valfri)" },
+  { material = "gips_a", thickness_mm = 12.5, note = "" },
+]
+
+[[assembly]]
+id = "iv_vatrum"
+code = "IV-V"
+name = "Innervägg mot våtrum"
+drawing_label = "IV-V, tätskikt enligt system"
+used_in = ["planritning", "detalj"]
+typical_thickness_mm = 110
+requirements = ["Godkänt tätskiktssystem", "Fall mot golvbrunn", "Genomföringar enligt systemet"]
+review_points = [
+  "Vilket tätskiktssystem och vilken branschregel gäller?",
+  "Är golvbrunnen placerad och fallet angivet?",
+  "Finns det reglar eller kortlingar för infästning av WC, handdukstork och duschvägg?",
+  "Är minst ett hygienrum tillgängligt (vändcirkel)?",
+]
+rules = ["praxis-vatrum-branschregler", "bfs12-hygienrum", "bfs9-tappvarmvatten"]
+layers = [
+  { material = "tatskikt_vatrum", thickness_mm = 0, note = "Med kakel eller plastmatta" },
+  { material = "vatrumsskiva", thickness_mm = 12.5, note = "Eller gips typ H enligt systemet" },
+  { material = "konstruktionsvirke", thickness_mm = 70, note = "Regel 45×70 c450–600" },
+  { material = "mineralull", thickness_mm = 70, note = "" },
+  { material = "gips_a", thickness_mm = 12.5, note = "Mot torrt rum" },
+]
+
+[[assembly]]
+id = "bjl_tra"
+code = "BJL1"
+name = "Bjälklag, träbjälkar"
+drawing_label = "BJL1"
+used_in = ["sektion", "detalj", "konstruktion"]
+typical_thickness_mm = 300
+requirements = ["Spann och last styr bjälkhöjd", "Ljud mellan våningar", "Nedböjning"]
+review_points = [
+  "Spann mellan upplag – stämmer bjälkhöjden med spannet?",
+  "Är upplag och förankring visade?",
+  "Är bjälkarnas riktning markerad i plan?",
+]
+rules = ["rmink-dimension-saknas", "bfs8-fukt-75rf"]
+layers = [
+  { material = "spanskiva", thickness_mm = 22, note = "Golvspånskiva P5" },
+  { material = "konstruktionsvirke", thickness_mm = 220, note = "Bjälke 45×220 C24 c600" },
+  { material = "mineralull", thickness_mm = 95, note = "Ljud" },
+  { material = "lakt", thickness_mm = 28, note = "Glespanel 28×70 c400" },
+  { material = "gips_a", thickness_mm = 12.5, note = "Undertak" },
+]
+
+[[assembly]]
+id = "platta_pa_mark"
+code = "PL1"
+name = "Platta på mark med underliggande isolering"
+drawing_label = "PL1"
+used_in = ["sektion", "detalj", "konstruktion"]
+typical_thickness_mm = 550
+requirements = ["Kapillärbrytande lager", "Isolering under hela plattan och vid kantbalk", "Dränering runt huset"]
+review_points = [
+  "Exponeringsklass och armering angivna?",
+  "Kantbalk: tjocklek och isolering mot kyla (köldbrygga)?",
+  "Marklutning bort från huset?",
+  "Radonskydd om kommunens kartläggning kräver det?",
+]
+rules = ["praxis-betong-exponering", "praxis-frostfritt", "bfs8-fukt-75rf"]
+layers = [
+  { material = "betong_platsgjuten", thickness_mm = 100, note = "C25/30 XC2, nät B500B ø6 s150" },
+  { material = "cellplast_eps", thickness_mm = 300, note = "EPS 100, högre klass under kantbalk" },
+  { material = "makadam", thickness_mm = 150, note = "16–32, packad, kapillärbrytande" },
+  { material = "geotextil", thickness_mm = 0, note = "N2 mot finkornig mark" },
+  { material = "mark", thickness_mm = 0, note = "Avschaktad, packad" },
+]
+
+[[assembly]]
+id = "plintgrund"
+code = "PG1"
+name = "Plintgrund (för uthus, altan, friggebod)"
+drawing_label = "PG1"
+used_in = ["planritning", "sektion", "konstruktion"]
+typical_thickness_mm = 0
+requirements = ["Tjälfritt eller frostskyddat", "Plintarna i linje och i höjd", "Bärlinor fästa med beslag"]
+review_points = [
+  "c-avstånd mellan plintar enligt bärlinans spann?",
+  "Hur djupt? Packad makadam under?",
+  "Beslag mellan plint och bärlina (korrosionsskydd)?",
+]
+rules = ["praxis-frostfritt", "praxis-infastning-korrosion", "rmink-dimension-saknas"]
+layers = [
+  { material = "plint_betong", thickness_mm = 600, note = "Prefab 200×200, c1800" },
+  { material = "makadam", thickness_mm = 150, note = "Packad under plint" },
+  { material = "mark", thickness_mm = 0, note = "" },
+]
+
+[[assembly]]
+id = "altan_plint"
+code = "ALT1"
+name = "Altan på plintar (upphöjd)"
+drawing_label = "ALT1 – trall på reglar på bärlinor på plint"
+used_in = ["planritning", "sektion", "detalj"]
+typical_thickness_mm = 0
+requirements = [
+  "Fall eller spalt för avrinning",
+  "Luftning under trallen",
+  "Skydd mot fall där höjden kräver det",
+]
+review_points = [
+  "Höjd över mark: behövs räcke? Där barn vistas gäller kraven i BFS 2024:9 2 kap. 11 §.",
+  "Avstånd till fasad: 10–20 mm och bleck så att vatten inte når syllen?",
+  "Bärlinor nära mark i NTR A?",
+  "Plan framför dörren innan trappan (BFS 2024:9 2 kap. 7 §)?",
+  "Trappans steg och ledstång?",
+]
+rules = ["bfs9-skydd-mot-fall", "bfs9-racke-barn", "bfs9-plan-dorr-trappa", "praxis-ntr-markkontakt", "praxis-infastning-korrosion", "praxis-racke-hojd"]
+layers = [
+  { material = "trall", thickness_mm = 28, note = "28×120 NTR AB, spalt 5 mm" },
+  { material = "tryckimpregnerat", thickness_mm = 145, note = "Regel 45×145 C24 NTR AB c600" },
+  { material = "tryckimpregnerat", thickness_mm = 170, note = "Bärlina 2×45×170 C24 NTR A" },
+  { material = "plint_betong", thickness_mm = 600, note = "c1800" },
+  { material = "makadam", thickness_mm = 150, note = "" },
+]
+
+[[assembly]]
+id = "altan_mark"
+code = "ALT2"
+name = "Altan i marknivå"
+drawing_label = "ALT2 – trall på reglar på plattor/plint"
+used_in = ["planritning", "sektion"]
+typical_thickness_mm = 0
+requirements = ["Luftning", "Markduk mot ogräs", "Fall bort från huset"]
+review_points = [
+  "Minst 100–150 mm luftning under reglarna?",
+  "Allt virke i markkontakt i NTR A?",
+]
+rules = ["praxis-ntr-markkontakt", "praxis-infastning-korrosion"]
+layers = [
+  { material = "trall", thickness_mm = 28, note = "28×120 NTR AB" },
+  { material = "tryckimpregnerat", thickness_mm = 95, note = "Regel 45×95 NTR A c600" },
+  { material = "makadam", thickness_mm = 100, note = "Avjämnad, packad" },
+  { material = "geotextil", thickness_mm = 0, note = "" },
+  { material = "mark", thickness_mm = 0, note = "" },
+]
+
+[[assembly]]
+id = "tak_sadel"
+code = "TAK1"
+name = "Sadeltak, takstolar med pannor (kallvind)"
+drawing_label = "TAK1"
+used_in = ["sektion", "fasad", "detalj"]
+typical_thickness_mm = 0
+requirements = ["Ventilerad kallvind", "Underlagstak", "Isolering på bjälklaget"]
+review_points = [
+  "Taklutning ≥ minsta lutning för pannorna?",
+  "Takfotsventilation och nockventilation?",
+  "Takstolarnas c-avstånd och leverantörens beräkning?",
+  "Taksäkerhet: behövs tillträde till taket (BFS 2024:9 2 kap. 15 §)?",
+]
+rules = ["praxis-taklutning", "bfs8-fukt-75rf"]
+layers = [
+  { material = "takpannor", thickness_mm = 0, note = "Betongpannor" },
+  { material = "lakt", thickness_mm = 25, note = "Bärläkt 25×38" },
+  { material = "lakt", thickness_mm = 25, note = "Ströläkt 25×48" },
+  { material = "takpapp", thickness_mm = 0, note = "Underlagspapp" },
+  { material = "raspont", thickness_mm = 23, note = "Råspont 23×95" },
+  { material = "konstruktionsvirke", thickness_mm = 0, note = "Takstolar c1200 enligt leverantör" },
+  { material = "mineralull", thickness_mm = 400, note = "Lösull på vindsbjälklaget" },
+  { material = "angsparr", thickness_mm = 0, note = "" },
+  { material = "lakt", thickness_mm = 28, note = "Glespanel c300" },
+  { material = "gips_a", thickness_mm = 12.5, note = "" },
+]
+
+[[assembly]]
+id = "tak_pulpet"
+code = "TAK2"
+name = "Pulpettak (till exempel uthus, carport)"
+drawing_label = "TAK2"
+used_in = ["sektion", "fasad"]
+typical_thickness_mm = 0
+requirements = ["Lutning för vald täckning", "Hängränna och stuprör"]
+review_points = [
+  "Lutning i grader eller 1:x angiven?",
+  "Takbalkarnas spann och dimension?",
+  "Kondens under plåten: underlagsduk eller råspont och papp?",
+]
+rules = ["praxis-taklutning", "rmink-dimension-saknas"]
+layers = [
+  { material = "takplat", thickness_mm = 0, note = "Profilplåt" },
+  { material = "lakt", thickness_mm = 25, note = "Bärläkt/ströläkt" },
+  { material = "underlagsduk", thickness_mm = 0, note = "" },
+  { material = "konstruktionsvirke", thickness_mm = 195, note = "Takbalk 45×195 C24 c600" },
+]
+
+[[assembly]]
+id = "racke_altan"
+code = "R1"
+name = "Räcke på altan, trä med spjälor"
+drawing_label = "R1"
+used_in = ["fasad", "sektion", "detalj"]
+typical_thickness_mm = 0
+requirements = ["Tåla dynamisk påverkan av en människa", "Barnsäkert där barn kan vistas"]
+review_points = [
+  "Höjd från färdig trall till överkant handledare?",
+  "Spjälavstånd högst 100 mm, inga liggande reglar 110–230 mm att klättra på?",
+  "Stolparnas infästning – genomgående bult i bärlina eller kantbalk?",
+]
+rules = ["bfs9-racke-barn", "praxis-racke-hojd", "praxis-infastning-korrosion"]
+layers = [
+  { material = "konstruktionsvirke", thickness_mm = 95, note = "Stolpe 95×95 NTR AB c≤1200" },
+  { material = "panel_tra", thickness_mm = 34, note = "Handledare 34×145" },
+  { material = "lakt", thickness_mm = 22, note = "Spjälor 22×45, fritt avstånd ≤ 100 mm" },
+  { material = "infastning", thickness_mm = 0, note = "Bult M12 varmförzinkad" },
+]
+
+[[assembly]]
+id = "trappa_ute"
+code = "TR1"
+name = "Utvändig trätrappa"
+drawing_label = "TR1"
+used_in = ["sektion", "detalj"]
+typical_thickness_mm = 0
+requirements = ["Säker förflyttning", "Ledstång", "Halkskydd"]
+review_points = [
+  "Steghöjd och stegdjup – bekvämt stegmått?",
+  "Öppning mellan plansteg högst 100 mm?",
+  "Ledstång på båda sidor (eller en, om det räcker)?",
+  "Plan vid dörren innan trappan?",
+]
+rules = ["bfs9-trappa-oppning", "bfs9-ledstang", "bfs9-plan-dorr-trappa", "praxis-trappa-stegmatt"]
+layers = [
+  { material = "trall", thickness_mm = 28, note = "Plansteg 2×28×120" },
+  { material = "tryckimpregnerat", thickness_mm = 220, note = "Vange 45×220 NTR A" },
+  { material = "plint_betong", thickness_mm = 0, note = "Upplag mot mark" },
+]

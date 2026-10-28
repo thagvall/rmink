@@ -1,0 +1,133 @@
+# Skrafferingar (mönster i snittade ytor) – rmink-konvention.
+#
+# Mönstren följer de allmänt använda konventionerna på svenska byggritningar,
+# men är formulerade av rmink. Varje använt mönster ska alltid förklaras i
+# FÖRKLARINGAR på ritningen, så att läsaren aldrig behöver gissa.
+#
+# pattern: lines | cross | dots | wave | grain | solid | blank | lines_dots | earth
+# angle:   grader moturs från horisontalen (lines/cross/lines_dots)
+# spacing_mm: avstånd mellan linjer i *papperets* mm (oberoende av skala)
+# rmink:   befintlig kod som kan rita mönstret (geometry/hatch.py,
+#          extract/shade.py) – underlag för senare etapper
+
+version = "2026-10-28"
+
+[[hatch]]
+id = "betong"
+name = "Betong (snitt)"
+pattern = "lines_dots"
+angle = 45
+spacing_mm = 3.0
+used_for = ["betong_platsgjuten", "betong_prefab", "plint_betong"]
+note = "Diagonala linjer med punkter emellan. Armerad betong får samma mönster; armeringen redovisas separat."
+rmink = "hatch_polygons + stipple (extract/shade.py)"
+
+[[hatch]]
+id = "murverk"
+name = "Murverk, tegel och block"
+pattern = "lines"
+angle = 45
+spacing_mm = 1.5
+used_for = ["tegel", "lattbetong", "lecablock"]
+note = "Täta 45°-linjer. Lättbetong kan skiljas med glesare linjer (3 mm) och en anteckning."
+rmink = "hatch_polygons(angle=45)"
+
+[[hatch]]
+id = "tra_snitt"
+name = "Trä i snitt (tvärs fibrerna)"
+pattern = "cross"
+angle = 45
+spacing_mm = 0
+used_for = ["konstruktionsvirke", "limtra", "tryckimpregnerat", "trall"]
+note = "Ett kryss (två diagonaler) i varje snittad regel eller bjälke. I detaljskala 1:5 och 1:1 kan årsringar ritas i stället."
+rmink = "två linjer per rektangel – inget hatch-anrop behövs"
+
+[[hatch]]
+id = "tra_langs"
+name = "Trä i längdsnitt"
+pattern = "grain"
+angle = 0
+spacing_mm = 2.0
+used_for = ["konstruktionsvirke", "limtra", "kl_tra", "lvl"]
+note = "Svagt vågiga linjer längs fibrerna. Används mest i 1:5–1:1."
+rmink = "ny – vågig scanline"
+
+[[hatch]]
+id = "isolering_mjuk"
+name = "Mjuk isolering (mineralull)"
+pattern = "wave"
+angle = 0
+spacing_mm = 0
+used_for = ["mineralull"]
+note = "En sammanhängande zick-zack- eller våglinje som fyller tjockleken."
+rmink = "ny – en polyline per isolerskikt"
+
+[[hatch]]
+id = "isolering_hard"
+name = "Hård isolering (cellplast EPS/XPS/PIR)"
+pattern = "cross"
+angle = 45
+spacing_mm = 4.0
+used_for = ["cellplast_eps", "cellplast_xps", "pir"]
+note = "Glesa korslinjer. Skriv alltid produkttyp (EPS 100/EPS 200, XPS) i texten."
+rmink = "hatch_polygons två gånger (45° och 135°)"
+
+[[hatch]]
+id = "skiva"
+name = "Skivmaterial (gips, OSB, plywood, spånskiva)"
+pattern = "blank"
+angle = 0
+spacing_mm = 0
+used_for = ["gips_a", "gips_f", "gips_h", "gips_utv", "osb", "plywood", "spanskiva", "vatrumsskiva"]
+note = "Tunna skikt ritas som två parallella linjer utan fyllning. Typen anges i text, till exempel 'GN 13' eller 'OSB/3 12'."
+rmink = "inga extra strokes"
+
+[[hatch]]
+id = "stal"
+name = "Stål i snitt"
+pattern = "solid"
+angle = 0
+spacing_mm = 0
+used_for = ["stal_profil", "armering"]
+note = "Svärtas helt. Små profiler i 1:20 och mindre skala ritas som en fet linje."
+rmink = "hatch_polygons med tät spacing (≈ helfyllning)"
+
+[[hatch]]
+id = "mark_fyllning"
+name = "Fyllning (makadam, grus)"
+pattern = "dots"
+angle = 0
+spacing_mm = 2.5
+used_for = ["makadam"]
+note = "Oregelbundna punkter eller små cirklar. Fraktion anges i text (till exempel 'makadam 16–32')."
+rmink = "stipple i extract/shade.py"
+
+[[hatch]]
+id = "mark_orord"
+name = "Orörd mark / naturlig jord"
+pattern = "earth"
+angle = 45
+spacing_mm = 4.0
+used_for = ["mark"]
+note = "Korta snedstreck i grupper längs marklinjen. Fyll inte hela ytan."
+rmink = "ny – streckgrupper längs en linje"
+
+[[hatch]]
+id = "tatskikt"
+name = "Folie, tätskikt, papp"
+pattern = "blank"
+angle = 0
+spacing_mm = 0
+used_for = ["angsparr", "fuktsparr", "tatskikt_vatrum", "takpapp", "underlagsduk", "geotextil", "vindskydd_duk"]
+note = "Streckad eller tunn heldragen linje med text. Ritas utan tjocklek i 1:20–1:50."
+rmink = "linjetyp 'dashed' via Category"
+
+[[hatch]]
+id = "glas"
+name = "Glas"
+pattern = "blank"
+angle = 0
+spacing_mm = 0
+used_for = ["glas"]
+note = "Tunn dubbellinje. I plan: fönster som tre parallella linjer i väggöppningen."
+rmink = "inga extra strokes"

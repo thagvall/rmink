@@ -1,0 +1,126 @@
+# Anmärkningar och avstämning – samma indelning som i professionella
+# granskningsverktyg (jämför Bluebeam Revu: Markups List med Subject, Status
+# och egna kolumner, och Tool Chest med färdiga markeringar per typ).
+#
+# rmink har idag Annotation.status = open | accepted | rejected
+# (src/rmink/drawing/model.py:96). Mappningen nedan är bakåtkompatibel.
+
+version = "2026-10-28"
+
+# --------------------------------------------------------------- typer
+
+[[markup_type]]
+id = "fraga"
+name = "Fråga"
+en = "Question"
+meaning = "Information saknas eller är otydlig. Svaret avgör ritningen."
+mono = { line_type = "solid", mark = "ring + ?" }
+color = "blue"
+default_severity = "fråga"
+
+[[markup_type]]
+id = "andring"
+name = "Ändring"
+en = "Change"
+meaning = "Beställaren eller granskaren vill ha något annorlunda."
+mono = { line_type = "solid", mark = "moln" }
+color = "red"
+default_severity = "fråga"
+
+[[markup_type]]
+id = "fel"
+name = "Fel"
+en = "Error"
+meaning = "Strider mot en regel, ett mått eller en annan handling."
+mono = { line_type = "solid", mark = "kryss + ring" }
+color = "red"
+default_severity = "fel"
+
+[[markup_type]]
+id = "info"
+name = "Info"
+en = "Note"
+meaning = "Upplysning, kräver inget svar."
+mono = { line_type = "dashed", mark = "i" }
+color = "gray"
+default_severity = "info"
+
+[[markup_type]]
+id = "godkant"
+name = "Godkänt"
+en = "Approved"
+meaning = "Granskat utan anmärkning."
+mono = { line_type = "solid", mark = "bock" }
+color = "green"
+default_severity = "info"
+
+# -------------------------------------------------------------- status
+
+[[status]]
+id = "oppen"
+name = "Öppen"
+rmink = "open"
+meaning = "Väntar på svar eller åtgärd."
+
+[[status]]
+id = "besvarad"
+name = "Besvarad"
+rmink = "open"
+meaning = "Svar finns på SVAR-raden men är inte infört på ritningen."
+
+[[status]]
+id = "accepterad"
+name = "Accepterad"
+rmink = "accepted"
+meaning = "Ändringen är införd."
+
+[[status]]
+id = "avvisad"
+name = "Avvisad"
+rmink = "rejected"
+meaning = "Ändringen görs inte, motivering i loggen."
+
+[[status]]
+id = "stangd"
+name = "Stängd"
+rmink = "accepted"
+meaning = "Klar och behöver inte visas längre."
+
+# ----------------------------------------------------------- prioritet
+
+[[priority]]
+id = "hog"
+name = "Hög"
+meaning = "Stoppar nästa skede (till exempel bygglov eller beställning)."
+
+[[priority]]
+id = "normal"
+name = "Normal"
+meaning = "Ska lösas före bygghandling."
+
+[[priority]]
+id = "lag"
+name = "Låg"
+meaning = "Kan lösas på bygget eller i relationshandling."
+
+# -------------------------------------------------------------- export
+# Kolumner för en CSV som går att läsa in i ett granskningsverktyg eller i
+# Excel. Namnen följer de vanliga standardkolumnerna i Markups List, plus
+# rmink-kolumner.
+
+[csv]
+columns = [
+  { name = "Subject", from = "markup_type.name" },
+  { name = "Comments", from = "Annotation.text" },
+  { name = "Reply", from = "SVAR-raden" },
+  { name = "Author", from = "författare (person eller 'Claude')" },
+  { name = "Date", from = "Annotation.revision → datum för varvet" },
+  { name = "Status", from = "status.name" },
+  { name = "Page", from = "sida i notebooken" },
+  { name = "Layer", from = "lager (Ritning rNN / Kommentarer)" },
+  { name = "Color", from = "markup_type.color" },
+  { name = "Rule", from = "rules.toml id" },
+  { name = "Material", from = "materials.toml id" },
+  { name = "Discipline", from = "drawing_standard.toml discipline.letter" },
+  { name = "Priority", from = "priority.name" },
+]

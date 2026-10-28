@@ -1,0 +1,404 @@
+# Hur en standardiserad byggritning är uppbyggd – med egna ord.
+#
+# Bakgrund: svensk praxis bygger på Bygghandlingar 90 (SIS) och
+# SS-EN ISO 128 (linjer), 129 (mått), 5455 (skalor), 7200 (ritningshuvud),
+# 7519 (byggritningar) och 4157 (beteckningar). Standardtexterna är
+# upphovsrättsskyddade och ingår inte här; detta är allmänt kända begrepp
+# och värden, skrivna för rmink.
+
+version = "2026-10-28"
+
+# ---------------------------------------------------------------- ritningsslag
+
+[[drawing_type]]
+id = "situationsplan"
+name = "Situationsplan"
+en = "Site plan"
+scales = ["1:400", "1:500", "1:1000"]
+shows = "Tomten, byggnadens placering, mått till tomtgräns, angöring, höjder (marknivå, ±0), väderstreck."
+required = ["norrpil", "skala", "tomtgrans_matt", "nivaer"]
+smallhouse = true
+
+[[drawing_type]]
+id = "planritning"
+name = "Planritning"
+en = "Floor plan"
+scales = ["1:50", "1:100"]
+shows = "Ett våningsplan i snitt ca 1 m över golv: väggar, öppningar, rum, inredning, mått."
+required = ["norrpil", "skala", "rumsnamn", "yttermatt", "snittmarkering_om_sektion"]
+smallhouse = true
+
+[[drawing_type]]
+id = "sektion"
+name = "Sektion"
+en = "Section"
+scales = ["1:20", "1:50", "1:100"]
+shows = "Vertikalt snitt genom byggnaden: bjälklag, tak, grund, höjder och konstruktionsuppbyggnad."
+required = ["skala", "sektionsbeteckning", "nivaer", "konstruktionstext"]
+smallhouse = true
+
+[[drawing_type]]
+id = "fasad"
+name = "Fasadritning"
+en = "Elevation"
+scales = ["1:50", "1:100"]
+shows = "Byggnaden sedd utifrån per väderstreck: material, kulörer, fönster, takfot, marklinje."
+required = ["skala", "vaderstreck_i_namn", "marklinje", "materialtext"]
+smallhouse = true
+
+[[drawing_type]]
+id = "detalj"
+name = "Detaljritning"
+en = "Detail"
+scales = ["1:1", "1:2", "1:5", "1:10"]
+shows = "En anslutning eller ett utsnitt i hög upplösning: skikt, infästningar, tätningar."
+required = ["skala", "hanvisning_till_plan_eller_sektion", "skikttext"]
+smallhouse = true
+
+[[drawing_type]]
+id = "konstruktion"
+name = "Konstruktionsritning (K)"
+en = "Structural drawing"
+scales = ["1:20", "1:50"]
+shows = "Bärande system: dimensioner, hållfasthetsklasser, förband, armering, laster."
+required = ["skala", "hallfasthetsklass", "dimensioner"]
+smallhouse = true
+
+[[drawing_type]]
+id = "vvs"
+name = "VVS-ritning (V/R)"
+en = "Plumbing / HVAC"
+scales = ["1:50", "1:100"]
+shows = "Vatten, avlopp, värme, ventilation, golvbrunnar, fall."
+required = ["skala", "fall_till_brunn"]
+smallhouse = false
+
+[[drawing_type]]
+id = "el"
+name = "Elritning (E)"
+en = "Electrical"
+scales = ["1:50", "1:100"]
+shows = "Uttag, belysning, strömställare, centraler."
+required = ["skala", "symbolforklaring"]
+smallhouse = false
+
+[[drawing_type]]
+id = "skiss"
+name = "Skiss"
+en = "Sketch"
+scales = ["ingen", "ca 1:50"]
+shows = "Frihandsunderlag. Mått skrivna för hand gäller före det uppmätta."
+required = []
+smallhouse = true
+
+# --------------------------------------------------------------------- skalor
+# Vanliga skalor och var de används. Text- och linjebredder anges i papperets mm.
+
+[scales]
+preferred = ["1:1", "1:2", "1:5", "1:10", "1:20", "1:50", "1:100", "1:200", "1:400", "1:500", "1:1000"]
+note = "Ritningen anger alltid skalan i ritningshuvudet och vid varje vy med annan skala. På en skärm eller platta skrivs också 'mått gäller före skalning'."
+
+# ----------------------------------------------------------- skeden (status)
+
+[[phase]]
+id = "programhandling"
+name = "Programhandling"
+order = 1
+meaning = "Behov, krav och förutsättningar. Inga bindande lösningar."
+
+[[phase]]
+id = "systemhandling"
+name = "Systemhandling"
+order = 2
+meaning = "Valda principlösningar (stomme, installationer). Underlag för val."
+
+[[phase]]
+id = "bygglovshandling"
+name = "Bygglovshandling"
+order = 3
+meaning = "Det kommunen behöver för lov eller anmälan: situationsplan, plan, sektion, fasad."
+
+[[phase]]
+id = "granskningshandling"
+name = "Granskningshandling"
+order = 4
+meaning = "Utgåva för granskning av beställare eller andra konsulter. Får ändras."
+
+[[phase]]
+id = "forfragningsunderlag"
+name = "Förfrågningsunderlag (FU)"
+order = 5
+meaning = "Underlag för anbud. Ändringar efter detta kostar."
+
+[[phase]]
+id = "bygghandling"
+name = "Bygghandling"
+order = 6
+meaning = "Gäller för utförandet på bygget."
+
+[[phase]]
+id = "relationshandling"
+name = "Relationshandling"
+order = 7
+meaning = "Hur det faktiskt blev byggt. Underlag för förvaltning."
+
+[phase_mapping]
+# rmink:s nuvarande Drawing.phase-värden (model.py) → skede
+"Förslag" = "systemhandling"
+"Granskning" = "granskningshandling"
+"Beslut" = "bygghandling"
+
+# ---------------------------------------------------------------- revisioner
+
+[revision]
+designation = "Revisionsbokstav A, B, C … för utgivna handlingar. Preliminära versioner kan numreras (rmink: r01, r02 …)."
+cloud = "Ändringsmoln runt det som ändrats sedan förra revisionen."
+triangle = "En triangel med revisionsbokstaven vid molnet, som hänvisar till revisionstabellen."
+table = ["rev", "ändringen avser", "datum", "sign"]
+rmink_mapping = "Drawing.revision = löpnummer (r03). ÄNDRINGAR i ritningshuvudet = revisionstabell. Annotation med status = ändringsmoln."
+
+# -------------------------------------------------------------- ritningshuvud
+# Fält i ett ritningshuvud (titelfält) nere till höger. Obligatoriska för en
+# granskad handling; för en skiss räcker de tre första plus datum.
+
+[[title_block_field]]
+id = "projekt"
+name = "Projekt / objekt"
+required = true
+example = "Villa Ek, altan"
+
+[[title_block_field]]
+id = "innehall"
+name = "Innehåll (vad ritningen visar)"
+required = true
+example = "Plan och sektion A-A"
+
+[[title_block_field]]
+id = "ritningsnummer"
+name = "Ritningsnummer"
+required = true
+example = "A-40.1-01"
+
+[[title_block_field]]
+id = "skala"
+name = "Skala (och pappersformat)"
+required = true
+example = "1:50 (A3)"
+
+[[title_block_field]]
+id = "datum"
+name = "Datum"
+required = true
+example = "2026-10-28"
+
+[[title_block_field]]
+id = "skede"
+name = "Skede / status"
+required = true
+example = "Granskningshandling"
+
+[[title_block_field]]
+id = "revision"
+name = "Revision"
+required = true
+example = "B"
+
+[[title_block_field]]
+id = "upprattad"
+name = "Upprättad av"
+required = false
+example = "TH"
+
+[[title_block_field]]
+id = "granskad"
+name = "Granskad av"
+required = false
+example = "—"
+
+[[title_block_field]]
+id = "bestallare"
+name = "Beställare / byggherre"
+required = false
+example = "Familjen Ek"
+
+[[title_block_field]]
+id = "fastighet"
+name = "Fastighetsbeteckning"
+required = false
+example = "Ekbacken 1:23"
+
+# ----------------------------------------------------- ritningsnummer och disciplin
+
+[numbering]
+pattern = "<disciplin>-<typ>.<löpnr>-<blad>"
+example = "A-40.1-01 = arkitekt, planritning, plan 1, blad 01"
+note = "Många projekt har en egen nyckel. Skriv den ena gången i projektet och följ den. För småhus räcker ofta A-01, A-02 …"
+
+[[discipline]]
+letter = "A"
+name = "Arkitekt"
+
+[[discipline]]
+letter = "K"
+name = "Konstruktion (bärande)"
+
+[[discipline]]
+letter = "V"
+name = "Värme och sanitet (VS)"
+
+[[discipline]]
+letter = "R"
+name = "Rör (används i vissa projekt i stället för V)"
+
+[[discipline]]
+letter = "L"
+name = "Luftbehandling / ventilation"
+
+[[discipline]]
+letter = "E"
+name = "El och tele"
+
+[[discipline]]
+letter = "M"
+name = "Mark"
+
+[[discipline]]
+letter = "S"
+name = "Styr och övervakning"
+
+[[discipline]]
+letter = "B"
+name = "Brand"
+
+# ----------------------------------------------- linjetyper och linjebredder
+# Linjebredder i papperets mm, enligt ISO-serien 0,13–0,18–0,25–0,35–0,5–0,7–1,0–1,4.
+# Grupperna grov/medel/fin. rmink-kategori = DEFAULT_CATEGORIES i
+# src/rmink/drawing/model.py:37.
+
+[[line]]
+id = "snitt_grov"
+use = "Snittade bärande delar och konturer i snitt"
+type = "solid"
+weight = "grov"
+width_mm = [0.5, 0.7]
+rmink_category = "structure"
+
+[[line]]
+id = "synlig_medel"
+use = "Synliga kanter som inte är snittade, öppningar, inredning"
+type = "solid"
+weight = "medel"
+width_mm = [0.25, 0.35]
+rmink_category = "default"
+
+[[line]]
+id = "fin"
+use = "Måttlinjer, hänvisningslinjer, skrafferingar, rutnät"
+type = "solid"
+weight = "fin"
+width_mm = [0.13, 0.18]
+rmink_category = "dimension"
+
+[[line]]
+id = "dold"
+use = "Dolda kanter, delar ovanför snittet (till exempel takfot i plan)"
+type = "dashed"
+weight = "medel"
+width_mm = [0.25, 0.35]
+rmink_category = "hidden"
+
+[[line]]
+id = "centrum"
+use = "Centrumlinjer, symmetrilinjer, modullinjer"
+type = "dashdot"
+weight = "fin"
+width_mm = [0.13, 0.18]
+rmink_category = "center"
+
+[[line]]
+id = "snittlinje"
+use = "Snittets läge i plan (grov punktstreckad i ändarna, pilar mot blickriktningen)"
+type = "dashdot"
+weight = "grov"
+width_mm = [0.5, 0.7]
+rmink_category = "structure"
+
+[[line]]
+id = "gransa"
+use = "Tomtgräns, fastighetsgräns"
+type = "dashdot"
+weight = "medel"
+width_mm = [0.35, 0.5]
+rmink_category = "center"
+
+[[line]]
+id = "rivning"
+use = "Delar som ska rivas (vid ombyggnad)"
+type = "dashed"
+weight = "medel"
+width_mm = [0.25, 0.35]
+rmink_category = "change"
+note = "Vid ombyggnad skiljs befintligt, nytt och rivet. Det nya ritas kraftigast, befintligt tunnare och rivet streckat."
+
+# ------------------------------------------------------------------ måttsättning
+
+[dimensioning]
+unit = "mm"
+rules = [
+  "Mått anges i mm utan enhet; nivåer i meter med tre decimaler (+12,350).",
+  "Måttkedjor går hela vägen: delmåtten ska summera till totalmåttet.",
+  "Yttre måttkedjor i plan: närmast väggen öppningar, sedan väggavsnitt, ytterst totalmått.",
+  "Måttet skrivs ovanför måttlinjen och läses nerifrån eller från höger.",
+  "Ett mått redovisas en gång – dubbla mått som kan motsäga varandra undviks.",
+  "Nivåer relateras till ±0 (färdigt golv i entréplan) och anges även i höjdsystemet om det finns (till exempel RH 2000).",
+  "c-mått (centrumavstånd) skrivs 'c600', 'c1200'.",
+  "Handskrivna mått gäller före uppmätt ritningsskala (rmink: check_dimensions i workflow.py:211 flaggar avvikelser över 10 %).",
+]
+
+# --------------------------------------------- beteckningar på ritningen
+
+[[designation]]
+id = "rum"
+pattern = "Rumsnamn + yta, ibland rumsnummer"
+example = "SOV 12,4 m²"
+
+[[designation]]
+id = "dorr"
+pattern = "D + löpnr, eller bredd i moduler"
+example = "D1 / 9×21 = 900×2100 karmyttermått"
+
+[[designation]]
+id = "fonster"
+pattern = "F + löpnr, eller moduler"
+example = "F1 / 12×12"
+
+[[designation]]
+id = "vaggtyp"
+pattern = "Väggtypskod i en ring eller ruta som hänvisar till typlista"
+example = "YV1, IV1"
+
+[[designation]]
+id = "sektion"
+pattern = "Bokstav eller siffra vid snittlinjen; samma på sektionsritningen"
+example = "A-A, 1-1"
+
+[[designation]]
+id = "detaljhanvisning"
+pattern = "Ring med detaljnummer över ritningsnummer"
+example = "3 / A-50-01"
+
+[[designation]]
+id = "niva"
+pattern = "Triangel eller pil mot en linje + nivå"
+example = "▽ FG +12,350"
+
+# --------------------------------------------------- pappersformat (mm)
+
+[sheet]
+A0 = [841, 1189]
+A1 = [594, 841]
+A2 = [420, 594]
+A3 = [297, 420]
+A4 = [210, 297]
+text_height_mm = [2.5, 3.5, 5.0, 7.0]
+note = "Ett reMarkable-blad (rm2: 1404×1872 px) motsvarar ungefär A5 stående. En 1:50-ritning av en altan på 4×6 m blir 80×120 mm – det får plats; en hel villaplan i 1:100 kräver liggande blad eller flera blad."
