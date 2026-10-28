@@ -163,6 +163,12 @@ def reference() -> str:
         for r in kb["rules"]["rule"]
         if r["source"] != "rmink"
     ]
-    lines += ["", "Permit decisions (action: default → see rules):"]
-    lines += [f"- {a['id']}: {a['name']} → {a['default']}" for a in kb["process"]["action"]]
+    lines += ["", "Permit decisions (action: default; exempt if …; changes if …):"]
+    for a in kb["process"]["action"]:
+        line = f"- {a['id']}: {a['name']} → {a['default']}"
+        if a["exempt_if"]:
+            line += f"; {a['then']} if: {a['exempt_if']}"
+        if a["unless"]:
+            line += f"; but: {a['unless']}"
+        lines.append(line)
     return "\n".join(lines)

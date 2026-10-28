@@ -193,3 +193,18 @@ def test_reference_is_compact_and_lists_every_material_and_rule(kb):
         assert f"- {m['id']}:" in ref
     for r in kb["rules"]["rule"]:
         assert r["source"] == "rmink" or f"- {r['id']}:" in ref
+
+
+def test_texts_that_reach_the_drawing_have_glyphs(kb):
+    from rmink.drawing.font import _PARSED, _letters
+
+    texts = [r["message_sv"] + r["ref"] for r in kb["rules"]["rule"]]
+    texts += [m["example"] for m in kb["materials"]["material"]]
+    drawn = {ch for t in texts for ch in _letters(t)} - set(" {}[]_")
+    assert drawn <= set(_PARSED), sorted(drawn - set(_PARSED))
+
+
+def test_reference_states_when_permits_come_back():
+    # a 2,1 m deck next to the house needs a permit inside a detaljplan
+    line = next(x for x in knowledge.reference().splitlines() if x.startswith("- altan:"))
+    assert "1,8 m" in line and "3,6 m" in line
