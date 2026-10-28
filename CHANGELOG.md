@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.5.1 — 2026-10-28
+
+- Windows: a round on a local notebook such as `C:\ritningar\Altan.rmdoc` now names the drawing "Altan". Before, the whole path became the name, and the next round failed with "'NoneType' object has no attribute 'sketch'".
+
 ## 2.5.0 — 2026-10-28
 
 - Revision rounds know Swedish building practice. Claude's cached reference now includes:
