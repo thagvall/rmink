@@ -72,6 +72,7 @@ def test_ids_are_unique(kb):
         ("rule", kb["rules"]["rule"]),
         ("hatch", kb["hatches"]["hatch"]),
         ("term", kb["terms"]["term"]),
+        ("symbol", kb["symbols"]["symbol"]),
         ("markup_type", kb["markup"]["markup_type"]),
         ("status", kb["markup"]["status"]),
     ]:
@@ -138,6 +139,26 @@ def test_term_refs_resolve(kb, ids):
         assert t["ref"] == "" or t["ref"] in known, (t["id"], t["ref"])
 
 
+def test_symbol_catalogue_covers_every_drawn_symbol(kb, ids):
+    import numpy as np
+
+    from rmink.drawing.symbols import SYMBOLS
+
+    catalogue = {s["id"]: s for s in kb["symbols"]["symbol"]}
+    assert set(catalogue) == set(SYMBOLS)
+    letters = {d["letter"] for d in kb["drawing_standard"]["discipline"]} | {""}
+    for kind, (name, paths) in SYMBOLS.items():
+        s = catalogue[kind]
+        assert s["name"] == name, kind  # the legend says what the catalogue says
+        assert s["discipline"] in letters, kind
+        assert s["drawing_types"] and set(s["drawing_types"]) <= ids["drawing_type"], kind
+        assert set(s["rules"]) <= ids["rule"], (kind, set(s["rules"]) - ids["rule"])
+        assert s["meaning"] and s["sketch"] and s["syn"], kind
+        # drawn inside the unit box, so size and the legend sample fit
+        pts = np.vstack(paths)
+        assert np.isfinite(pts).all() and np.abs(pts).max() <= 0.55, kind
+
+
 def test_line_types_map_to_rmink_categories(kb):
     names = {c.name for c in DEFAULT_CATEGORIES}
     for line in kb["drawing_standard"]["line"]:
@@ -168,6 +189,9 @@ def test_handwritten_synonyms_point_to_one_material(kb):
         ("ÖK", "term", "ok"),
         ("bfs9-racke-barn", "rule", "bfs9-racke-barn"),
         ("altan", "action", "altan"),
+        ("N-pil", "symbol", "north"),
+        ("GB", "symbol", "drain"),
+        ("TL", "symbol", "supply_air"),
     ],
 )
 def test_lookup_finds_handwritten_and_coded_names(query, kind, expected):
@@ -186,13 +210,15 @@ def test_lookup_expands_rules_and_hatch():
     assert knowledge.lookup("xyzzy-inget") == []
 
 
-def test_reference_is_compact_and_lists_every_material_and_rule(kb):
+def test_reference_is_compact_and_lists_every_material_rule_and_symbol(kb):
     ref = knowledge.reference()
     assert len(ref) < 20_000  # cached in every round; details go through lookup()
     for m in kb["materials"]["material"]:
         assert f"- {m['id']}:" in ref
     for r in kb["rules"]["rule"]:
         assert r["source"] == "rmink" or f"- {r['id']}:" in ref
+    for s in kb["symbols"]["symbol"]:
+        assert f"- {s['id']} = {s['name']}:" in ref
 
 
 def test_texts_that_reach_the_drawing_have_glyphs(kb):
@@ -200,6 +226,7 @@ def test_texts_that_reach_the_drawing_have_glyphs(kb):
 
     texts = [r["message_sv"] + r["ref"] for r in kb["rules"]["rule"]]
     texts += [m["example"] for m in kb["materials"]["material"]]
+    texts += [s["name"] + s["label"] for s in kb["symbols"]["symbol"]]
     drawn = {ch for t in texts for ch in _letters(t)} - set(" {}[]_")
     assert drawn <= set(_PARSED), sorted(drawn - set(_PARSED))
 

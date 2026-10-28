@@ -78,6 +78,8 @@ then marks that up in rounds. MCP tools: `read_sketch`, `drawing_reference`, `lo
    when a required class is missing. Call `lookup_knowledge` for exact rule
    values and their source (BFS, PBL/PBF, ElSL) before citing one; practice
    values and permit rules are questions, never errors.
+   The reference lists each symbol kind with its handwritten variants (N-pil,
+   GB, TL/FL, fall 1:50); put the text written next to a symbol in its `label`.
    If the sketch has a legend, use it for symbol meanings and put it in
    `legend`. Ask the user about anything you cannot read rather than guessing.
 3. **Check.** `render_drawing_preview` straightens lines, joins corners and

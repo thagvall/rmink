@@ -1,7 +1,7 @@
 """Swedish building knowledge for drawings, from the TOML files in ``data/``.
 
-Terms and abbreviations, the drawing standard, materials with their quality
-classes, typical assemblies, review rules (BFS, PBL/PBF, ElSL, practice) and
+Terms and abbreviations, the drawing standard, symbols, materials with their
+quality classes, typical assemblies, review rules (BFS, PBL/PBF, ElSL, practice) and
 the permit process. ``reference()`` is a compact summary for Claude's system
 prompt; ``lookup()`` returns full entries on demand, so the prompt stays small.
 See docs/knowledge.md.
@@ -15,7 +15,8 @@ import tomllib
 from importlib import resources
 
 FILES = (
-    "terms", "drawing_standard", "materials", "assemblies", "rules", "markup", "hatches", "process",
+    "terms", "drawing_standard", "symbols", "materials", "assemblies", "rules", "markup",
+    "hatches", "process",
 )  # fmt: skip
 
 # lookup kind -> (file, table); on equal score, earlier kinds come first
@@ -24,6 +25,7 @@ KINDS = {
     "assembly": ("assemblies", "assembly"),
     "rule": ("rules", "rule"),
     "action": ("process", "action"),
+    "symbol": ("symbols", "symbol"),
     "term": ("terms", "term"),
     "drawing_type": ("drawing_standard", "drawing_type"),
     "role": ("process", "role"),
@@ -155,6 +157,15 @@ def reference() -> str:
             f"- {m['id']}: {m['name']} | {', '.join(m['classes'])} | "
             f"{', '.join(m['required'])} | {m['example']}"
         )
+    lines += [
+        "",
+        "Symbols (kind = legend name: handwritten as; label written next to it):",
+    ]
+    for s in kb["symbols"]["symbol"]:
+        line = f"- {s['id']} = {s['name']}: {', '.join(s['syn'][:4])}"
+        if s["label"]:
+            line += f"; label '{s['label']}'"
+        lines.append(line)
     lines += ["", "Assemblies (code id: name):"]
     lines += [f"- {a['code']} {a['id']}: {a['name']}" for a in kb["assemblies"]["assembly"]]
     lines += ["", "Rules (id: title [source ref] severity):"]

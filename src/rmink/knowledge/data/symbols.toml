@@ -1,0 +1,432 @@
+# Symboler på ritningen – vad de betyder, var de hör hemma och hur de
+# brukar se ut i en handskiss.
+#
+# Symbolerna följer vanlig svensk ritpraxis för småhus. Elsymbolerna
+# liknar den internationella symbolserien IEC 60617, som är licensierad och
+# inte ingår här. Geometrin är rmink:s egen (src/rmink/drawing/symbols.py),
+# så varje använd symbol ska alltid förklaras i FÖRKLARINGAR.
+#
+# id:            symbolens kind i rmink (Symbol.kind), en per ritad symbol
+# name:          texten i förklaringen (samma som i SYMBOLS)
+# discipline:    disciplinbokstav i drawing_standard.toml, "" = allmän
+# drawing_types: ritningsslag där den används
+# meaning:       vad symbolen säger
+# label:         texten som brukar stå vid symbolen (Symbol.label), "" = ingen
+# required_when: när ritningen ska ha den, "" = när det finns något att visa
+# sketch:        hur den brukar se ut handritad, för tolkningen av skissen
+# syn:           ord och förkortningar man skriver i stället
+# rules:         granskningsregler i rules.toml
+
+version = "2026-10-28"
+
+# ------------------------------------------------------------- orientering
+
+[[symbol]]
+id = "north"
+name = "Norrpil"
+discipline = ""
+drawing_types = ["situationsplan", "planritning"]
+meaning = "Visar norr, så att väderstreck, solinstrålning och fasadnamn kan läsas av."
+label = "N"
+required_when = "Alltid på situationsplan och planritning."
+sketch = "Pil eller spets med ett N, ofta i en cirkel."
+syn = ["N-pil", "nordpil", "N", "väderstreck"]
+rules = ["rmink-norrpil"]
+
+[[symbol]]
+id = "section"
+name = "Snitt"
+discipline = ""
+drawing_types = ["planritning", "sektion", "fasad"]
+meaning = "Var en sektion är tagen och åt vilket håll den ses. Samma beteckning står på sektionsritningen."
+label = "A"
+required_when = "När projektet har en sektion: markeras i planen i båda ändar av snittlinjen."
+sketch = "Streckprickad linje med pilar eller flaggor i ändarna och en bokstav, A-A."
+syn = ["sektion", "sektionsmarkering", "snittmarkering", "A-A", "B-B"]
+rules = ["rmink-sektionsmarkering"]
+
+[[symbol]]
+id = "level"
+name = "Nivå"
+discipline = ""
+drawing_types = ["sektion", "fasad", "situationsplan"]
+meaning = "En höjd: färdigt golv, överkant, underkant eller mark, räknad från nollpunkten ±0 eller i höjdsystemet."
+label = "+0,00"
+required_when = "På sektion och fasad: golv, bjälklag, takfot och nock. På situationsplan: mark och färdigt golv."
+sketch = "Liten triangel med spetsen mot en linje och en siffra, ofta med ÖK, UK eller FG."
+syn = ["nivå", "höjd", "nivåmärke", "±0", "+0", "FG", "ÖK", "UK", "▽"]
+rules = ["rmink-niva-nollpunkt"]
+
+[[symbol]]
+id = "detail"
+name = "Detaljhänvisning"
+discipline = ""
+drawing_types = ["planritning", "sektion", "fasad", "detalj"]
+meaning = "Hänvisar till en detaljritning: detaljnumret överst, bladet eller ritningsnumret under strecket."
+label = "1/A-03"
+required_when = "När en del redovisas i större skala på en annan ritning."
+sketch = "Cirkel delad av ett vågrätt streck, med siffror över och under, ofta med en ring runt delen."
+syn = ["detalj", "detaljmarkering", "hänvisning", "se detalj"]
+rules = []
+
+[[symbol]]
+id = "point"
+name = "Punkt"
+discipline = "M"
+drawing_types = ["situationsplan", "konstruktion"]
+meaning = "En utsatt punkt: hörn att sätta ut, mätpunkt, fixpunkt eller borrhål."
+label = "P1"
+required_when = ""
+sketch = "Kryss eller plus med en ring."
+syn = ["mätpunkt", "fixpunkt", "utsättning", "stomkryss"]
+rules = []
+
+[[symbol]]
+id = "cross"
+name = "Kryss"
+discipline = ""
+drawing_types = ["planritning", "sektion", "skiss"]
+meaning = "Något som rivs eller utgår, eller en markerad punkt. Förklaras alltid i FÖRKLARINGAR, eftersom krysset kan betyda båda."
+label = ""
+required_when = ""
+sketch = "Två korsade streck."
+syn = ["X", "rivs", "utgår"]
+rules = ["rmink-forklaring"]
+
+# ------------------------------------------------------------------- bygg
+
+[[symbol]]
+id = "door"
+name = "Dörr"
+discipline = "A"
+drawing_types = ["planritning"]
+meaning = "Dörr med blad och slagbåge, som visar åt vilket håll den öppnas. Måttet är karmyttermått i moduler, t.ex. 10 = 1000 mm."
+label = "10x21"
+required_when = "Varje dörr i planen."
+sketch = "Rakt streck med en kvartscirkel från väggen."
+syn = ["dörr", "D", "slagbåge", "ytterdörr", "innerdörr", "M10", "10x21"]
+rules = ["bfs9-fri-hojd", "bfs12-entre-smahus"]
+
+[[symbol]]
+id = "window"
+name = "Fönster"
+discipline = "A"
+drawing_types = ["planritning", "fasad"]
+meaning = "Fönster i väggen, med tre parallella streck i plan. Måttet är karmyttermått i moduler, t.ex. 12x12."
+label = "12x12"
+required_when = "Varje fönster i planen; i fasad ritas det som det ser ut."
+sketch = "Två eller tre tunna parallella streck i väggen, ibland med en mittpost."
+syn = ["fönster", "F", "fönsterparti", "12x12"]
+rules = ["bfs9-fonster-barn", "bfs8-dagsljus"]
+
+[[symbol]]
+id = "column"
+name = "Pelare"
+discipline = "K"
+drawing_types = ["planritning", "konstruktion"]
+meaning = "Bärande pelare eller stolpe i plan. Material och dimension skrivs vid den, t.ex. 90x90 C24 eller KKR 80x80."
+label = "90x90"
+required_when = "Varje bärande stolpe och pelare."
+sketch = "Fyrkant med kryss i, eller ifylld fyrkant."
+syn = ["stolpe", "pelare", "P", "KKR", "VKR"]
+rules = ["rmink-dimension-saknas"]
+
+[[symbol]]
+id = "pier"
+name = "Plint"
+discipline = "K"
+drawing_types = ["konstruktion", "planritning", "situationsplan"]
+meaning = "Plint i grundplan, oftast under altan eller förråd. Typ, storlek och c-avstånd anges, liksom att den står på tjälfritt djup eller isoleras."
+label = "200x200"
+required_when = "Plintgrund: varje plint och avståndet mellan dem."
+sketch = "Liten fyrkant eller cirkel i ett rutnät, ofta med c-mått mellan."
+syn = ["plint", "plintar", "betongplint", "markskruv", "plintsko"]
+rules = ["praxis-frostfritt"]
+
+[[symbol]]
+id = "stair"
+name = "Trappa, gångriktning"
+discipline = "A"
+drawing_types = ["planritning"]
+meaning = "Gångriktningen upp i en trappa: en prick där pilen börjar och pilen mot det övre planet. Antal steg och stegmått skrivs vid trappan."
+label = "UPP"
+required_when = "Varje trappa i planen."
+sketch = "Prick och pil längs trappans steg, ofta med texten upp eller ned."
+syn = ["trappa", "upp", "ned", "gångriktning", "trappil"]
+rules = ["bfs9-ledstang", "praxis-trappa-stegmatt", "bfs9-plan-dorr-trappa"]
+
+[[symbol]]
+id = "railing"
+name = "Räcke"
+discipline = "A"
+drawing_types = ["planritning", "sektion", "fasad"]
+meaning = "Räcke eller skyddsräcke, med höjd och avstånd mellan spjälorna i text eller på en detalj."
+label = "H 1100"
+required_when = "Där någon kan falla ner, t.ex. altan, trappa och loftgång."
+sketch = "Linje med korta streck tätt längs den, eller ett tunt streck utanför altanens kant."
+syn = ["räcke", "skyddsräcke", "staket", "ledstång", "spjälräcke"]
+rules = ["bfs9-skydd-mot-fall", "bfs9-racke-barn", "praxis-racke-hojd"]
+
+[[symbol]]
+id = "bolt"
+name = "Bult"
+discipline = "K"
+drawing_types = ["konstruktion", "detalj"]
+meaning = "Bult eller genomgående skruv i ett förband. Dimension och korrosivitetsklass anges, t.ex. M12 FZV."
+label = "M12"
+required_when = "När ett förband är dimensionerat med bultar."
+sketch = "Cirkel med ett kryss eller plus genom."
+syn = ["bult", "M10", "M12", "M16", "genomgående"]
+rules = ["praxis-infastning-korrosion"]
+
+[[symbol]]
+id = "weld"
+name = "Svets"
+discipline = "K"
+drawing_types = ["konstruktion", "detalj"]
+meaning = "Svetsfog på stål. a-måttet och fogens längd skrivs vid symbolen."
+label = "a4"
+required_when = "När stål svetsas, t.ex. pelarfot eller balksko."
+sketch = "Liten triangel på en hänvisningslinje."
+syn = ["svets", "kälsvets", "a-mått"]
+rules = []
+
+# --------------------------------------------------------------------- el
+
+[[symbol]]
+id = "panel"
+name = "Elcentral"
+discipline = "E"
+drawing_types = ["el", "planritning"]
+meaning = "Elcentral eller gruppcentral. Placeringen avgör kabeldragningen; arbetet görs av behörig."
+label = "C"
+required_when = "På elritning och på planen när en ny central sätts."
+sketch = "Rektangel med en diagonal, ofta halvt ifylld."
+syn = ["central", "elcentral", "proppskåp", "gruppcentral", "C"]
+rules = ["elsl-behorighet"]
+
+[[symbol]]
+id = "outlet"
+name = "Eluttag"
+discipline = "E"
+drawing_types = ["el", "planritning"]
+meaning = "Vägguttag, enkelt. Höjd över golv anges om den avviker från normal höjd."
+label = ""
+required_when = "På elritning. I planen när kunden vill se uttagens placering."
+sketch = "Liten halvcirkel eller cirkel mot väggen, ibland med två korta streck."
+syn = ["uttag", "vägguttag", "eluttag", "jordat uttag"]
+rules = ["elsl-behorighet"]
+
+[[symbol]]
+id = "outlet_double"
+name = "Dubbeluttag"
+discipline = "E"
+drawing_types = ["el", "planritning"]
+meaning = "Dubbelt vägguttag i samma dosa."
+label = ""
+required_when = ""
+sketch = "Som eluttag men med två par streck eller siffran 2."
+syn = ["dubbeluttag", "2-uttag", "dubbelt uttag"]
+rules = ["elsl-behorighet"]
+
+[[symbol]]
+id = "switch"
+name = "Strömbrytare"
+discipline = "E"
+drawing_types = ["el", "planritning"]
+meaning = "Strömbrytare för belysning, vid dörren på låssidan."
+label = ""
+required_when = ""
+sketch = "Liten cirkel med ett snett streck."
+syn = ["brytare", "strömbrytare", "omkopplare", "dimmer"]
+rules = ["elsl-behorighet"]
+
+[[symbol]]
+id = "light"
+name = "Armatur"
+discipline = "E"
+drawing_types = ["el", "planritning", "fasad"]
+meaning = "Belysning i tak eller på vägg, eller ett takuttag för armatur."
+label = ""
+required_when = ""
+sketch = "Cirkel med ett kryss."
+syn = ["lampa", "armatur", "takuttag", "DCL", "belysning", "spotlight"]
+rules = ["elsl-behorighet"]
+
+[[symbol]]
+id = "smoke"
+name = "Brandvarnare"
+discipline = "B"
+drawing_types = ["planritning", "el"]
+meaning = "Brandvarnare i tak, nära sovrum och på varje plan."
+label = ""
+required_when = "När planen visar bostadens sovrum och hall."
+sketch = "Cirkel med ett B eller ett vågigt streck."
+syn = ["brandvarnare", "rökdetektor", "BV", "brandlarm"]
+rules = []
+
+# -------------------------------------------------------------------- VVS
+
+[[symbol]]
+id = "drain"
+name = "Golvbrunn"
+discipline = "V"
+drawing_types = ["planritning", "vvs"]
+meaning = "Golvbrunn i våtrum. Fall mot brunnen visas med fallriktning."
+label = "GB"
+required_when = "I varje våtrum med golvbrunn."
+sketch = "Fyrkant eller cirkel, ofta med GB."
+syn = ["golvbrunn", "GB", "brunn", "avlopp"]
+rules = ["praxis-vatrum-branschregler"]
+
+[[symbol]]
+id = "slope"
+name = "Fallriktning"
+discipline = ""
+drawing_types = ["planritning", "vvs", "situationsplan", "konstruktion"]
+meaning = "Åt vilket håll ytan lutar: golv mot brunn, altan och mark bort från huset, tak mot hängränna. Lutningen skrivs vid pilen."
+label = "1:50"
+required_when = "I våtrum mot golvbrunnen, och på altan och mark intill huset."
+sketch = "Pil med texten fall, ofta med ett förhållande som 1:50 eller 1 %."
+syn = ["fall", "lutning", "fallpil", "1:50", "1:100"]
+rules = ["praxis-vatrum-branschregler"]
+
+[[symbol]]
+id = "wc"
+name = "WC"
+discipline = "V"
+drawing_types = ["planritning", "vvs"]
+meaning = "Toalettstol; i plan visas den fria ytan framför."
+label = ""
+required_when = "I hygienrum."
+sketch = "Rektangel med en oval framför, eller texten WC."
+syn = ["WC", "toalett", "toalettstol", "klosett"]
+rules = ["bfs12-hygienrum"]
+
+[[symbol]]
+id = "basin"
+name = "Tvättställ"
+discipline = "V"
+drawing_types = ["planritning", "vvs"]
+meaning = "Tvättställ eller handfat."
+label = ""
+required_when = "I hygienrum."
+sketch = "Rektangel eller halvcirkel mot väggen, ibland med TS."
+syn = ["tvättställ", "handfat", "TS", "kommod"]
+rules = ["bfs12-hygienrum"]
+
+[[symbol]]
+id = "shower"
+name = "Dusch"
+discipline = "V"
+drawing_types = ["planritning", "vvs"]
+meaning = "Duschplats. Visas med duschväggar eller draperi och fall mot golvbrunnen."
+label = ""
+required_when = "När våtrummet har dusch."
+sketch = "Fyrkant med en diagonal, ofta med D."
+syn = ["dusch", "duschplats", "duschhörna", "D"]
+rules = ["praxis-vatrum-branschregler"]
+
+[[symbol]]
+id = "radiator"
+name = "Radiator"
+discipline = "V"
+drawing_types = ["planritning", "vvs"]
+meaning = "Radiator eller element, oftast under fönster."
+label = ""
+required_when = ""
+sketch = "Smal rektangel mot väggen, ibland med tvärstreck."
+syn = ["radiator", "element", "värmeelement", "elradiator"]
+rules = []
+
+# ------------------------------------------------------------ ventilation
+
+[[symbol]]
+id = "supply_air"
+name = "Tilluftsdon"
+discipline = "L"
+drawing_types = ["planritning", "vvs"]
+meaning = "Tilluft, frisk luft in: sovrum och vardagsrum."
+label = "TL"
+required_when = "När ventilationen visas i planen."
+sketch = "Cirkel med en pil ut, eller texten TL."
+syn = ["tilluft", "TL", "tilluftsdon", "uteluftsventil", "spaltventil"]
+rules = ["bfs8-ventilation"]
+
+[[symbol]]
+id = "exhaust_air"
+name = "Frånluftsdon"
+discipline = "L"
+drawing_types = ["planritning", "vvs"]
+meaning = "Frånluft, luft ut: kök, våtrum och tvättstuga."
+label = "FL"
+required_when = "När ventilationen visas i planen; alltid i våtrum."
+sketch = "Cirkel med en pil in, eller texten FL."
+syn = ["frånluft", "FL", "frånluftsdon", "utsug", "köksfläkt"]
+rules = ["bfs8-ventilation"]
+
+# ------------------------------------------------------------------- kök
+
+[[symbol]]
+id = "stove"
+name = "Spis"
+discipline = "A"
+drawing_types = ["planritning"]
+meaning = "Spis eller häll, med fyra plattor."
+label = ""
+required_when = ""
+sketch = "Fyrkant med fyra små cirklar."
+syn = ["spis", "häll", "induktion", "spishäll"]
+rules = []
+
+[[symbol]]
+id = "fridge"
+name = "Kylskåp"
+discipline = "A"
+drawing_types = ["planritning"]
+meaning = "Kylskåp eller frys, ofta med KY eller FR."
+label = "KY"
+required_when = ""
+sketch = "Fyrkant med KY, FR eller en stjärna."
+syn = ["kyl", "kylskåp", "KY", "frys", "FR", "kyl/frys"]
+rules = []
+
+# ------------------------------------------------------------------- mark
+
+[[symbol]]
+id = "tree"
+name = "Träd"
+discipline = "M"
+drawing_types = ["situationsplan"]
+meaning = "Träd som står kvar eller planteras. Träd som tas bort markeras med kryss."
+label = ""
+required_when = ""
+sketch = "Cirkel, ofta vågig, med en prick i mitten."
+syn = ["träd", "buske", "plantering"]
+rules = []
+
+# ---------------------------------------------------------- revision
+
+[[symbol]]
+id = "revision"
+name = "Revisionsmärke"
+discipline = ""
+drawing_types = ["planritning", "sektion", "fasad", "detalj", "konstruktion", "situationsplan"]
+meaning = "Pekar ut det som ändrats i en revision. Bokstaven i triangeln är samma som i revisionsraden i ritningshuvudet."
+label = "A"
+required_when = "Vid varje ändring efter att ritningen lämnats ut."
+sketch = "Liten triangel med en bokstav eller siffra."
+syn = ["rev", "revision", "rev A", "revisionstriangel", "ändring"]
+rules = ["rmink-ritningshuvud"]
+
+[[symbol]]
+id = "revision_cloud"
+name = "Revisionsmoln"
+discipline = ""
+drawing_types = ["planritning", "sektion", "fasad", "detalj", "konstruktion", "situationsplan"]
+meaning = "Ringar in det område som ändrats, tillsammans med revisionsmärket."
+label = ""
+required_when = "Vid varje ändring efter att ritningen lämnats ut."
+sketch = "Bubblig, molnformad ring."
+syn = ["moln", "revisionsmoln", "ändringsmoln"]
+rules = []

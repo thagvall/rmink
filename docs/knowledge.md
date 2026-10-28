@@ -89,7 +89,7 @@ Ett begrepp kan visas på sex sätt. Varje sätt motsvarar en mekanism i rmink, 
 | **Linjetyp och linjebredd** | Bärande i snitt grov 0,5–0,7, dolt streckat, centrum punktstreckat | `Category.line_type/width` (`src/rmink/drawing/model.py:37`) |
 | **Skraffering** | Betong: diagonaler med punkter. Mineralull: våglinje. Trä i snitt: kryss | Saknas. `geometry/hatch.py` kan bara rita enkla scanlines |
 | **Text enligt mall** | `Regel 45×195 C24 c600`, `Betong C25/30 XC2` | `Element(kind="text")`, utan struktur |
-| **Symbol** | Norrpil, nivå ▽, sektion, dörr med slagbåge, golvbrunn | `SYMBOLS` (`src/rmink/drawing/symbols.py:26`), 15 st |
+| **Symbol** | Norrpil, nivå ▽, sektion, dörr med slagbåge, golvbrunn | ✅ 33 symboler i `SYMBOLS` (`src/rmink/drawing/symbols.py`). Betydelse, disciplin, ritningsslag, när den krävs, text vid symbolen och handritade varianter finns i `symbols.toml` |
 | **Kod som hänvisar** | YV1, D1, A-A, 3/A-50-01 | Saknas |
 | **Ritningshuvud** | Projekt, nummer, skala, skede, revision | Bara namn, revision, skede och datum (`src/rmink/drawing/render.py:234`) |
 
@@ -107,6 +107,18 @@ Detaljerat per byggdel. Tabellen visar vad som ska synas i varje ritningsslag oc
 | Nivå | ▽ + `FG +0,000` | ▽ med nivå vid varje bjälklag | – | Marklinje, nock |
 | Brandcellsgräns | Streckad markering + `EI 30` | – | Genomföringar | – |
 | Revision | Ändringsmoln + triangel | Samma | Samma | Samma |
+
+**Symbolkatalogen** (`symbols.toml`) har en post per ritad symbol, grupperade så här:
+- **Orientering:** norrpil, snitt, nivå, detaljhänvisning, punkt, kryss.
+- **Bygg:** dörr, fönster, pelare, plint, trappa med gångriktning, räcke, bult, svets.
+- **El:** elcentral, eluttag, dubbeluttag, strömbrytare, armatur, brandvarnare.
+- **VVS:** golvbrunn, fallriktning, WC, tvättställ, dusch, radiator.
+- **Ventilation:** tilluft och frånluft.
+- **Kök:** spis och kylskåp.
+- **Mark:** träd.
+- **Revision:** revisionsmärke och revisionsmoln.
+
+Varje post anger vad symbolen betyder, vilken text som står vid den (`+0,00`, `A`, `10x21`, `1:50`), hur den brukar se ut handritad och vilka granskningsregler som hör till. Geometrin är rmink:s egen. Elsymbolerna liknar IEC 60617 men kopierar den inte. Därför förklaras varje använd symbol i FÖRKLARINGAR.
 
 ## 4. Arbetsgång för typiska småhusprojekt
 

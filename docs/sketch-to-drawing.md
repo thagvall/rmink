@@ -103,7 +103,7 @@ platta ─sync─▶ reMarkable Cloud ─rmapi get─▶ ingest/rm.py (streck, l
 | Moln | `cloud.py` | `ls`, `get`, `put`; token i `~/.config/rmink/cloud.toml` för CLI/MCP |
 | Anpassning | `drawing/fit.py` | grupperar streck och anpassar former (se nedan); ger en numrerad bild |
 | Modell | `drawing/model.py` | `Drawing`: element, mått, symboler, anmärkningar, legend, logg, kategorier |
-| Rendering | `drawing/render.py`, `font.py`, `symbols.py` | rena fineliner-streck, versalfont, 15 symboler, titelblock, SVG |
+| Rendering | `drawing/render.py`, `font.py`, `symbols.py` | rena fineliner-streck, versalfont, 33 symboler, titelblock, SVG |
 | Arbetsflöde | `drawing/workflow.py` | `read_sketch`, `rectify`, `check_dimensions`, `build_revision` och lagring |
 
 Detaljer:

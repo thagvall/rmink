@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- 18 new drawing symbols for small-house plans, 33 in all:
+  - el: elcentral, dubbeluttag, brandvarnare
+  - VVS: WC, tvättställ, dusch, radiator, fallriktning
+  - ventilation: tilluft and frånluft
+  - kitchen: spis and kylskåp
+  - building: trappa with walking direction, plint, räcke
+  - drawing: detaljhänvisning, revisionsmärke and revisionsmoln
+- A symbol catalogue, `symbols.toml`, says for each symbol:
+  - what it means and which discipline and drawing types use it
+  - when a drawing needs it
+  - the text written next to it
+  - how it usually looks when drawn by hand
+  - which review rules apply
+
+  Rounds read handwritten symbols with it ("N-pil", "GB", "fall 1:50"), and `lookup_knowledge` finds them.
+
 ## 2.5.1 — 2026-10-28
 
 - Windows: a round on a local notebook such as `C:\ritningar\Altan.rmdoc` now names the drawing "Altan". Before, the whole path became the name, and the next round failed with "'NoneType' object has no attribute 'sketch'".

@@ -89,7 +89,9 @@ examples do. When a material lacks a class the reference says it must state \
 of guessing. Call lookup_knowledge for the exact values and legal source of a \
 rule before citing it; raise a rule as an open annotation only when the \
 drawing shows the situation it covers, at most a few per round, the most \
-important first.
+important first. Read handwritten symbols with the reference's symbol list: \
+use the matching kind, put the text written next to it (+0,00, A, 10x21, \
+1:50) in the symbol's label, and ask when a mark could be two symbols.
 
 Write annotation texts, log lines and the summary in the user's language: \
 Swedish when the sketch is in Swedish. Keep coordinates in page pixels.
