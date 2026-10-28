@@ -2,6 +2,7 @@
 
 import math
 
+import numpy as np
 import pytest
 
 from rmink.calc import CalcError, evaluate, format_angle
@@ -149,3 +150,24 @@ def test_rectify_keeps_angles_on_their_corners():
     corner = r.elements[0].points[0]
     assert r.angles[0].vertex == corner and r.angles[0].start == r.elements[0].points[1]
     assert r.angles[0].measured() == pytest.approx(90)
+
+
+def test_angle_degrees_avoid_a_line_along_the_bisector():
+    from rmink.drawing.font import text_paths
+
+    # ridge of a gable with a king post straight down the bisector
+    d = Drawing(
+        name="Takstol",
+        elements=[
+            Element(id="L1", kind="line", points=[(100, 1000), (700, 700)]),
+            Element(id="L2", kind="line", points=[(700, 700), (1300, 1000)]),
+            Element(id="P", kind="line", points=[(700, 700), (700, 1000)]),
+        ],
+        angles=[AngleDimension(id="V", vertex=(700, 700), start=(100, 1000), end=(1300, 1000))],
+    )
+    page = render_drawing(d, get_device("rm2"))
+    n = len(text_paths("126,9°", (0, 0), 22.0))
+    # three lines, then the arc and its two arrowheads, then the degrees
+    label = np.vstack([s.points for s in page.strokes[6 : 6 + n]])
+    xs = label[:, 0]
+    assert xs.max() < 696 or xs.min() > 704, (xs.min(), xs.max())

@@ -203,14 +203,53 @@ def _angle(pen: _Pen, ang: AngleDimension, size: float) -> None:
         s = math.copysign(1.0, sweep)
         paths.append(_arrowhead(arc[-1], s * np.array([-math.sin(t[-1]), math.cos(t[-1])])))
         paths.append(_arrowhead(arc[0], -s * np.array([-math.sin(t[0]), math.cos(t[0])])))
-    pen.paths(paths, st)
     text = ang.text or format_angle(deg)
-    mid = t0 + sweep / 2
     w = text_width(text, size)
-    at = v + (r + 10 + 0.6 * max(w, size)) * np.array([math.cos(mid), math.sin(mid)])
+    # Beside the middle of the arc, unless a line runs there (a king post along
+    # the bisector): then further along the arc, or outside it.
+    origin = None
+    for frac, extra in _LABEL_SPOTS:
+        tm = t0 + sweep * frac
+        at = v + (r + 10 + extra + 0.6 * max(w, size)) * np.array([math.cos(tm), math.sin(tm)])
+        box = (at[0] - w / 2 - 4, at[1] - size / 2 - 4, at[0] + w / 2 + 4, at[1] + size / 2 + 4)
+        if origin is None:
+            origin = at
+        if not _hits(box, pen.strokes):
+            origin = at
+            break
+    pen.paths(paths, st)
     text_st = pen.style("text")
     text_st.color, text_st.rgb = st.color, st.rgb
-    pen.text(text, (at[0] - w / 2, at[1] + size / 2), size, text_st)
+    pen.text(text, (origin[0] - w / 2, origin[1] + size / 2), size, text_st)
+
+
+# Where an angle's degrees may go: (fraction along the arc, extra distance out).
+_LABEL_SPOTS = [
+    (0.5, 0), (0.3, 0), (0.7, 0), (0.2, 0), (0.8, 0), (0.5, 40), (0.3, 40), (0.7, 40),
+]  # fmt: skip
+
+
+def _hits(box: tuple[float, float, float, float], strokes: list[Stroke]) -> bool:
+    """Whether any stroke passes through the box (x0, y0, x1, y1)."""
+    x0, y0, x1, y1 = box
+    for stroke in strokes:
+        p = stroke.points
+        if len(p) == 0:
+            continue
+        lo, hi = p.min(axis=0), p.max(axis=0)
+        if hi[0] < x0 or lo[0] > x1 or hi[1] < y0 or lo[1] > y1:
+            continue
+        # sample each segment every few px so long straight lines are caught
+        seg = np.diff(p, axis=0) if len(p) > 1 else np.zeros((0, 2))
+        pts = [p]
+        for a, d in zip(p[:-1], seg, strict=True):
+            n = int(np.hypot(*d) // 3)
+            if n > 1:
+                pts.append(a + np.outer(np.linspace(0, 1, n), d))
+        q = np.vstack(pts)
+        if ((q[:, 0] >= x0) & (q[:, 0] <= x1) & (q[:, 1] >= y0) & (q[:, 1] <= y1)).any():
+            return True
+    return False
 
 
 def _bbox_of(drawing: Drawing, ids: list[str]) -> tuple[np.ndarray, np.ndarray] | None:

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- An angle's degrees move along the arc, or out from it, when a line runs where they would go, e.g. a king post down the middle of a ridge angle. They no longer sit on top of the line.
+
 ## 2.6.0 — 2026-10-28
 
 - Angles on drawings. An angle dimension is drawn as an arc with arrows between two legs and its degrees ("38,7°"). Write "visa vinklarna" on a drawing and the round puts out the corner angles. A written angle that disagrees with the drawing by more than 2° becomes a question.
