@@ -1,21 +1,15 @@
-"""Consistency checks for the construction knowledge base in knowledge/*.toml.
+"""Consistency checks for the building knowledge in src/rmink/knowledge/data.
 
-The data is not wired into the app yet; these tests keep the cross references
-(material → hatch/rule, assembly → material, rule → target, term → ref) intact
-while it grows.
+They keep the cross references (material → hatch/rule, assembly → material,
+rule → target, term → ref) intact while the data grows, and check lookup()
+and the prompt reference built from it.
 """
-
-import tomllib
-from pathlib import Path
 
 import pytest
 
+from rmink import knowledge
 from rmink.drawing.model import DEFAULT_CATEGORIES
 
-ROOT = Path(__file__).resolve().parents[1] / "knowledge"
-FILES = [
-    "terms", "drawing_standard", "materials", "assemblies", "rules", "markup", "hatches", "process",
-]
 LAW_SOURCES = {"PBL", "PBF", "ElSL"}
 RULE_KINDS = {"geometric", "attribute", "completeness", "manual"}
 SEVERITIES = {"fel", "fråga", "info"}
@@ -23,7 +17,7 @@ SEVERITIES = {"fel", "fråga", "info"}
 
 @pytest.fixture(scope="module")
 def kb():
-    return {name: tomllib.loads((ROOT / f"{name}.toml").read_text("utf-8")) for name in FILES}
+    return knowledge.load()
 
 
 def _ids(items):
@@ -161,3 +155,41 @@ def test_handwritten_synonyms_point_to_one_material(kb):
             key = s.casefold()
             owner = owners.setdefault(key, m["id"])
             assert owner == m["id"], f"'{s}' in {owner} and {m['id']}"
+
+
+@pytest.mark.parametrize(
+    "query, kind, expected",
+    [
+        ("gips 13", "material", "gips_a"),
+        ("C24", "material", "konstruktionsvirke"),
+        ("imp 45x145", "material", "tryckimpregnerat"),
+        ("YV1", "assembly", "yv_tra"),
+        ("KA", "term", "kontrollansvarig"),
+        ("ÖK", "term", "ok"),
+        ("bfs9-racke-barn", "rule", "bfs9-racke-barn"),
+        ("altan", "action", "altan"),
+    ],
+)
+def test_lookup_finds_handwritten_and_coded_names(query, kind, expected):
+    hits = knowledge.lookup(query)
+    assert any(h["entry"] == kind and h["id"] == expected for h in hits), [
+        (h["entry"], h["id"]) for h in hits
+    ]
+
+
+def test_lookup_expands_rules_and_hatch():
+    (gips,) = knowledge.lookup("gips 13", kind="material", limit=1)
+    assert gips["hatch"]["id"] == "skiva"
+    assert {r["id"] for r in gips["rules"]} >= {"rmink-material-klass"}
+    assert all("source" in r for r in gips["rules"])
+    assert knowledge.lookup("") == []
+    assert knowledge.lookup("xyzzy-inget") == []
+
+
+def test_reference_is_compact_and_lists_every_material_and_rule(kb):
+    ref = knowledge.reference()
+    assert len(ref) < 20_000  # cached in every round; details go through lookup()
+    for m in kb["materials"]["material"]:
+        assert f"- {m['id']}:" in ref
+    for r in kb["rules"]["rule"]:
+        assert r["source"] == "rmink" or f"- {r['id']}:" in ref

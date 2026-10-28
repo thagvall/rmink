@@ -59,4 +59,9 @@ def test_mcp_tools(examples, tmp_path):
             assert not res.is_error
             assert any(c.type == "image" for c in res.content)
 
+            res = await client.call_tool("lookup_knowledge", {"query": "C24"})
+            assert not res.is_error and "konstruktionsvirke" in res.content[0].text
+            res = await client.call_tool("drawing_reference", {})
+            assert "Gipsskiva normal" in res.content[0].text
+
     anyio.run(run)

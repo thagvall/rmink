@@ -4,8 +4,9 @@ The round reads the notebook from the reMarkable Cloud before calling Claude:
 the saved drawing (if any), the stroke groups and a picture of the page with
 the groups numbered. On the first round the groups are the whole sketch; on
 later rounds only the strokes the user added since rmink wrote the page.
-Claude then has two tools: ``render_preview`` to check a drawing and
-``save_revision`` to write the next revision and send it to the tablet.
+Claude then has three tools: ``render_preview`` to check a drawing,
+``lookup_knowledge`` for building terms, materials and rules (rmink.knowledge),
+and ``save_revision`` to write the next revision and send it to the tablet.
 
 The loop is written out (not the SDK's beta tool runner) because the tools
 return pictures, and it keeps every assistant turn unchanged as the API
@@ -24,7 +25,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from rmink import cloud
+from rmink import cloud, knowledge
 from rmink.devices import get_device
 from rmink.drawing import workflow
 from rmink.drawing.model import Drawing
@@ -78,6 +79,17 @@ check. Fix what is off (a measurement that disagrees with the others is often \
 a misread number; ask about it if you cannot tell).
 6. Call save_revision once with the final Drawing and a two-sentence summary \
 for the user. Then stop.
+
+Building knowledge: the reference below lists Swedish terms, abbreviations, \
+materials with their quality classes, typical assemblies and review rules. Use \
+it to read the sketch the way a builder would: "gips 13" is gypsum board type A \
+12,5 mm, "C24" a strength class. Write material texts the way the reference's \
+examples do. When a material lacks a class the reference says it must state \
+(strength class, NTR class, exposure class), ask in an open annotation instead \
+of guessing. Call lookup_knowledge for the exact values and legal source of a \
+rule before citing it; raise a rule as an open annotation only when the \
+drawing shows the situation it covers, at most a few per round, the most \
+important first.
 
 Write annotation texts, log lines and the summary in the user's language: \
 Swedish when the sketch is in Swedish. Keep coordinates in page pixels.
@@ -179,6 +191,20 @@ TOOLS = [
         },
         "eager_input_streaming": True,
     },
+    {
+        "name": "lookup_knowledge",
+        "description": "Look up Swedish building knowledge: a term, abbreviation or handwritten "
+        "variant ('gips 13', 'imp', 'ÖK'), a material, an assembly code (YV1), a rule id or a "
+        "permit question. Returns full entries with classes, layers, exact values and sources.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "kind": {"type": "string", "enum": list(knowledge.KINDS)},
+            },
+            "required": ["query"],
+        },
+    },
 ]
 
 
@@ -237,7 +263,7 @@ def run_round(
         {"type": "text", "text": ROUND_PROMPT},
         {
             "type": "text",
-            "text": "Drawing reference:\n" + _reference(),
+            "text": "Drawing reference:\n" + _reference() + "\n\n" + knowledge.reference(),
             "cache_control": {"type": "ephemeral"},
         },
     ]
@@ -267,6 +293,9 @@ def run_round(
         return _png(render_lines(page_lines(page, device), device, page.height))
 
     def call_tool(tool_name: str, args: dict) -> tuple[list[dict] | str, bool]:
+        if tool_name == "lookup_knowledge":
+            hits = knowledge.lookup(str(args.get("query") or ""), args.get("kind"))
+            return json.dumps(hits or "No match.", ensure_ascii=False), False
         try:
             d = finalize(Drawing.model_validate(args.get("drawing") or {}))
         except Exception as e:  # pydantic ValidationError or a cut-off input
@@ -299,7 +328,7 @@ def run_round(
         return f"Unknown tool {tool_name}", True
 
     effort = effort or os.environ.get("RMINK_ROUND_EFFORT", "medium")
-    for _ in range(8):
+    for _ in range(12):
         with client.beta.messages.stream(
             model=MODEL,
             max_tokens=32000,

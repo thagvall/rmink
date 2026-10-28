@@ -58,7 +58,7 @@ If the `rmink` MCP server is connected, prefer its tools (`preview_ink`,
 
 The user sketches a 2D drawing on the tablet (walls, beams, written lengths and
 angles, symbols, arrows, a legend) and wants a clean, interpreted version back,
-then marks that up in rounds. MCP tools: `read_sketch`, `drawing_reference`,
+then marks that up in rounds. MCP tools: `read_sketch`, `drawing_reference`, `lookup_knowledge`,
 `render_drawing_preview`, `save_revision`, `get_drawing`, plus `cloud_connect` /
 `cloud_list`. CLI: `rmink cloud connect|ls|get|put`, `rmink sketch`, `rmink draw`.
 
@@ -72,7 +72,12 @@ then marks that up in rounds. MCP tools: `read_sketch`, `drawing_reference`,
    arrowheads or small symbols: read them from the image. Decide per group what
    it is: an element (and its category: structure, hidden, electrical…), a
    dimension (the written number plus the line it measures), a symbol, legend
-   text, or a remark. Read `drawing_reference` once for the JSON format.
+   text, or a remark. Read `drawing_reference` once for the JSON format and the
+   Swedish building knowledge (terms, materials with classes, assemblies, rules).
+   Write materials the way a builder would ("gips 13" → Gips typ A 12,5) and ask
+   when a required class is missing. Call `lookup_knowledge` for exact rule
+   values and their source (BFS, PBL/PBF, ElSL) before citing one; practice
+   values and permit rules are questions, never errors.
    If the sketch has a legend, use it for symbol meanings and put it in
    `legend`. Ask the user about anything you cannot read rather than guessing.
 3. **Check.** `render_drawing_preview` straightens lines, joins corners and

@@ -191,6 +191,18 @@ def test_invalid_drawing_is_reported_back(sketch, tmp_path):
     assert error["is_error"] is True
 
 
+def test_round_has_building_knowledge(sketch, tmp_path):
+    turns = [([_tool("k1", "lookup_knowledge", {"query": "gips 13"})], "tool_use")]
+    client = FakeClient(turns + _turns())
+    run_round(str(sketch), "rm2", FileStore(tmp_path / "d"), client=client, send=False)
+    first = client.requests[0]
+    assert "lookup_knowledge" in {t["name"] for t in first["tools"]}
+    reference = first["system"][1]
+    assert "gips_a" in reference["text"] and reference["cache_control"]
+    result = client.requests[1]["messages"][-1]["content"][0]
+    assert result["is_error"] is False and '"gips_a"' in result["content"]
+
+
 def test_redis_store(monkeypatch):
     data = {}
 

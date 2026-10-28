@@ -114,7 +114,7 @@ Detaljer:
 ### Gränssnitt
 
 - **MCP:** `cloud_connect`, `cloud_list`, `read_sketch`, `drawing_reference`,
-  `render_drawing_preview`, `save_revision`, `get_drawing`
+  `lookup_knowledge`, `render_drawing_preview`, `save_revision`, `get_drawing`
 - **CLI:** `rmink cloud connect|ls|get|put`, `rmink sketch DOC --overlay groups.png`,
   `rmink draw drawing.json [--svg] [--send]`, `rmink round NAMN|DOC`
 - **Webb:** `/rounds` (bara för ägaren): ritningskort med **Kör nästa varv**, nya skisser i

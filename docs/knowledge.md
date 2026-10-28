@@ -1,8 +1,8 @@
 # Kunskapsbas för byggritningar – analys och struktur
 
-*Etapp 0 och 0b (process enligt PBL/PBF och behörighet för el), 2026-10-28.*
+*Etapp 0, 0b (process enligt PBL/PBF och behörighet för el) och 1 (inkopplad i referenstexten med uppslagsverktyg), 2026-10-28.*
 
-Detta dokument beskriver kunskapen som behövs för att rmink ska kunna stödja dagligt ritande och avstämning av byggritningar. Det gäller både när en ritning skapas, ändras, ses över och kvalitetsgranskas, och när en lösning från ett tidigare projekt ska återanvändas. Datan ligger i [`knowledge/`](../knowledge) som TOML-filer. Den är ännu inte inkopplad i appen, och avsnitt 6 visar var den ska kopplas in.
+Detta dokument beskriver kunskapen som behövs för att rmink ska kunna stödja dagligt ritande och avstämning av byggritningar. Det gäller både när en ritning skapas, ändras, ses över och kvalitetsgranskas, och när en lösning från ett tidigare projekt ska återanvändas. Datan ligger i [`src/rmink/knowledge/data/`](../src/rmink/knowledge/data) som TOML-filer och läses av modulen `rmink.knowledge`. Punkterna 1 och 2 i avsnitt 5 är inkopplade; resten är förslag.
 
 Fokus är **småhus, altaner och hantverkare**: trä, gips, plintar och trall, med planer och sektioner i 1:20 och 1:50. Det matchar de skisser som rmink tolkar idag.
 
@@ -145,12 +145,12 @@ En **kontrollansvarig** behövs inte för anmälan, komplementbyggnad, mur, plan
 
 Varje punkt anger var i koden den kopplas in.
 
-1. **Bättre tolkning (låg kostnad).** Lägg en sammanfattning av termer, förkortningar, varuslag med klasser och ritningsstandard i Claudes cachade referensblock:
+1. **✅ Inkopplad. Bättre tolkning (låg kostnad).** Lägg en sammanfattning av termer, förkortningar, varuslag med klasser och ritningsstandard i Claudes cachade referensblock:
    - `agent._reference()` i `src/rmink/drawing/agent.py:117`
    - `drawing_reference` i `src/rmink/mcp_server.py:238`
 
    Med det kan Claude normalisera "gips 13" till *Gips typ A 12,5* och "imp 45×145" till *Regel 45×145 NTR AB*. Det kan också fråga efter klass i stället för att gissa, och prompten i `ROUND_PROMPT` (agent.py:42) säger redan att Claude ska fråga när något är oklart.
-2. **Verktyget `lookup_knowledge(query)`** i rundans verktygsloop (agent.py:156) och i MCP. Claude hämtar detaljer om ett varuslag, en typkonstruktion eller en regel när det behövs, så att prompten förblir liten.
+2. **✅ Inkopplad. Verktyget `lookup_knowledge(query)`** i rundans verktygsloop (agent.py:156) och i MCP. Claude hämtar detaljer om ett varuslag, en typkonstruktion eller en regel när det behövs, så att prompten förblir liten.
 3. **Modellfält** i `Drawing` (`src/rmink/drawing/model.py:131`):
    - `scale` och `title_block` (fälten i `drawing_standard.toml`)
    - `drawing_type`

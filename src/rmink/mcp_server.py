@@ -14,7 +14,7 @@ from pathlib import Path
 
 from mcp.server.mcpserver import Image, MCPServer
 
-from rmink import api, cloud
+from rmink import api, cloud, knowledge
 from rmink.devices import all_devices, get_device
 from rmink.drawing import workflow
 from rmink.drawing.model import Drawing
@@ -237,7 +237,8 @@ def read_sketch(
 
 @server.tool()
 def drawing_reference() -> str:
-    """The Drawing JSON format, built-in symbols and line categories."""
+    """The Drawing JSON format, built-in symbols and line categories, plus a summary
+    of Swedish building knowledge (terms, materials, assemblies, rules)."""
     return json.dumps(
         {
             "schema": Drawing.model_json_schema(),
@@ -254,9 +255,30 @@ def drawing_reference() -> str:
                 "Annotations with status 'open' are drawn as numbered rings and listed "
                 "under ANMÄRKNINGAR, each with a SVAR line for the user's answer; "
                 "accepted/rejected ones are hidden.",
+                "Use 'knowledge' to read Swedish terms and write materials the way a builder "
+                "would; ask in an open annotation when a required class is missing. "
+                "lookup_knowledge gives exact rule values and sources.",
             ],
-        }
+            "knowledge": knowledge.reference(),
+        },
+        ensure_ascii=False,
     )
+
+
+@server.tool()
+def lookup_knowledge(query: str, kind: str | None = None) -> str:
+    """Look up Swedish building knowledge for a drawing.
+
+    Args:
+        query: A term, abbreviation or handwritten variant ("gips 13", "imp", "ÖK"),
+            a material, an assembly code ("YV1"), a rule id or a permit question ("altan").
+        kind: Optionally one of material, assembly, rule, action, term, drawing_type,
+            role, hatch.
+
+    Returns JSON entries, best match first, with classes, layers, exact values and the
+    legal source of each rule (BFS, PBL/PBF, ElSL) or "praxis" when it is practice only.
+    """
+    return json.dumps(knowledge.lookup(query, kind) or "No match.", ensure_ascii=False)
 
 
 @server.tool()
