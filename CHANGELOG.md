@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.7.0 — 2026-10-28
 
 - Alternatives. Ask "hur tjock?" or "alternativ?" on a drawing, and the round puts 2–4 solutions on their own page after the drawing. Each one shows:
   - a small hatched section with a text for each layer
