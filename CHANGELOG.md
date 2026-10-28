@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.7.1 — 2026-10-28
 
 - Open remarks on a large target, such as a long text or a whole wall, are marked with corner marks around it instead of a large ring that runs through other texts. The number goes at the first corner where nothing is drawn. Small targets keep their small ring.
 
