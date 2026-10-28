@@ -216,3 +216,43 @@ def test_token_storage(tmp_path, monkeypatch):
     assert cloud.load_token() == "tok.en-1"
     monkeypatch.setenv("RMINK_CLOUD_TOKEN", "from-env")
     assert cloud.load_token() == "from-env"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="no lasting cache on Windows")
+def test_owner_keeps_the_tree_cache(tmp_path, monkeypatch):
+    # Without it every rmapi run fetches every notebook's metadata, and the
+    # cloud answers 429 after a few rounds.
+    monkeypatch.setattr(cloud.tempfile, "tempdir", str(tmp_path))
+    monkeypatch.setenv("RMINK_RMAPI", "/opt/rmapi")
+    monkeypatch.setenv("RMINK_CLOUD_TOKEN", "owner.tok-1")
+    seen = []
+
+    def run(args, input, env, **kw):
+        # Where Go's os.UserCacheDir points: XDG_CACHE_HOME on Linux, $HOME on macOS.
+        for cache in (Path(env["XDG_CACHE_HOME"]), Path(env["HOME"]) / "Library" / "Caches"):
+            seen.append((cache / "rmapi" / "tree.cache").exists())
+        (Path(env["XDG_CACHE_HOME"]) / "rmapi").mkdir(exist_ok=True)
+        (Path(env["XDG_CACHE_HOME"]) / "rmapi" / "tree.cache").write_text("tree")
+        return subprocess.CompletedProcess(args, 0, "[d]\trmink\n", "")
+
+    monkeypatch.setattr(cloud.subprocess, "run", run)
+    cloud.ls("owner.tok-1", "/rmink")
+    cloud.ls("owner.tok-1", "/rmink")
+    assert seen == [False, False, True, True]
+
+    seen.clear()
+    cloud.ls("someone.else-1")
+    cloud.ls("someone.else-1")
+    assert seen == [False, False, False, False]
+    assert len([p for p in tmp_path.iterdir() if p.name.startswith("rmink-rmapi-cache-")]) == 1
+
+
+def test_rate_limit_message():
+    proc = subprocess.CompletedProcess(
+        [],
+        1,
+        "",
+        "ERROR: 2026/10/28 16:15:06 main.go:80: failed to build documents tree, "
+        "last error: failed to mirror cannot get root hash request failed with status 429",
+    )
+    assert "wait a few minutes" in cloud._message(proc)

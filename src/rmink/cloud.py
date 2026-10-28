@@ -5,12 +5,18 @@ my.remarkable.com into a device token that goes back to the browser, which
 sends it along with each upload. Every rmapi run gets its own temp config and
 cache, so tokens never mix between users or end up on disk after a request.
 
+The owner's own token (``RMINK_CLOUD_TOKEN`` on the server, or the saved one for
+the CLI and MCP server) keeps rmapi's document-tree cache between runs instead.
+Without it every run downloads the metadata of every notebook, and a few
+rounds in a row get the account rate limited (HTTP 429).
+
 The CLI and MCP server run on the user's own machine and keep their token in
 ``~/.config/rmink/cloud.toml`` instead (see :func:`save_token`).
 """
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 import re
@@ -81,10 +87,14 @@ def find_rmapi() -> str | None:
 def _env(home: Path) -> dict[str, str]:
     env = dict(os.environ)
     # rmapi reads its config from RMAPI_CONFIG and caches the document tree in
-    # the user cache dir; point everything at the per-request temp dir.
+    # the user cache dir; point everything at the per-request temp dir, and
+    # the cache at the lasting one when the session links it (see _session).
     env["RMAPI_CONFIG"] = str(home / "rmapi.conf")
-    for key in ("HOME", "XDG_CONFIG_HOME", "XDG_CACHE_HOME", "APPDATA", "LOCALAPPDATA"):
+    cache = home / "cache" if (home / "cache").exists() else home
+    for key in ("HOME", "XDG_CONFIG_HOME", "APPDATA"):
         env[key] = str(home)
+    for key in ("XDG_CACHE_HOME", "LOCALAPPDATA"):
+        env[key] = str(cache)
     return env
 
 
@@ -113,6 +123,8 @@ def _message(proc: subprocess.CompletedProcess) -> str:
     lines = [ln.strip() for ln in (proc.stderr or proc.stdout).splitlines() if ln.strip()]
     if not lines:
         return f"rmapi exited with code {proc.returncode}"
+    if re.search(r"status 429|too many requests", proc.stdout + proc.stderr, re.I):
+        return "reMarkable Cloud is limiting requests right now; wait a few minutes and try again"
     # Drop the timestamp rmapi's logger prefixes and our temp paths.
     msg = re.sub(r"^\w+: \d{4}/\d\d/\d\d \d\d:\d\d:\d\d(\.\d+)? ", "", lines[-1])
     return re.sub(r"\[?/\S*/([^/\s\]]+)\]?", r"\1", msg)[:300]
@@ -135,13 +147,42 @@ def connect(code: str) -> str:
 
 @contextmanager
 def _session(device_token: str) -> Iterator[Path]:
-    """A temp rmapi home holding only this token."""
+    """A temp rmapi home holding only this token. For the owner's token the
+    cache dir links to a lasting one, used by one rmapi run at a time."""
     if not _TOKEN.match(device_token or ""):
         raise CloudAuthError("Not connected to reMarkable")
     with tempfile.TemporaryDirectory(prefix="rmink-cloud-") as tmp:
         home = Path(tmp)
         (home / "rmapi.conf").write_text(f"devicetoken: {device_token}\n", encoding="utf-8")
-        yield home
+        if device_token != load_token() or os.name == "nt":
+            yield home
+            return
+        digest = hashlib.sha256(device_token.encode()).hexdigest()[:16]
+        cache = Path(tempfile.gettempdir()) / f"rmink-rmapi-cache-{digest}"
+        cache.mkdir(mode=0o700, exist_ok=True)
+        # Linux finds it through XDG_CACHE_HOME (_env), macOS under $HOME. Not on
+        # Windows, where links need extra rights.
+        (home / "cache").symlink_to(cache, target_is_directory=True)
+        (home / "Library").mkdir()
+        (home / "Library" / "Caches").symlink_to(cache, target_is_directory=True)
+        with _locked(cache):
+            yield home
+
+
+@contextmanager
+def _locked(cache: Path) -> Iterator[None]:
+    """Keep two rmapi runs from writing the same tree cache at once."""
+    try:
+        import fcntl
+    except ImportError:  # Windows: the CLI runs one command at a time anyway
+        yield
+        return
+    with open(cache / ".lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock, fcntl.LOCK_UN)
 
 
 def _check_auth(proc: subprocess.CompletedProcess) -> None:
