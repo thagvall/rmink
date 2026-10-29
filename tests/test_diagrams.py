@@ -22,7 +22,7 @@ def built(tmp_path_factory):
         build = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(build)
         out = tmp_path_factory.mktemp("diagrams")
-        return build.build(out)
+        return build.build(out / "teknik")
     finally:
         sys.path.remove(str(DIAGRAMS))
 
@@ -60,3 +60,21 @@ def test_the_knowledge_base_is_all_there(built):
     )
     missing = [x for x in expected if x not in text]
     assert not missing, missing
+
+
+def test_business_chains_are_valid_drawio(tmp_path):
+    sys.path.insert(0, str(DIAGRAMS))
+    try:
+        import verksamhet
+
+        built = verksamhet.build(tmp_path)
+    finally:
+        sys.path.remove(str(DIAGRAMS))
+    assert len(built) == 6
+    for path in built:
+        cells = _cells(path)
+        ids = [c.get("id") for c in cells]
+        assert len(ids) == len(set(ids)), path.name
+        for c in cells:
+            if c.get("edge"):
+                assert c.get("source") in ids and c.get("target") in ids, path.name

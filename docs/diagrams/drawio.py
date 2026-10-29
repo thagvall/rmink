@@ -130,14 +130,26 @@ class Cell:
 
 
 class Diagram:
-    def __init__(self, name: str, title: str, subtitle: str = "") -> None:
+    def __init__(
+        self,
+        name: str,
+        title: str,
+        subtitle: str = "",
+        title_color: str = "#000000",
+        title_size: int = 22,
+    ) -> None:
         self.name, self.title = name, title
         self.cells: list[Cell] = []
         self._n = 0
         self._abs: dict[str, tuple[float, float, float, float]] = {}
-        self.text(40, 20, 1400, 34, f"<b>{esc(title)}</b>", size=22)
+        self.text(40, 20, 1400, 34, f"<b>{esc(title)}</b>", size=title_size, color=title_color)
         if subtitle:
             self.text(40, 56, 1400, 22, esc(subtitle), size=12, color="#333333")
+
+    def raw(self, x, y, w, h, value, style, parent="1", hint=None) -> str:
+        """A box with a style of its own (value is HTML)."""
+        cid = self._id(hint)
+        return self._add(Cell(cid, value, style, parent, (x, y, w, h)), self._origin(parent))
 
     def _id(self, hint: str | None) -> str:
         self._n += 1

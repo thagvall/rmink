@@ -1,9 +1,11 @@
 # ruff: noqa: E501  (diagram texts read best on one line)
 """Build the draw.io diagrams of rmink and its building knowledge base.
 
-    python docs/diagrams/build.py            # writes docs/diagrams/NN-*.drawio
+    python docs/diagrams/build.py            # writes teknik/ and verksamhet/*.drawio
     python docs/diagrams/build.py --export   # and an .svg next to each (needs draw.io)
 
+teknik/ shows how the app and the knowledge base are built; verksamhet/ (made
+by verksamhet.py) shows the processes as swimlanes of roles and systems.
 The diagrams are made from the code and data they show: the knowledge base
 TOML files, the symbol and hatch drawing code, the Drawing model, the CLI, MCP
 and web routes. Run this after changing any of them; tests/test_diagrams.py
@@ -2071,8 +2073,10 @@ def main() -> None:
     ap.add_argument("--export", action="store_true", help="also export .svg with draw.io")
     ap.add_argument("--png", action="store_true", help="also export .png (for checking)")
     args = ap.parse_args()
-    paths = build(args.out)
-    print(f"{len(paths)} diagram i {args.out}")
+    import verksamhet
+
+    paths = build(args.out / "teknik") + verksamhet.build(args.out / "verksamhet")
+    print(f"{len(paths)} diagram i {args.out}/teknik och {args.out}/verksamhet")
     if args.export:
         export(paths, "svg")
     if args.png:

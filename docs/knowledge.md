@@ -4,7 +4,7 @@
 
 Detta dokument beskriver kunskapen som behövs för att rmink ska kunna stödja dagligt ritande och avstämning av byggritningar. Det gäller både när en ritning skapas, ändras, ses över och kvalitetsgranskas, och när en lösning från ett tidigare projekt ska återanvändas. Datan ligger i [`src/rmink/knowledge/data/`](../src/rmink/knowledge/data) som TOML-filer och läses av modulen `rmink.knowledge`. Punkterna 1 och 2 i avsnitt 5 är inkopplade; resten är förslag.
 
-Diagram över hela kunskapsbasen finns i [`docs/diagrams/`](diagrams/README.md): struktur, lagar och regler, lov och process, ritstandard, material, konstruktioner, produktalternativ, symboler, skrafferingar, granskning och begrepp. De byggs ur samma TOML-filer.
+Diagram över hela kunskapsbasen finns i [`docs/diagrams/teknik/`](diagrams/teknik/README.md): struktur, lagar och regler, lov och process, ritstandard, material, konstruktioner, produktalternativ, symboler, skrafferingar, granskning och begrepp. De byggs ur samma TOML-filer.
 
 Fokus är **småhus, altaner och hantverkare**: trä, gips, plintar och trall, med planer och sektioner i 1:20 och 1:50. Det matchar de skisser som rmink tolkar idag.
 
