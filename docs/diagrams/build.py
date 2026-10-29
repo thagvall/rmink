@@ -54,7 +54,7 @@ def table_box(
     w = sum(widths) + 16
     top = 22 + (16 if sub else 0)
     h = top + table_height(rows, widths) + 12
-    sub_html = f'<br><font color="#555555">{esc(sub)}</font>' if sub else ""
+    sub_html = f'<br><font color="#333333">{esc(sub)}</font>' if sub else ""
     value = f"<b>{esc(title)}</b>{sub_html}{table(rows, head, widths)}"
     cid = d.box(x, y, w, h, value, kind, parent=parent, hint=hint or title)
     return cid, y + h
@@ -723,7 +723,7 @@ def d05_folders() -> Diagram:
     for depth, name, comment, kind in tree:
         d.box(40 + depth * 28, y, 230, 26, esc(name), kind, valign="middle")
         if comment:
-            d.text(370, y + 4, 260, 22, esc(comment), size=10, color="#555555")
+            d.text(370, y + 4, 260, 22, esc(comment), size=10, color="#333333")
         y += 32
     chain = [
         ("r00 skiss", ["handritad", "i rmink/ eller rmink/<Mapp>/"], "device"),
@@ -2045,7 +2045,9 @@ def export(paths: list[Path], fmt: str = "svg") -> None:
     for p in paths:
         target = p.with_suffix(f".{fmt}")
         subprocess.run(
-            [exe, "-x", "-f", fmt, "-o", str(target), str(p)], check=True, capture_output=True
+            [exe, "-x", "-f", fmt, "--theme", "light", "--border", "24", "-o", str(target), str(p)],
+            check=True,
+            capture_output=True,
         )
         if fmt == "svg":
             strip_text_fallbacks(target)

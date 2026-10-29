@@ -56,7 +56,7 @@ def label(title: str = "", lines: list[str] | None = None, sub: str = "") -> str
     if title:
         parts.append(f"<b>{esc(title)}</b>")
     if sub:
-        parts.append(f'<font color="#555555">{esc(sub)}</font>')
+        parts.append(f'<font color="#333333">{esc(sub)}</font>')
     parts += [esc(x) for x in lines or []]
     return "<br>".join(parts)
 
@@ -137,7 +137,7 @@ class Diagram:
         self._abs: dict[str, tuple[float, float, float, float]] = {}
         self.text(40, 20, 1400, 34, f"<b>{esc(title)}</b>", size=22)
         if subtitle:
-            self.text(40, 56, 1400, 22, esc(subtitle), size=12, color="#555555")
+            self.text(40, 56, 1400, 22, esc(subtitle), size=12, color="#333333")
 
     def _id(self, hint: str | None) -> str:
         self._n += 1
@@ -218,7 +218,7 @@ class Diagram:
         dst,
         value="",
         dashed=False,
-        color="#555555",
+        color="#333333",
         parent="1",
         extra="",
         points: list[tuple[float, float]] | None = None,
@@ -261,7 +261,7 @@ class Diagram:
         body = "".join(c.xml() for c in self.cells)
         model = (
             f'<mxGraphModel dx="{w:.0f}" dy="{h:.0f}" grid="1" gridSize="10" guides="1" '
-            f'tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" '
+            f'tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" background="#ffffff" '
             f'pageWidth="{w:.0f}" pageHeight="{h:.0f}" math="0" shadow="0">'
             f'<root><mxCell id="0"/><mxCell id="1" parent="0"/>{body}</root></mxGraphModel>'
         )
