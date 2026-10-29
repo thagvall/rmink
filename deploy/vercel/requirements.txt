@@ -1,4 +1,4 @@
 # The hosted site runs a released rmink version from PyPI.
 # Bump this after each release to update the site.
-rmink[web,rounds]==2.8.0
+rmink[web,rounds]==2.9.0
 fastapi
