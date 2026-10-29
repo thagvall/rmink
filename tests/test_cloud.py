@@ -304,9 +304,13 @@ def test_a_cold_start_fetches_the_tree_cache_from_blob(tmp_path, monkeypatch):
     monkeypatch.setenv("RMINK_CLOUD_TOKEN", "owner.tok-1")
     warm = []
 
-    def run(args, input, env, **kw):
+    def run(args, input, env, timeout, **kw):
         tree = Path(env["XDG_CACHE_HOME"]) / "rmapi" / "tree.cache"
         warm.append(tree.exists())
+        # A cold sync gets more time and more parallel requests.
+        owner = env["XDG_CACHE_HOME"].endswith("/cache")
+        cold = owner and not tree.exists()
+        assert (timeout, env["RMAPI_CONCURRENT"]) == ((270, "6") if cold else (90, "2"))
         if not tree.exists():  # a cold sync fills the cache
             tree.parent.mkdir(exist_ok=True)
             tree.write_text('{"Docs": []}')

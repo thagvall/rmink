@@ -38,6 +38,11 @@ CONNECT_URL = "https://my.remarkable.com/device/browser/connect"
 _CODE = re.compile(r"^[a-z0-9]{8}$")
 _TOKEN = re.compile(r"^[\w.\-]+$")
 _TIMEOUT_S = 90
+# Filling an empty tree cache reads every notebook's metadata (~2,900 requests
+# on a 1,000-notebook account): give it longer, under Vercel's 300 s limit, and
+# more parallel requests, once.
+_COLD_TIMEOUT_S = 270
+_COLD_CONCURRENT = "6"
 
 
 class CloudError(Exception):
@@ -99,8 +104,13 @@ def _env(home: Path) -> dict[str, str]:
         env[key] = str(cache)
     # rmapi fetches every notebook's metadata into an empty cache, 20 at a time
     # by default; a large account then gets HTTP 429. Two at a time is gentler.
-    env.setdefault("RMAPI_CONCURRENT", "2")
+    env.setdefault("RMAPI_CONCURRENT", _COLD_CONCURRENT if _cold(home) else "2")
     return env
+
+
+def _cold(home: Path) -> bool:
+    """The owner's session has no tree cache yet (see _session)."""
+    return (home / "cache").exists() and not (home / "cache" / "rmapi" / "tree.cache").exists()
 
 
 def _run(args: list[str], home: Path, stdin: str | None = None) -> subprocess.CompletedProcess:
@@ -115,7 +125,7 @@ def _run(args: list[str], home: Path, stdin: str | None = None) -> subprocess.Co
             text=True,
             env=_env(home),
             cwd=home,
-            timeout=_TIMEOUT_S,
+            timeout=_COLD_TIMEOUT_S if _cold(home) else _TIMEOUT_S,
         )
     except subprocess.TimeoutExpired as e:
         raise CloudError("reMarkable Cloud did not answer in time; try again") from e
