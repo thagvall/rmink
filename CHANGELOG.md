@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.7.5 — 2026-10-29
+
+- Even fewer calls to reMarkable Cloud:
+  - rmapi now makes at most 2 requests at a time instead of 20 (`RMAPI_CONCURRENT`, which you can still set yourself). A sync with an empty cache gets the metadata of every notebook, and on a large account that burst set off the cloud's rate limit.
+  - The owner's rmapi config is kept with the cache, so the user token is reused. Before, each run fetched a new one from the token endpoint, which allows the fewest requests.
+
+  On an account with about 1,000 notebooks, one listing makes about 2,870 requests with an empty cache and 1 with a warm one.
+
 ## 2.7.4 — 2026-10-28
 
 - Fewer calls to reMarkable Cloud. Each rmapi run used to start with an empty cache and fetch the metadata of every notebook on the account, so a few rounds in a row got the account rate limited (HTTP 429). The owner's token (`RMINK_CLOUD_TOKEN` on the server, or the token saved for the CLI and MCP server) now keeps rmapi's cache between runs. Other users' uploads still get a fresh temporary cache for each request.
