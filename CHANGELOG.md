@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.7.6 — 2026-10-29
+
+- On Vercel the rmapi tree cache survives cold starts. The owner's cache is kept gzipped in a private Vercel Blob store and fetched when a new instance starts without one, so a cold start makes one request to Blob instead of about 2,900 to reMarkable Cloud. It is uploaded only when rmapi has changed it. This needs a Blob store connected to the project (`BLOB_STORE_ID` or `BLOB_READ_WRITE_TOKEN`) and `vercel-blob`, which is now part of the `rounds` extra. Without them, or if Blob fails, rmink works as before.
+
 ## 2.7.5 — 2026-10-29
 
 - Even fewer calls to reMarkable Cloud:
