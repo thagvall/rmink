@@ -46,6 +46,8 @@ class Page:
     strokes: list[Stroke] = field(default_factory=list)
     # Layers to create in this order, including empty ones for the user to draw on.
     layer_names: list[str] = field(default_factory=list)
+    # Layers written switched off; the user can show them in the layer panel.
+    hidden_layers: set[str] = field(default_factory=set)
 
     @property
     def point_count(self) -> int:

@@ -11,6 +11,9 @@ response.
 
 Each store also remembers which drawing a notebook belongs to ("Altan r2" ->
 "altan"), since the cloud may rename an upload ("Altan r2_2").
+
+Workbooks (:mod:`rmink.workbook`) are kept the same way, beside the drawings;
+a notebook linked to one is linked as "workbook:<name>".
 """
 
 from __future__ import annotations
@@ -23,6 +26,9 @@ from typing import Protocol
 
 from rmink.devices import config_dir
 from rmink.drawing.model import Drawing
+from rmink.workbook.model import Workbook
+
+WORKBOOK_LINK = "workbook:"
 
 
 def slug(name: str) -> str:
@@ -49,6 +55,8 @@ class Store(Protocol):
     def load(self, name: str) -> Drawing | None: ...
     def link(self, document: str, name: str) -> None: ...
     def linked(self, document: str) -> str | None: ...
+    def save_workbook(self, workbook: Workbook) -> str: ...
+    def load_workbook(self, name: str) -> Workbook | None: ...
 
 
 class FileStore:
@@ -82,6 +90,21 @@ class FileStore:
     def linked(self, document: str) -> str | None:
         return self._links().get(document.strip("/"))
 
+    def _workbook_path(self, name: str) -> Path:
+        return self.root / "workbooks" / f"{slug(name)}.json"
+
+    def save_workbook(self, workbook: Workbook) -> str:
+        path = self._workbook_path(workbook.name)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(workbook.model_dump_json(indent=2), encoding="utf-8")
+        return str(path)
+
+    def load_workbook(self, name: str) -> Workbook | None:
+        path = self._workbook_path(name)
+        if not path.is_file():
+            return None
+        return Workbook.model_validate_json(path.read_text(encoding="utf-8"))
+
 
 class MemoryStore:
     """Drawings for one request, sent by the browser that keeps them.
@@ -107,6 +130,17 @@ class MemoryStore:
 
     def linked(self, document: str) -> str | None:
         return self.links.get(document.strip("/"))
+
+    # Kept among the drawings under their own key, so the browser stores them
+    # with no changes.
+    def save_workbook(self, workbook: Workbook) -> str:
+        key = WORKBOOK_LINK + slug(workbook.name)
+        self.drawings[key] = self.changed[key] = workbook.model_dump_json()
+        return f"browser:{key}"
+
+    def load_workbook(self, name: str) -> Workbook | None:
+        raw = self.drawings.get(WORKBOOK_LINK + slug(name))
+        return Workbook.model_validate_json(raw) if raw else None
 
 
 class RedisStore:
@@ -141,6 +175,15 @@ class RedisStore:
 
     def linked(self, document: str) -> str | None:
         return self._cmd("GET", f"rmink:document:{document.strip('/')}")
+
+    def save_workbook(self, workbook: Workbook) -> str:
+        key = f"rmink:workbook:{slug(workbook.name)}"
+        self._cmd("SET", key, workbook.model_dump_json())
+        return f"redis:{key}"
+
+    def load_workbook(self, name: str) -> Workbook | None:
+        raw = self._cmd("GET", f"rmink:workbook:{slug(name)}")
+        return Workbook.model_validate_json(raw) if raw else None
 
 
 def redis_from_env() -> RedisStore | None:

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.9.0 — 2026-10-30
+
+- Workbooks: Claude writes a workbook on a topic, and you answer it by hand on the tablet.
+  - The workbook is a PDF in the tablet's page format: a cover with a linked table of contents, sections that link back to the contents and on to the next section, and ruled answer boxes. The outline shows up in the tablet's contents panel.
+  - The next round reads each box with new ink. Claude transcribes it word for word, without correcting it, and the new revision has the answers set as PDF text in the boxes. It goes in `rmink/<name>/` like a drawing, and the previous revision moves to `Tidigare`.
+  - The handwriting that was read is either removed or kept on a hidden layer, "Handskrift", that can be shown in the layer panel. Ink outside the boxes, and ink Claude could not read, stays as it is.
+  - An answer Claude is unsure of gets a "?" in the margin, and the revision is named e.g. "Bråk r02 · 1 att kolla". A tick in the box confirms the text. Writing in an answered box corrects it.
+  - Ways to use it: `rmink workbook new` / `rmink workbook round`, the MCP tools `create_workbook`, `read_workbook` and `save_workbook_answers`, and the owner's `/rounds` page. See `docs/workbook.md`.
+- `write_rmdoc` can write PDF documents (`pdf=`), and the writer can write hidden layers (`Page.hidden_layers`).
+
 ## 2.8.0 — 2026-10-29
 
 - Walls in a hand sketch meet at 90°. `rectify` squares lines within 12° of horizontal or vertical (it was 4°), so a wall drawn a little askew comes out straight.

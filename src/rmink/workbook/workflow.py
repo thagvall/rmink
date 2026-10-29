@@ -1,0 +1,141 @@
+"""Write a workbook revision and put it on the tablet.
+
+Workbooks live beside the drawings, in a folder of their own:
+
+   rmink/
+     Bråk/
+       Bråk r02 · 1 att kolla   the revision to write in
+       Tidigare/                earlier revisions, oldest first
+
+Each revision is the PDF rebuilt with the answers read so far, plus ink:
+- handwriting a round has read goes to the hidden "Handskrift" layer with
+  ``ink="keep"``, or is dropped with ``ink="remove"`` (the default);
+- handwriting kept by an earlier round stays on that layer either way;
+- ink outside the boxes, and in boxes Claude could not read, stays as it was.
+"""
+
+from __future__ import annotations
+
+import dataclasses
+import logging
+from pathlib import Path
+from typing import Literal
+
+import pymupdf
+
+from rmink import cloud
+from rmink.devices import DeviceProfile
+from rmink.drawing.store import WORKBOOK_LINK, Store
+from rmink.drawing.workflow import (
+    _GLOB,
+    ARCHIVE,
+    RMINK_FOLDER,
+    _move_into,
+    drawing_folder,
+    safe_name,
+)
+from rmink.model import Page, Stroke
+from rmink.package.rmdoc import RmdocPage, UuidFactory, write_rmdoc
+from rmink.workbook.build import build_pdf
+from rmink.workbook.model import Workbook
+from rmink.workbook.read import HANDWRITING_LAYER, Sorted
+from rmink.writer.rm_v6 import write_page
+
+log = logging.getLogger(__name__)
+
+InkMode = Literal["remove", "keep"]
+
+
+def revision_title(workbook: Workbook) -> str:
+    """'Bråk r02 · 1 att kolla': answers rmink was unsure of are counted."""
+    title = f"{safe_name(workbook.name)} r{workbook.revision:02d}"
+    if n := len(workbook.unsure()):
+        title += f" · {n} att kolla"
+    return title
+
+
+def _on(strokes: list[Stroke], layer: str) -> list[Stroke]:
+    return [dataclasses.replace(s, layer=layer) for s in strokes]
+
+
+def build_revision(
+    workbook: Workbook,
+    output: Path,
+    device: DeviceProfile,
+    ink: Sorted | None = None,
+    read: set[str] = frozenset(),
+    mode: InkMode = "remove",
+    seed: int | None = None,
+) -> Path:
+    """Write the revision as a PDF ``.rmdoc``. ``read`` holds the ids of the
+    fields whose ink this round transcribed; ink in other fields stays visible."""
+    ink = ink or Sorted()
+    pdf = build_pdf(workbook, device)
+    count = pymupdf.open(stream=pdf).page_count
+    visible: dict[int, list[Stroke]] = {p: list(s) for p, s in ink.loose.items()}
+    hidden: dict[int, list[Stroke]] = {p: list(s) for p, s in ink.kept.items()}
+    for field_id, strokes in ink.by_field.items():
+        f = workbook.field(field_id)
+        if f is None or f.page < 0:
+            continue
+        if field_id not in read:
+            visible.setdefault(f.page, []).extend(strokes)
+        elif mode == "keep":
+            hidden.setdefault(f.page, []).extend(strokes)
+
+    uuids = UuidFactory(seed)
+    author = uuids()
+    pages = []
+    for n in range(count):
+        strokes = _on(visible.get(n, []), "Layer 1") + _on(hidden.get(n, []), HANDWRITING_LAYER)
+        if not strokes:
+            pages.append(RmdocPage(b""))
+            continue
+        page = Page(device.width, device.height, strokes, ["Layer 1"])
+        if hidden.get(n):
+            page.hidden_layers = {HANDWRITING_LAYER}
+        pages.append(RmdocPage(write_page(page, device, author), None, page.layers))
+
+    output = Path(output)
+    write_rmdoc(
+        output.with_suffix(".rmdoc"),
+        revision_title(workbook),
+        pages,
+        [str(uuids()) for _ in pages],
+        author,
+        device,
+        str(uuids()),
+        now_ms=0 if seed is not None else None,
+        pdf=pdf,
+    )
+    return output.with_suffix(".rmdoc")
+
+
+def send_revision(workbook: Workbook, path: Path, token: str, store: Store) -> str:
+    """Upload a revision to the workbook's folder, save the workbook with where
+    it went and move the notebook this round read into ``Tidigare``. Returns
+    the cloud path."""
+    folder = drawing_folder(workbook.name)
+    try:
+        entries = cloud.ls(token, folder)
+    except cloud.CloudNotFoundError:
+        cloud.mkdir(token, RMINK_FOLDER)
+        cloud.mkdir(token, folder)
+        entries = []
+    sent_as = f"{folder}/{cloud.put(path, token, folder=folder, name=revision_title(workbook))}"
+    read = workbook.document
+    workbook.sent_as = sent_as
+    store.save_workbook(workbook)
+    store.link(sent_as, WORKBOOK_LINK + workbook.name)
+
+    parent, _, base = read.rpartition("/")
+    if read and parent == folder and not _GLOB.search(read):
+        archive = f"{folder}/{ARCHIVE}"
+        try:
+            if not any(e.folder and e.name == ARCHIVE for e in entries):
+                cloud.mkdir(token, archive)
+            moved = _move_into(token, read, archive, base)
+            store.link(moved, WORKBOOK_LINK + workbook.name)
+        except cloud.CloudError as e:
+            log.warning("Could not move %s to %s: %s", read, archive, e)
+    return sent_as

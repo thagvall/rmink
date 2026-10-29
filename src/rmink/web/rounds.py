@@ -1,5 +1,6 @@
 """Revision rounds from the web: run the next round of a drawing, or the first
-round of a new sketch in the rmink folder, and see the result.
+round of a new sketch in the rmink folder, and see the result. Workbooks
+(:mod:`rmink.workbook`) are made here too, and their rounds run the same way.
 
 Owner-only. The router is mounted only when ``RMINK_ROUNDS_SECRET`` and
 ``ANTHROPIC_API_KEY`` are set, and every API call must carry the secret in the
@@ -16,11 +17,12 @@ from __future__ import annotations
 import hmac
 import os
 from pathlib import Path
+from typing import Literal
 
 import anyio
 from fastapi import APIRouter, Header, HTTPException
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from rmink import cloud
 
@@ -61,6 +63,16 @@ class RunRequest(BaseModel):
     # notebook belongs to which drawing; ignored when Redis is configured.
     drawings: dict[str, str] = {}
     links: dict[str, str] = {}
+    # For a workbook: drop the handwriting that was read, or keep it hidden.
+    ink: Literal["remove", "keep"] = "remove"
+
+
+class CreateRequest(BaseModel):
+    topic: str = Field(min_length=3, max_length=4000)
+    name: str = Field(default="", max_length=60)
+    device: str = "rm2"
+    drawings: dict[str, str] = {}
+    links: dict[str, str] = {}
 
 
 def router() -> APIRouter:
@@ -99,10 +111,43 @@ def router() -> APIRouter:
         _token()
         from rmink.drawing.agent import RoundError, run_round
         from rmink.drawing.store import MemoryStore, redis_from_env
+        from rmink.workbook import agent as workbook
 
         store = redis_from_env() or MemoryStore(req.drawings, req.links)
+
+        def round_():
+            if workbook.find_workbook(document, store) is not None:
+                return workbook.run_round(document, None, store, ink=req.ink)
+            return run_round(document, req.device, store)
+
         try:
-            result = await anyio.to_thread.run_sync(lambda: run_round(document, req.device, store))
+            result = await anyio.to_thread.run_sync(round_)
+        except RoundError as e:
+            raise HTTPException(422, str(e)) from e
+        except cloud.CloudAuthError as e:
+            raise HTTPException(401, str(e)) from e
+        except cloud.CloudError as e:
+            raise HTTPException(502, str(e)) from e
+        out = result.to_json()
+        if isinstance(store, MemoryStore):
+            out["store"] = {"drawings": store.changed, "links": store.links}
+        return out
+
+    @r.post("/api/workbook/create")
+    async def create(req: CreateRequest, x_rmink_secret: str | None = Header(None)) -> dict:
+        _check(x_rmink_secret)
+        _token()
+        from rmink.drawing.agent import RoundError
+        from rmink.drawing.store import MemoryStore, redis_from_env
+        from rmink.drawing.workflow import safe_name
+        from rmink.workbook.agent import create_workbook
+
+        store = redis_from_env() or MemoryStore(req.drawings, req.links)
+        name = safe_name(req.name) if req.name.strip() else None
+        try:
+            result = await anyio.to_thread.run_sync(
+                lambda: create_workbook(req.topic, req.device, store, name=name)
+            )
         except RoundError as e:
             raise HTTPException(422, str(e)) from e
         except cloud.CloudAuthError as e:

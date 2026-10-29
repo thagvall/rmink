@@ -4,9 +4,13 @@ Archive layout::
 
     {doc}.content
     {doc}.metadata
+    {doc}.pdf                       only for a PDF document
     {doc}/{page}.rm
     {doc}/{page}-metadata.json
     {doc}.thumbnails/{page}.png
+
+With a PDF, page n of the document shows PDF page n ("redir") and its ``.rm``
+holds the ink drawn on top; a page without ink has no ``.rm``.
 """
 
 from __future__ import annotations
@@ -74,10 +78,14 @@ class RmdocResult:
 
 
 def _content(
-    page_ids: list[str], author_uuid: uuid.UUID, device: DeviceProfile, size_bytes: int
+    page_ids: list[str],
+    author_uuid: uuid.UUID,
+    device: DeviceProfile,
+    size_bytes: int,
+    pdf: bool = False,
 ) -> dict:
     stamp = "1:2"
-    return {
+    content = {
         "cPages": {
             "lastOpened": {"timestamp": stamp, "value": page_ids[0] if page_ids else ""},
             "original": {"timestamp": "0:0", "value": -1},
@@ -85,9 +93,15 @@ def _content(
                 {
                     "id": pid,
                     "idx": {"timestamp": stamp, "value": idx},
-                    "template": {"timestamp": stamp, "value": "Blank"},
                 }
-                for pid, idx in zip(page_ids, page_indices(len(page_ids)), strict=True)
+                | (
+                    {"redir": {"timestamp": stamp, "value": n}}
+                    if pdf
+                    else {"template": {"timestamp": stamp, "value": "Blank"}}
+                )
+                for n, (pid, idx) in enumerate(
+                    zip(page_ids, page_indices(len(page_ids)), strict=True)
+                )
             ],
             "uuids": [{"first": str(author_uuid), "second": 1}],
         },
@@ -119,6 +133,10 @@ def _content(
         "textScale": 1,
         "zoomMode": "bestFit",
     }
+    if pdf:
+        content["cPages"]["original"] = {"timestamp": "1:1", "value": len(page_ids)}
+        content |= {"fileType": "pdf", "originalPageCount": len(page_ids), "coverPageNumber": 0}
+    return content
 
 
 def _metadata(name: str, now_ms: int) -> dict:
@@ -151,10 +169,13 @@ def write_rmdoc(
     doc_id: str,
     compress: bool = False,
     now_ms: int | None = None,
+    pdf: bytes | None = None,
 ) -> RmdocResult:
+    """Write the archive. With ``pdf``, a PDF document with one entry in
+    ``pages`` per PDF page; an entry with empty ``rm_bytes`` has no ink."""
     if now_ms is None:
         now_ms = int(time.time() * 1000)
-    payload_size = sum(len(p.rm_bytes) for p in pages)
+    payload_size = len(pdf) if pdf is not None else sum(len(p.rm_bytes) for p in pages)
     compression = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
 
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -168,10 +189,16 @@ def write_rmdoc(
 
         add(
             f"{doc_id}.content",
-            json.dumps(_content(page_ids, author_uuid, device, payload_size), indent=4).encode(),
+            json.dumps(
+                _content(page_ids, author_uuid, device, payload_size, pdf is not None), indent=4
+            ).encode(),
         )
         add(f"{doc_id}.metadata", json.dumps(_metadata(name, now_ms), indent=4).encode())
+        if pdf is not None:
+            add(f"{doc_id}.pdf", pdf)
         for pid, page in zip(page_ids, pages, strict=True):
+            if not page.rm_bytes:
+                continue
             add(f"{doc_id}/{pid}.rm", page.rm_bytes)
             add(
                 f"{doc_id}/{pid}-metadata.json",

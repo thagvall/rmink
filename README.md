@@ -104,6 +104,23 @@ Tools:
 **Skill:** copy `skills/rmink/` into `~/.claude/skills/`. It covers choosing a
 mode, the preview → tune → convert loop, and transferring the file.
 
+## Workbooks
+
+Claude writes a workbook on a topic: a PDF in the tablet's page format with a
+linked table of contents, short sections and ruled answer boxes. You write the
+answers by hand. The next round reads each box, has Claude transcribe it word
+for word, and sends a new revision with the answers set as PDF text. The
+handwriting is either removed or kept on a hidden layer.
+
+```bash
+rmink workbook new "Fractions for year 5" --name Fractions   # needs rmink[rounds]
+rmink workbook round Fractions --ink keep
+```
+
+The MCP tools are `create_workbook`, `read_workbook` and `save_workbook_answers`.
+The owner's `/rounds` page can do the same. Details are in
+[docs/workbook.md](https://github.com/thagvall/rmink/blob/main/docs/workbook.md) (Swedish).
+
 ## How it works
 
 ```

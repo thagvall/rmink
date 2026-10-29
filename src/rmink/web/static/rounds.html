@@ -24,13 +24,14 @@ p { margin: 0; }
 .muted { color: var(--muted); font-size: .92rem; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; }
 label { font-weight: 600; font-size: .92rem; }
-input, select { font: inherit; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); }
+input, select, textarea { font: inherit; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); }
 button { font: inherit; cursor: pointer; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 9px 16px; font-weight: 600; }
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 button.link { border: 0; background: none; padding: 0; color: var(--accent); font-weight: 500; justify-self: start; }
 button.forget { margin-left: auto; color: var(--muted); }
 button:disabled { opacity: .5; cursor: default; }
-button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+textarea { resize: vertical; min-height: 5.5em; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .between { justify-content: space-between; }
 .list { display: grid; gap: 6px; }
@@ -42,6 +43,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .drawing .rev { font-variant-numeric: tabular-nums; }
 .questions { margin: 0; padding-left: 1.2em; color: var(--mark); font-size: .95rem; }
 .qcount { color: var(--mark); font-weight: 600; font-size: .92rem; }
+.kind { font-size: .78rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; margin-left: 6px; font-weight: 500; }
 details { font-size: .9rem; }
 summary { cursor: pointer; color: var(--muted); }
 details ul { margin: 6px 0 0; padding-left: 1.2em; }
@@ -58,7 +60,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
 <main>
   <header>
     <h1>Revisionsvarv</h1>
-    <p class="muted">Markera på plattan, låt den synka och kör nästa varv. Den nya revisionen hamnar i rmink/&lt;ritning&gt; och den förra flyttas till Tidigare.</p>
+    <p class="muted">Markera eller skriv på plattan, låt den synka och kör nästa varv. Den nya revisionen hamnar i rmink/&lt;namn&gt; och den förra flyttas till Tidigare.</p>
     <p class="muted" id="memory"></p>
   </header>
 
@@ -71,7 +73,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
   </section>
 
   <section class="card" id="drawings" hidden>
-    <h2>Ritningar</h2>
+    <h2>Ritningar och arbetsböcker</h2>
     <div class="list" id="drawing-list"></div>
   </section>
 
@@ -91,6 +93,19 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
     <div class="row">
       <button class="primary run" id="run" type="button" disabled>Kör första varvet</button>
       <span class="status muted" id="status"></span>
+    </div>
+  </section>
+
+  <section class="card" id="create" hidden>
+    <h2>Ny arbetsbok</h2>
+    <p class="muted">Claude skriver en arbetsbok med innehållsförteckning, avsnitt och svarsrutor och lägger den i rmink/&lt;namn&gt;. Skriv svaren för hand, låt plattan synka och kör nästa varv, så blir handstilen text.</p>
+    <label for="topic">Vad ska den handla om?</label>
+    <textarea id="topic" maxlength="4000" placeholder="T.ex. Bråk och procent för åk 5, med vardagsexempel"></textarea>
+    <label for="wbname">Namn <span class="muted">(valfritt)</span></label>
+    <input id="wbname" maxlength="60" placeholder="T.ex. Bråk">
+    <div class="row">
+      <button class="primary run" id="createRun" type="button">Skapa arbetsbok</button>
+      <span class="status muted" id="createStatus"></span>
     </div>
   </section>
 
@@ -137,6 +152,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
     $("#login").hidden = !!secret;
     $("#pick").hidden = !secret;
     $("#drawings").hidden = !secret;
+    $("#create").hidden = !secret;
     if (secret) { drawings(); load(path); }
   }
 
@@ -150,17 +166,30 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
     const all = Object.entries(memory().drawings).map(([key, raw]) => { try { return { ...JSON.parse(raw), key }; } catch { return null; } }).filter(Boolean);
     all.sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.revision - a.revision);
     const n = all.length;
-    $("#memory").textContent = n ? `${n} ${n === 1 ? "ritning sparad" : "ritningar sparade"} i den här webbläsaren.` : "Ritningarna sparas i den här webbläsaren mellan varven.";
+    $("#memory").textContent = n ? `${n} sparade i den här webbläsaren.` : "Ritningar och arbetsböcker sparas i den här webbläsaren mellan varven.";
     const list = $("#drawing-list"); list.innerHTML = "";
-    if (!n) { list.appendChild(el("p", "muted", "Inga ritningar än. Börja med en skiss nedan.")); return; }
+    if (!n) { list.appendChild(el("p", "muted", "Inga än. Börja med en skiss eller en arbetsbok nedan.")); return; }
     for (const d of all) {
       const card = el("div", "drawing");
       const head = el("div", "row between");
-      head.appendChild(el("b", null, d.name));
+      const wb = d.kind === "workbook";
+      const title = el("b", null, d.name);
+      if (wb) title.appendChild(el("span", "kind", "arbetsbok"));
+      head.appendChild(title);
       head.appendChild(el("span", "muted rev", [rev(d.revision), d.date].filter(Boolean).join(" · ")));
       card.appendChild(head);
+      const fields = wb ? (d.sections || []).flatMap((s) => s.fields || []) : [];
+      const unsure = fields.filter((f) => f.answer && !f.confident);
       const open = (d.annotations || []).filter((a) => a.status === "open");
-      if (open.length) {
+      if (wb) {
+        card.appendChild(el("p", "muted", `${fields.filter((f) => f.answer).length} av ${fields.length} frågor besvarade`));
+        if (unsure.length) {
+          card.appendChild(el("p", "qcount", `${unsure.length} svar att kolla (markerade med ? på plattan)`));
+          const ul = el("ol", "questions");
+          for (const f of unsure) ul.appendChild(el("li", null, `${f.prompt} → ${f.answer}`));
+          card.appendChild(ul);
+        }
+      } else if (open.length) {
         card.appendChild(el("p", "qcount", `${plural(open.length)}: svara på SVAR-raderna`));
         const ul = el("ol", "questions");
         for (const a of open) ul.appendChild(el("li", null, a.text));
@@ -168,14 +197,23 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
       } else {
         card.appendChild(el("p", "muted", "Inga öppna frågor"));
       }
-      const sent = d.sketch && d.sketch.sent_as;
+      const sent = wb ? d.sent_as : d.sketch && d.sketch.sent_as;
       if (sent) card.appendChild(el("p", "muted", "På plattan: " + sent.replace(/^\//, "")));
       const actions = el("div", "row");
       const status = el("span", "status muted");
       if (sent) {
         const b = el("button", "primary run", "Kör nästa varv"); b.type = "button";
-        b.onclick = () => run(sent, (d.sketch && d.sketch.device) || "rm2", status);
+        let ink = null;
+        if (wb) {
+          // What happens to the handwriting once it is text.
+          ink = el("select"); ink.style.width = "auto"; ink.setAttribute("aria-label", "Handstilen efter varvet");
+          for (const [v, t] of [["remove", "Ta bort handstilen"], ["keep", "Spara handstilen i dolt lager"]]) { const o = el("option", null, t); o.value = v; ink.appendChild(o); }
+          ink.value = store.get("rmink.workbookInk") || "remove";
+          ink.onchange = () => store.set("rmink.workbookInk", ink.value);
+        }
+        b.onclick = () => run(sent, (wb ? d.device : d.sketch && d.sketch.device) || "rm2", status, ink && ink.value);
         actions.appendChild(b);
+        if (ink) actions.appendChild(ink);
       } else {
         // Saved before rmink kept track of where revisions go.
         const b = el("button", null, "Välj anteckningsbok"); b.type = "button";
@@ -188,7 +226,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
         if (!forget.dataset.armed) { forget.dataset.armed = "1"; forget.textContent = `Glöm ${d.name}? Tryck igen`; return; }
         const m = memory();
         delete m.drawings[d.key];
-        for (const k of Object.keys(m.links)) if (m.links[k] === d.name) delete m.links[k];
+        for (const k of Object.keys(m.links)) if (m.links[k] === d.name || m.links[k] === "workbook:" + d.name) delete m.links[k];
         try { localStorage.setItem("rmink.roundsMemory", JSON.stringify(m)); } catch {}
         drawings();
       };
@@ -260,8 +298,19 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
 
   $("#run").addEventListener("click", () => { if (chosen) run(chosen, device.value, $("#status")); });
 
-  async function run(document_, dev, status) {
-    if (running) return;
+  async function run(document_, dev, status, ink) {
+    return roundTrip("/api/rounds/run", { document: document_, device: dev, ...(ink ? { ink } : {}) }, status, !!ink);
+  }
+
+  $("#createRun").addEventListener("click", () => {
+    const topic = $("#topic").value.trim();
+    if (topic.length < 3) { $("#createStatus").textContent = "Skriv vad arbetsboken ska handla om."; return; }
+    roundTrip("/api/workbook/create", { topic, name: $("#wbname").value.trim(), device: device.value }, $("#createStatus"), true)
+      .then((ok) => { if (ok) { $("#topic").value = ""; $("#wbname").value = ""; } });
+  });
+
+  async function roundTrip(url, payload, status, workbook) {
+    if (running) return false;
     running = true;
     const buttons = [...document.querySelectorAll("button.run")];
     buttons.forEach((b) => (b.disabled = true));
@@ -269,9 +318,9 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
     const t0 = Date.now();
     const tick = setInterval(() => { status.textContent = `Kör… ${Math.round((Date.now() - t0) / 1000)} s`; }, 500);
     try {
-      const r = await api("/api/rounds/run", {
+      const r = await api(url, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ document: document_, device: dev, ...memory() }),
+        body: JSON.stringify({ ...payload, ...memory() }),
       });
       result.innerHTML = "";
       const h = el("p"); h.appendChild(el("span", "ok", "✓ "));
@@ -282,14 +331,14 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
       result.appendChild(h);
       result.appendChild(el("p", null, r.summary));
       if (r.open_questions.length) {
-        const q = el("div"); q.appendChild(el("b", null, "Öppna frågor på ritningen"));
+        const q = el("div"); q.appendChild(el("b", null, workbook ? "Svar att kolla" : "Öppna frågor på ritningen"));
         const ol = el("ol", "questions");
         for (const t of r.open_questions) ol.appendChild(el("li", null, t));
         q.appendChild(ol); result.appendChild(q);
       }
       if (r.preview_png) { const img = el("img"); img.alt = `${r.drawing} ${rev(r.revision)}`; img.src = "data:image/png;base64," + r.preview_png; result.appendChild(img); }
       if (r.store && !remember(r.store)) {
-        result.appendChild(el("p", "error", "Kunde inte spara ritningen i webbläsaren (privat läge?). Nästa varv börjar om från början."));
+        result.appendChild(el("p", "error", "Kunde inte spara i webbläsaren (privat läge?). Nästa varv börjar om från början."));
       }
       result.appendChild(el("p", "muted", `${r.seconds} s · ${r.usage.input_tokens + r.usage.cache_read_input_tokens + r.usage.cache_creation_input_tokens} in- och ${r.usage.output_tokens} ut-tokens · ca ${r.usage.usd} USD`));
       result.hidden = false;
@@ -297,8 +346,10 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
       drawings();
       load(path);
       result.scrollIntoView({ behavior: "smooth" });
+      return true;
     } catch (err) {
       status.innerHTML = ""; status.appendChild(el("span", "error", err.message));
+      return false;
     } finally {
       clearInterval(tick);
       running = false;

@@ -103,7 +103,8 @@ def page_blocks(page: Page, device: DeviceProfile, author_uuid: UUID) -> Iterato
         yield SceneTreeBlock(tree_id=node, node_id=NULL_ID, is_update=True, parent_id=ROOT_ID)
     yield TreeNodeBlock(si.Group(node_id=ROOT_ID))
     for name, (node, label, _) in zip(layers, ids, strict=True):
-        yield TreeNodeBlock(si.Group(node_id=node, label=LwwValue(label, name)))
+        visible = LwwValue(label, name not in page.hidden_layers)
+        yield TreeNodeBlock(si.Group(node_id=node, label=LwwValue(label, name), visible=visible))
     left_layer = NULL_ID
     for node, _, seq in ids:
         yield SceneGroupItemBlock(

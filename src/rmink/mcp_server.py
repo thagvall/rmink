@@ -48,6 +48,13 @@ server = MCPServer(
         "the new marks; turn them into annotations or edits, bump `revision`, add a `log` "
         "line and save again. Read `drawing_reference` once for the JSON format, symbols and "
         "categories."
+        "\n\n"
+        "Workbooks: a linked PDF (table of contents, sections, ruled answer boxes) the user "
+        "writes answers in by hand. Write one with `create_workbook` (see its JSON format) "
+        "and send it to rmink/<name>/. After the user has written and synced, "
+        "`read_workbook` returns a picture of each box with new handwriting; transcribe each "
+        "exactly as written (do not correct it) and pass the answers to "
+        "`save_workbook_answers`, which sets them as PDF text in the next revision."
     ),
 )
 
@@ -416,6 +423,103 @@ def save_revision(
 def get_drawing(name: str) -> dict:
     """The saved Drawing JSON of the latest revision of ``name``."""
     return workflow.load_drawing(name).model_dump(mode="json")
+
+
+def _workbook_result(r, output: Path | None) -> dict:
+    out = {"workbook": r.drawing, "revision": r.revision, "summary": r.summary}
+    if r.sent_as:
+        out["sent_as"] = r.sent_as
+    if output:
+        out["path"] = str(output.with_suffix(".rmdoc"))
+    if r.open_questions:
+        out["unsure"] = r.open_questions
+    return out
+
+
+def _workbook_output(output_path: str | None, send: bool, name: str) -> Path | None:
+    if output_path:
+        return Path(output_path)
+    return None if send else workflow.drawings_dir() / "workbooks" / f"{name}.rmdoc"
+
+
+@server.tool()
+def create_workbook(
+    workbook: dict, device: str = "rm2", send: bool = False, output_path: str | None = None
+) -> dict:
+    """Lay out a new workbook as a linked PDF in the tablet's page format: a cover with
+    the table of contents, each section on its own pages with links back and on, and a
+    ruled box per field. Saved for later rounds; ``send`` puts it in rmink/<name>/.
+
+    Args:
+        workbook: {"name": short folder name, "title", "intro", "sections": [{"id",
+            "title", "text": a short explanation (plain text, about 120 words at most),
+            "fields": [{"id": unique, "prompt": the question, "lines": ruled lines for
+            the answer, 1-12}]}]}. Use Latin-1 characters only (3/4, x^2, sqrt(2)).
+        device: rm2 | pure | pro | move.
+        send: Upload to the user's reMarkable Cloud (needs cloud_connect).
+        output_path: Where to write the .rmdoc (default when not sending:
+            ~/.config/rmink/drawings/workbooks/).
+    """
+    from rmink.drawing.store import default_store
+    from rmink.workbook.agent import check_workbook, start_workbook
+
+    wb = check_workbook(workbook)
+    output = _workbook_output(output_path, send, wb.name)
+    return _workbook_result(
+        start_workbook(wb, device, default_store(), send, output=output), output
+    )
+
+
+@server.tool()
+def read_workbook(document: str) -> list:
+    """The answer boxes the user wrote in since the last revision of a workbook: for each,
+    its id, question and earlier answer, and a picture of the box with the new ink.
+
+    Args:
+        document: A workbook name (its latest revision), a cloud path or a local .rmdoc.
+    """
+    from rmink.drawing.store import default_store
+    from rmink.workbook.agent import open_round
+
+    r = open_round(document, None, default_store())
+    out: list = []
+    for _, text, png in r.boxes():
+        out += [text, Image(data=png, format="png")]
+    return out
+
+
+@server.tool()
+def save_workbook_answers(
+    document: str,
+    answers: list[dict],
+    ink: str = "remove",
+    send: bool = False,
+    output_path: str | None = None,
+) -> dict:
+    """Set the transcribed answers as text in the workbook and write the next revision.
+
+    Args:
+        document: As given to read_workbook.
+        answers: [{"id": box id, "text": exactly what was written, "confident": false
+            when any part is a guess}], one per box read_workbook returned; an empty text
+            leaves the box's ink as it is. A tick alone in an answered box confirms the
+            earlier answer: give it unchanged with confident true.
+        ink: "remove" drops the handwriting that was read; "keep" moves it to a hidden
+            layer "Handskrift" the user can show again.
+        send: Upload to the workbook's folder; the revision read moves to Tidigare.
+        output_path: Where to write the .rmdoc when not sending.
+    """
+    from rmink.drawing.store import default_store
+    from rmink.workbook.agent import finish_round, open_round
+
+    if ink not in ("remove", "keep"):
+        raise ValueError('ink is "remove" or "keep"')
+    store = default_store()
+    r = open_round(document, None, store)
+    checked = r.check({"answers": answers})
+    output = _workbook_output(output_path, send, r.workbook.name)
+    result = finish_round(r, checked, store, ink, send, output=output)
+    return _workbook_result(result, output)
 
 
 def main() -> None:

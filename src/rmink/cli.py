@@ -357,6 +357,77 @@ def round_(
         typer.echo(f"  ? {q}")
 
 
+workbook_app = typer.Typer(
+    help="Workbooks: a linked PDF with answer boxes; handwritten answers become text."
+)
+app.add_typer(workbook_app, name="workbook")
+
+
+def _print_round(r) -> None:
+    where = f"sent as {r.sent_as!r}" if r.sent_as else "not sent"
+    cost = r.usage.get("usd", 0)
+    typer.echo(f"{r.drawing} r{r.revision:02d} ({where}) in {r.seconds:.0f} s, about {cost} USD")
+    typer.echo(r.summary)
+    for q in r.open_questions:
+        typer.echo(f"  ? {q}")
+
+
+@workbook_app.command("new")
+def workbook_new(
+    topic: Annotated[str, typer.Argument(help='What it is about, e.g. "Bråk för åk 5"')],
+    name: Annotated[str | None, typer.Option(help="Folder name on the tablet")] = None,
+    device: Device = "rm2",
+    effort: Annotated[str, typer.Option(help="low | medium | high | xhigh | max")] = "medium",
+    send: Annotated[bool, typer.Option("--send/--no-send", help="Upload it")] = True,
+) -> None:
+    """Have Claude write a workbook and put it in rmink/<name>/ (needs ANTHROPIC_API_KEY)."""
+    try:
+        from rmink.workbook.agent import RoundError, create_workbook
+    except ImportError as e:
+        typer.secho("Workbooks need: pip install 'rmink[rounds]'", fg="red", err=True)
+        raise typer.Exit(1) from e
+    from rmink.drawing.store import default_store
+
+    try:
+        r = create_workbook(topic, device, default_store(), name=name, effort=effort, send=send)
+    except RoundError as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+    _print_round(r)
+
+
+@workbook_app.command("round")
+def workbook_round(
+    document: Annotated[
+        str,
+        typer.Argument(
+            help='A workbook name ("Bråk": its latest revision), a cloud path or a .rmdoc'
+        ),
+    ],
+    ink: Annotated[
+        str, typer.Option(help="remove: drop the handwriting read; keep: hide it in a layer")
+    ] = "remove",
+    effort: Annotated[str, typer.Option(help="low | medium | high | xhigh | max")] = "medium",
+    send: Annotated[bool, typer.Option("--send/--no-send", help="Upload the revision")] = True,
+) -> None:
+    """Read the handwritten answers and send the next revision with them as text."""
+    if ink not in ("remove", "keep"):
+        raise typer.BadParameter("--ink is remove or keep")
+    try:
+        from rmink.workbook.agent import RoundError, run_round
+    except ImportError as e:
+        typer.secho("Workbooks need: pip install 'rmink[rounds]'", fg="red", err=True)
+        raise typer.Exit(1) from e
+    from rmink.drawing.store import default_store
+
+    try:
+        r = run_round(document, None, default_store(), ink=ink, effort=effort, send=send)
+    except RoundError as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+    _print_round(r)
+
+
 @app.command()
 def mcp() -> None:
     """Run the MCP server on stdio (for Claude and other MCP clients)."""
