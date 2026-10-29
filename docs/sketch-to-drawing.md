@@ -73,6 +73,8 @@ ser ut i verkligheten.
 
 ## Hur det fungerar
 
+Detaljerade diagram över varvet, verktygen, mapparna och molnet finns i [`docs/diagrams/`](diagrams/README.md) (diagram 3–6 och 8).
+
 ```
 platta ─sync─▶ reMarkable Cloud ─rmapi get─▶ ingest/rm.py (streck, lager, CRDT-id)
                                                  │

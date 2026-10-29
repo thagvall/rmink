@@ -118,6 +118,9 @@ input ─► ingest ─┬─ vector (PDF→SVG with text as paths, SVG) ─► 
         ─► .rm v6 via rmscene ─► .rmdoc (content/metadata/thumbnails)
 ```
 
+Diagrams of the whole app and the building knowledge base (in Swedish, built
+from the code) are in [`docs/diagrams/`](docs/diagrams/README.md).
+
 Code layout: `src/rmink/` contains `ingest/`, `extract/`, `geometry/`,
 `color/`, `writer/rm_v6.py`, `package/rmdoc.py`, `render/preview.py`, `api.py`,
 `cli.py`, `mcp_server.py` and `web/` (FastAPI plus a single static page).

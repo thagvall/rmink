@@ -4,6 +4,8 @@
 
 Detta dokument beskriver kunskapen som behövs för att rmink ska kunna stödja dagligt ritande och avstämning av byggritningar. Det gäller både när en ritning skapas, ändras, ses över och kvalitetsgranskas, och när en lösning från ett tidigare projekt ska återanvändas. Datan ligger i [`src/rmink/knowledge/data/`](../src/rmink/knowledge/data) som TOML-filer och läses av modulen `rmink.knowledge`. Punkterna 1 och 2 i avsnitt 5 är inkopplade; resten är förslag.
 
+Diagram över hela kunskapsbasen finns i [`docs/diagrams/`](diagrams/README.md): struktur, lagar och regler, lov och process, ritstandard, material, konstruktioner, produktalternativ, symboler, skrafferingar, granskning och begrepp. De byggs ur samma TOML-filer.
+
 Fokus är **småhus, altaner och hantverkare**: trä, gips, plintar och trall, med planer och sektioner i 1:20 och 1:50. Det matchar de skisser som rmink tolkar idag.
 
 ## 1. Källor och vad vi får använda
@@ -55,7 +57,7 @@ BFS 2024-serien är **funktionsbaserad**. Flera BBR-värden som hantverkare kan 
 |---|---|---|
 | `terms.toml` | Termer och förkortningar SV/EN, med synonymer för handskrift | 160 termer |
 | `drawing_standard.toml` | Ritningsslag, skalor, skeden, revision, ritningshuvud, numrering, discipliner, linjer, måttsättning, beteckningar, pappersformat | 9 ritningsslag, 7 skeden, 8 linjetyper |
-| `materials.toml` | Varuslag i 11 grupper med klasser, obligatoriska uppgifter, textmall, skraffering och brandklass | 42 varuslag |
+| `materials.toml` | Varuslag i 11 grupper med klasser, obligatoriska uppgifter, textmall, skraffering och brandklass | 43 varuslag |
 | `assemblies.toml` | Typkonstruktioner med lager, krav och granskningsfrågor | 12 byggdelar |
 | `rules.toml` | Granskningsregler med källa och paragraf | 53 regler (10 rmink, 24 BFS, 7 PBL, 2 PBF, 1 ElSL, 9 praxis) |
 | `markup.toml` | Typer, status, prioritet och CSV-kolumner för anmärkningar | 5 typer, 5 statusar |
