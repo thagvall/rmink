@@ -120,6 +120,12 @@ Detaljer:
     armering, och energiberäkningen avgör U-värdet.
 - **Enheter:** varje mått ritas med sin enhet (`4800 mm`), och ritningshuvudet anger `Mått i mm`.
   Med `show_units: false` står enheten bara i ritningshuvudet, som på många standardritningar.
+- **Räta vinklar:** en handskiss ritas på fri hand, men väggar möts i 90° om ingen skriven vinkel
+  säger annat. `rectify` rätar linjer som ligger inom 12° från vågrätt eller lodrätt, och sluter
+  hörn där linjerna går för långt eller slutar för tidigt. En linje som ska luta mindre än 12°,
+  som en takfot eller en ramp, behöver ett vinkelmått i någon av sina ändar för att behålla sin
+  vinkel. Innan rundan sparar granskar Claude förhandsbilden: väggarna ska vara räta, lådorna
+  rektanglar och öppningarna ligga längs sina väggar.
 - **Vinklar och räkning:** ett vinkelmått (`AngleDimension`) ritas som en båge med pilar mellan
   två ben. Gradtalet skrivs som `38,7°`. Lämnas texten tom skrivs den ritade vinkeln.
   - Skriver man "visa vinklarna" på ritningen tar Claude hörnens vinklar från `measure` och

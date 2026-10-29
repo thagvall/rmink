@@ -336,7 +336,9 @@ def render_drawing_preview(drawing: dict, rectify: bool = True) -> list:
 
     Args:
         drawing: Drawing JSON (see drawing_reference).
-        rectify: Snap nearly horizontal/vertical lines and join endpoints that almost meet.
+        rectify: Square lines within 12° of horizontal/vertical (walls in a hand sketch
+            meet at 90°; a line with an angle dimension at an end keeps its angle unless
+            within 4°), join endpoints that almost meet and close overshooting corners.
 
     Returns the preview image and JSON with the (rectified) drawing and a measurement
     check: the common scale and dimensions whose drawn length disagrees with it by more

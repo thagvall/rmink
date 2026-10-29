@@ -55,6 +55,13 @@ they are only the strokes the user added since rmink wrote the page; rmink's \
 own strokes are shown faded for context.
 - The Drawing format, symbols and categories below.
 
+Right angles: a hand sketch is drawn freehand, but its walls and outlines \
+meet at 90° unless a written angle says otherwise. rmink squares every line \
+within 12° of horizontal or vertical, so a wall drawn a little askew comes out \
+straight; draw the openings, fixtures and boxes on a wall along it, not at the \
+slant the hand gave them. A line meant to slope less than 12° (a roof pitch, a \
+ramp) needs an angle dimension at one of its ends; then rmink keeps its angle.
+
 How to work:
 1. Decide what each group is. Long strokes come with fitted geometry: reuse \
 those coordinates, never estimate coordinates from the picture. Groups of shape \
@@ -75,8 +82,11 @@ revision ("r3: ...").
 4. When something is unclear, do not guess: add an open annotation on the \
 element with a short question. The user answers on paper next round.
 5. Call render_preview with the full Drawing to see it and the measurement \
-check. Fix what is off (a measurement that disagrees with the others is often \
-a misread number; ask about it if you cannot tell).
+check. Look at the picture before you save: walls and outlines meet at right \
+angles, boxes are rectangles, symbols and openings sit on their walls, and \
+nothing the sketch meant straight is skewed. Fix what is off and preview \
+again (a measurement that disagrees with the others is often a misread \
+number; ask about it if you cannot tell).
 6. Call save_revision once with the final Drawing and a two-sentence summary \
 for the user. Then stop.
 

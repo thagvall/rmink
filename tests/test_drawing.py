@@ -11,7 +11,15 @@ from rmink.devices import get_device
 from rmink.drawing import workflow
 from rmink.drawing.fit import analyse, classify
 from rmink.drawing.font import _letters, text_paths
-from rmink.drawing.model import Annotation, Dimension, Drawing, Element, SketchRef, Symbol
+from rmink.drawing.model import (
+    AngleDimension,
+    Annotation,
+    Dimension,
+    Drawing,
+    Element,
+    SketchRef,
+    Symbol,
+)
 from rmink.drawing.render import COMMENT_LAYER, render_drawing
 from rmink.ingest.rm import read_page, read_rmdoc
 from rmink.model import Page, Stroke
@@ -156,6 +164,48 @@ def test_rectify_and_dimensions():
     flags = {row["id"]: row["consistent"] for row in check["dimensions"]}
     # 400 px for 4000 and 300 px for 2000 cannot share one scale.
     assert flags == {"d1": False, "d2": False}
+
+
+def test_rectify_squares_a_hand_drawn_room():
+    # The bastu sketch: the left wall leans 7°, its top stops 12 px short of
+    # the corner, and the heater box is a skewed quadrilateral.
+    d = Drawing(
+        name="Bastu",
+        elements=[
+            Element(id="top", kind="line", points=[(187, 215), (650, 215)]),
+            Element(id="left", kind="line", points=[(175, 218), (213, 508)]),
+            Element(id="bottom", kind="line", points=[(213, 508), (650, 508)]),
+            Element(id="right", kind="line", points=[(650, 215), (650, 508)]),
+            Element(
+                id="A",
+                kind="polyline",
+                closed=True,
+                points=[(292, 437), (357, 433), (362, 490), (296, 496)],
+            ),
+        ],
+    )
+    r = {e.id: e.points for e in workflow.rectify(d).elements}
+    (lx0, ly0), (lx1, ly1) = r["left"]
+    assert lx0 == lx1  # upright
+    assert r["top"][0] == (lx0, ly0) and r["bottom"][0] == (lx1, ly1)  # closed corners
+    a = r["A"]
+    assert a[0][1] == a[1][1] and a[1][0] == a[2][0]
+    assert a[2][1] == a[3][1] and a[3][0] == a[0][0]  # the closing edge too
+
+
+def test_rectify_keeps_a_slope_with_an_angle_dimension():
+    # A low roof at about 8°: squared without its angle, kept with it.
+    roof = Element(id="roof", kind="line", points=[(100, 300), (500, 244)])
+    plain = workflow.rectify(Drawing(name="x", elements=[roof]))
+    assert plain.elements[0].points[0][1] == plain.elements[0].points[1][1]
+    pitched = workflow.rectify(
+        Drawing(
+            name="x",
+            elements=[roof, Element(id="floor", kind="line", points=[(100, 300), (500, 300)])],
+            angles=[AngleDimension(id="v", vertex=(100, 300), start=(500, 300), end=(500, 244))],
+        )
+    )
+    assert pitched.elements[0].points == [(100.0, 300.0), (500.0, 244.0)]
 
 
 def test_revision_round_trip(sketch, tmp_path):

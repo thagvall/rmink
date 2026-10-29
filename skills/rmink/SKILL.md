@@ -84,7 +84,13 @@ then marks that up in rounds. MCP tools: `read_sketch`, `drawing_reference`, `lo
    If the sketch has a legend, use it for symbol meanings and put it in
    `legend`. Ask the user about anything you cannot read rather than guessing.
 3. **Check.** `render_drawing_preview` straightens lines, joins corners and
-   compares written measurements with drawn lengths. Show the preview; mention
+   compares written measurements with drawn lengths. Walls in a hand sketch
+   meet at 90° unless a written angle says otherwise: lines within 12° of
+   horizontal or vertical are squared, and a corner that overshoots or stops
+   short is closed. A line meant to slope less than that (a roof pitch, a ramp)
+   needs an angle dimension at one of its ends to keep its angle. Look at the
+   preview before saving: walls square, boxes rectangular, openings and
+   fixtures along their walls; fix and preview again. Show the preview; mention
    dimensions marked inconsistent (they are often a mis-read number, or a real
    error in the sketch worth pointing out). Never work out angles, lengths,
    areas, weights or quantities by hand: `measure_drawing` reads them from the

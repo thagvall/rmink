@@ -137,10 +137,17 @@ def read_sketch(
     return Sketch(doc, page, p, analyse(p, device, known))
 
 
-def rectify(drawing: Drawing, angle_tol: float = 4.0, join_tol: float = 12.0) -> Drawing:
+def rectify(
+    drawing: Drawing, angle_tol: float = 12.0, join_tol: float = 12.0, kept_tol: float = 4.0
+) -> Drawing:
     """Pull endpoints that almost meet onto one corner, then make nearly
     horizontal/vertical segments exact by giving their ends one shared y or x.
-    Shared corners stay shared. Returns a new drawing."""
+    Shared corners stay shared. Returns a new drawing.
+
+    A hand sketch means its walls to meet at right angles, so a segment within
+    ``angle_tol`` of an axis is squared. One with an angle dimension at either
+    end is drawn at that angle on purpose (a roof pitch, a ramp): it is only
+    squared within ``kept_tol``."""
     d = drawing.model_copy(deep=True)
     shapes = [e for e in d.elements if e.kind in ("line", "polyline") and len(e.points) >= 2]
     refs = [(e, i) for e in shapes for i in range(len(e.points))]
@@ -188,19 +195,50 @@ def rectify(drawing: Drawing, angle_tol: float = 4.0, join_tol: float = 12.0) ->
             if np.allclose(pts[a], pts[b]):
                 ux(a, b)
                 uy(a, b)
+    vertices = np.array([a.vertex for a in d.angles], dtype=float).reshape(-1, 2)
+
+    def angled(k: int) -> bool:
+        return bool(len(vertices)) and bool(
+            (np.linalg.norm(vertices - before[k], axis=1) < join_tol).any()
+        )
+
+    # Each end of an open line, with the way its segment runs once squared.
+    ends: dict[int, str] = {}
     k = 0
     for e in shapes:
-        for i in range(1, len(e.points)):
-            a, b = k + i - 1, k + i
+        n = len(e.points)
+        closing = [(n - 1, 0)] if e.closed and n > 2 else []
+        for i, j in [(i - 1, i) for i in range(1, n)] + closing:
+            a, b = k + i, k + j
+            tol = kept_tol if angled(a) or angled(b) else angle_tol
             dx, dy = pts[b] - pts[a]
             ang = math.degrees(math.atan2(dy, dx)) % 180
-            if min(ang, 180 - ang) < angle_tol:
+            way = ""
+            if min(ang, 180 - ang) < tol:
                 uy(a, b)
-            elif abs(ang - 90) < angle_tol:
+                way = "h"
+            elif abs(ang - 90) < tol:
                 ux(a, b)
-        k += len(e.points)
+                way = "v"
+            if way and not e.closed and i == 0:
+                ends[a] = way
+            if way and not e.closed and j == n - 1:
+                ends[b] = way
+        k += n
     average(0, fx)
     average(1, fy)
+
+    # A hand-drawn corner often overshoots or stops short: a horizontal and a
+    # vertical line whose ends are close meet where they cross.
+    reach = 2.5 * join_tol
+    for a, wa in ends.items():
+        for b, wb in ends.items():
+            if wa == "h" and wb == "v" and refs[a][0] is not refs[b][0]:
+                if np.linalg.norm(pts[a] - pts[b]) < reach:
+                    corner = np.array([pts[b][0], pts[a][1]])
+                    for m in (a, b):
+                        same = np.flatnonzero((np.abs(pts - pts[m]) < 1e-9).all(axis=1))
+                        pts[same] = corner
 
     for k, (e, i) in enumerate(refs):
         e.points[i] = (round(float(pts[k][0]), 1), round(float(pts[k][1]), 1))
