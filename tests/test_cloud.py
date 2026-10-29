@@ -267,3 +267,63 @@ def test_rmapi_runs_two_requests_at_a_time(tmp_path, monkeypatch):
     assert cloud._env(tmp_path)["RMAPI_CONCURRENT"] == "2"
     monkeypatch.setenv("RMAPI_CONCURRENT", "1")
     assert cloud._env(tmp_path)["RMAPI_CONCURRENT"] == "1"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="no lasting cache on Windows")
+def test_a_cold_start_fetches_the_tree_cache_from_blob(tmp_path, monkeypatch):
+    import shutil
+    import sys
+    import types
+
+    stored, puts = {}, []
+
+    class NotFound(Exception):
+        pass
+
+    def get_blob(pathname, *, access):
+        assert access == "private"
+        if pathname not in stored:
+            raise NotFound(pathname)
+        return types.SimpleNamespace(body=stored[pathname])
+
+    def put_blob(pathname, body, *, access, content_type, allow_overwrite):
+        assert access == "private" and allow_overwrite
+        stored[pathname] = body
+        puts.append(pathname)
+
+    fake = types.ModuleType("vercel.blob.sync")
+    fake.get_blob, fake.put_blob, fake.BlobNotFoundError = get_blob, put_blob, NotFound
+    blob_pkg = types.ModuleType("vercel.blob")
+    blob_pkg.sync = fake
+    monkeypatch.setitem(sys.modules, "vercel", types.ModuleType("vercel"))
+    monkeypatch.setitem(sys.modules, "vercel.blob", blob_pkg)
+    monkeypatch.setitem(sys.modules, "vercel.blob.sync", fake)
+    monkeypatch.setenv("BLOB_READ_WRITE_TOKEN", "vercel_blob_rw_test")
+    monkeypatch.setattr(cloud.tempfile, "tempdir", str(tmp_path))
+    monkeypatch.setenv("RMINK_RMAPI", "/opt/rmapi")
+    monkeypatch.setenv("RMINK_CLOUD_TOKEN", "owner.tok-1")
+    warm = []
+
+    def run(args, input, env, **kw):
+        tree = Path(env["XDG_CACHE_HOME"]) / "rmapi" / "tree.cache"
+        warm.append(tree.exists())
+        if not tree.exists():  # a cold sync fills the cache
+            tree.parent.mkdir(exist_ok=True)
+            tree.write_text('{"Docs": []}')
+        return subprocess.CompletedProcess(args, 0, "[d]\trmink\n", "")
+
+    monkeypatch.setattr(cloud.subprocess, "run", run)
+    cloud.ls("owner.tok-1", "/rmink")
+    assert warm == [False] and len(puts) == 1
+    cloud.ls("owner.tok-1", "/rmink")  # unchanged: nothing to upload
+    assert warm == [False, True] and len(puts) == 1
+
+    # A new instance: the local cache is gone and comes back from Blob.
+    for p in tmp_path.glob("rmink-rmapi-cache-*"):
+        shutil.rmtree(p)
+    cloud.ls("owner.tok-1", "/rmink")
+    assert warm == [False, True, True] and len(puts) == 1
+
+    # Someone else's token never touches the owner's Blob cache.
+    cloud.ls("someone.else-1")
+    assert len(puts) == 1

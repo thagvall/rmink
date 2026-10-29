@@ -30,6 +30,8 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
+from rmink import blob_cache
+
 log = logging.getLogger(__name__)
 
 CONNECT_URL = "https://my.remarkable.com/device/browser/connect"
@@ -177,7 +179,13 @@ def _session(device_token: str) -> Iterator[Path]:
             (home / "cache").symlink_to(cache, target_is_directory=True)
             (home / "Library").mkdir()
             (home / "Library" / "Caches").symlink_to(cache, target_is_directory=True)
-            yield home
+            # A new server instance starts without it: fetch it from Vercel Blob.
+            tree = cache / "rmapi" / "tree.cache"
+            before = blob_cache.restore(tree, digest)
+            try:
+                yield home
+            finally:
+                blob_cache.save(tree, digest, before)
 
 
 @contextmanager
