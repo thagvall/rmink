@@ -95,6 +95,9 @@ def _env(home: Path) -> dict[str, str]:
         env[key] = str(home)
     for key in ("XDG_CACHE_HOME", "LOCALAPPDATA"):
         env[key] = str(cache)
+    # rmapi fetches every notebook's metadata into an empty cache, 20 at a time
+    # by default; a large account then gets HTTP 429. Two at a time is gentler.
+    env.setdefault("RMAPI_CONCURRENT", "2")
     return env
 
 
@@ -160,12 +163,20 @@ def _session(device_token: str) -> Iterator[Path]:
         digest = hashlib.sha256(device_token.encode()).hexdigest()[:16]
         cache = Path(tempfile.gettempdir()) / f"rmink-rmapi-cache-{digest}"
         cache.mkdir(mode=0o700, exist_ok=True)
-        # Linux finds it through XDG_CACHE_HOME (_env), macOS under $HOME. Not on
-        # Windows, where links need extra rights.
-        (home / "cache").symlink_to(cache, target_is_directory=True)
-        (home / "Library").mkdir()
-        (home / "Library" / "Caches").symlink_to(cache, target_is_directory=True)
         with _locked(cache):
+            # rmapi keeps the user token it gets for the device token in its config;
+            # keeping that too saves a call to the strictly limited token endpoint.
+            conf = cache / "rmapi.conf"
+            if not conf.exists() or f"devicetoken: {device_token}\n" not in conf.read_text("utf-8"):
+                conf.write_text(f"devicetoken: {device_token}\n", encoding="utf-8")
+            conf.chmod(0o600)
+            (home / "rmapi.conf").unlink()
+            (home / "rmapi.conf").symlink_to(conf)
+            # Linux finds it through XDG_CACHE_HOME (_env), macOS under $HOME. Not on
+            # Windows, where links need extra rights.
+            (home / "cache").symlink_to(cache, target_is_directory=True)
+            (home / "Library").mkdir()
+            (home / "Library" / "Caches").symlink_to(cache, target_is_directory=True)
             yield home
 
 

@@ -233,17 +233,21 @@ def test_owner_keeps_the_tree_cache(tmp_path, monkeypatch):
             seen.append((cache / "rmapi" / "tree.cache").exists())
         (Path(env["XDG_CACHE_HOME"]) / "rmapi").mkdir(exist_ok=True)
         (Path(env["XDG_CACHE_HOME"]) / "rmapi" / "tree.cache").write_text("tree")
+        # rmapi adds the user token it fetched to its config.
+        conf = Path(env["RMAPI_CONFIG"])
+        seen.append("usertoken" in conf.read_text())
+        conf.write_text(conf.read_text().splitlines()[0] + "\nusertoken: u\n")
         return subprocess.CompletedProcess(args, 0, "[d]\trmink\n", "")
 
     monkeypatch.setattr(cloud.subprocess, "run", run)
     cloud.ls("owner.tok-1", "/rmink")
     cloud.ls("owner.tok-1", "/rmink")
-    assert seen == [False, False, True, True]
+    assert seen == [False, False, False, True, True, True]
 
     seen.clear()
     cloud.ls("someone.else-1")
     cloud.ls("someone.else-1")
-    assert seen == [False, False, False, False]
+    assert seen == [False, False, False] * 2
     assert len([p for p in tmp_path.iterdir() if p.name.startswith("rmink-rmapi-cache-")]) == 1
 
 
@@ -256,3 +260,10 @@ def test_rate_limit_message():
         "last error: failed to mirror cannot get root hash request failed with status 429",
     )
     assert "wait a few minutes" in cloud._message(proc)
+
+
+def test_rmapi_runs_two_requests_at_a_time(tmp_path, monkeypatch):
+    monkeypatch.delenv("RMAPI_CONCURRENT", raising=False)
+    assert cloud._env(tmp_path)["RMAPI_CONCURRENT"] == "2"
+    monkeypatch.setenv("RMAPI_CONCURRENT", "1")
+    assert cloud._env(tmp_path)["RMAPI_CONCURRENT"] == "1"
