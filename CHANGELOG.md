@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.8.0 — 2026-10-29
+
+- Walls in a hand sketch meet at 90°. `rectify` squares lines within 12° of horizontal or vertical (it was 4°), so a wall drawn a little askew comes out straight.
+  - A corner where a horizontal and a vertical line overshoot or stop short of each other is closed.
+  - The closing edge of a closed shape is squared too, so a box drawn skewed comes out as a rectangle.
+  - A line with an angle dimension at one of its ends keeps its slope unless it is within 4°. Give a low roof pitch or a ramp an angle dimension to keep it.
+- Rounds check the preview before saving: walls square, boxes rectangular, openings and fixtures along their walls. Claude fixes what is off and previews again. The MCP skill and `docs/sketch-to-drawing.md` describe the same rules.
+
 ## 2.7.7 — 2026-10-29
 
 - The first listing after a cold start no longer times out. With an empty cache, rmapi reads every notebook's metadata, and 2 requests at a time could not finish within 90 s, so no cache was saved and every attempt started over. An rmapi run without a cache now gets 270 s and 6 parallel requests, once. Runs with a cache keep 2 requests and 90 s.
