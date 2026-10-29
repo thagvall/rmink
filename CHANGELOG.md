@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.7.7 — 2026-10-29
+
+- The first listing after a cold start no longer times out. With an empty cache, rmapi reads every notebook's metadata, and 2 requests at a time could not finish within 90 s, so no cache was saved and every attempt started over. An rmapi run without a cache now gets 270 s and 6 parallel requests, once. Runs with a cache keep 2 requests and 90 s.
+
 ## 2.7.6 — 2026-10-29
 
 - On Vercel the rmapi tree cache survives cold starts. The owner's cache is kept gzipped in a private Vercel Blob store and fetched when a new instance starts without one, so a cold start makes one request to Blob instead of about 2,900 to reMarkable Cloud. It is uploaded only when rmapi has changed it. This needs a Blob store connected to the project (`BLOB_STORE_ID` or `BLOB_READ_WRITE_TOKEN`) and `vercel-blob`, which is now part of the `rounds` extra. Without them, or if Blob fails, rmink works as before.
