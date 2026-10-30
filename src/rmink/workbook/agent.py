@@ -35,7 +35,7 @@ from rmink.drawing.agent import (
     _image_block,
 )
 from rmink.drawing.store import WORKBOOK_LINK, Store, guess_drawing_name
-from rmink.workbook import workflow
+from rmink.workbook import catalog, workflow
 from rmink.workbook.build import build_pdf
 from rmink.workbook.model import AnswerField, Workbook, letter
 from rmink.workbook.read import Ink, Sorted, field_png, read_choices, read_ink, sort_ink
@@ -342,7 +342,7 @@ def start_workbook(
     output: Path | None = None,
 ) -> RoundResult:
     """Write revision 1 of a new workbook, save it and send it to
-    rmink/<name>/ on the tablet."""
+    rmink/<name>/ on the tablet, or rmink/Skola/<group>/<name>/ in a group."""
     started = time.monotonic() if started is None else started
     if store.load_workbook(wb.name) is not None:
         raise RoundError(
@@ -374,16 +374,29 @@ def create_workbook(
     effort: str | None = None,
     send: bool = True,
     mode: str = "practice",
+    group: str | None = None,
+    topic_id: str | None = None,
+    grade: int | None = None,
 ) -> RoundResult:
     """Have Claude write a workbook on ``topic`` and send revision 1. In a
     ``"test"`` the solutions come after the first round; in ``"practice"``
-    they are on the tablet (hidden) from the start."""
+    they are on the tablet (hidden) from the start. With a ``group`` from
+    :mod:`rmink.workbook.catalog` it is written for that group's topic
+    ``topic_id`` and ``grade``, ``topic`` adds wishes, and it goes in the
+    group's folder."""
+    started = time.monotonic()
+    request = topic.strip()
+    if group:
+        try:  # before any call, so a typo costs nothing
+            g = catalog.group(group)
+            request = catalog.topic_request(g.id, topic_id or "", grade, topic)
+        except ValueError as e:
+            raise RoundError(str(e)) from e
     if client is None:
         import anthropic
 
         client = anthropic.Anthropic()
-    started = time.monotonic()
-    request = topic.strip() + (f'\n\nName the workbook "{name}".' if name else "")
+    request += f'\n\nName the workbook "{name}".' if name else ""
     wb, usage = _call(
         client,
         CREATE_PROMPT,
@@ -395,6 +408,8 @@ def create_workbook(
     if name:
         wb.name = name
     wb.mode = "test" if mode == "test" else "practice"
+    if group:
+        wb.area, wb.group = catalog.AREA, g.title
     result = start_workbook(wb, device_key, store, send, started)
     result.usage = _cost(usage)
     return result

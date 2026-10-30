@@ -1,0 +1,203 @@
+# rmink skola: områden, grupper och moment för arbetsböcker.
+#
+# En grupp samlar arbetsböcker som hör ihop och blir en mapp på plattan:
+# rmink/Skola/<grupp>/<arbetsbok>/. Ett moment är det en arbetsbok övar.
+# "brief" går till Claude när arbetsboken skrivs: vad som ska övas, i vilken
+# ordning, typiska fel att fånga och vilka bilder eller modeller som hjälper.
+# "grades" är de årskurser momentet passar (1-9). Texterna är egna; de följer
+# Lgr22:s centrala innehåll i matematik men citerar det inte.
+
+[[group]]
+id = "plus-minus"
+title = "Plus och minus"
+area = "Matte"
+description = "Addition och subtraktion, från talkamrater till negativa tal."
+
+[[group.topic]]
+id = "talkamrater"
+title = "Tiokamrater och talkamrater"
+grades = [1, 2]
+brief = """Talkamrater till 5, 10 och 20: vilka par blir tillsammans 10? Börja med \
+bilder av prickar och fingrar, sedan bara tal. Visa att 3 + 7 och 7 + 3 är samma. \
+Koppla till subtraktion: 10 - 3 är den talkamrat som saknas. Typiskt fel: att \
+räkna ett för mycket när man räknar uppåt."""
+
+[[group.topic]]
+id = "positionssystemet"
+title = "Ental, tiotal och hundratal"
+grades = [1, 2, 3]
+brief = """Positionssystemet: vad siffrorna i 347 betyder, att dela upp tal i \
+hundratal, tiotal och ental och att bygga tal av dem. Jämför tal (större än, \
+mindre än) och placera dem på en tallinje. Typiskt fel: att läsa 304 som 34 \
+eller 3004 (nollan som platshållare)."""
+
+[[group.topic]]
+id = "tiotalsovergang"
+title = "Huvudräkning över tiotalet"
+grades = [2, 3]
+brief = """Addition och subtraktion med tiotalsövergång i huvudet: 8 + 5 via \
+8 + 2 + 3, 13 - 5 via 13 - 3 - 2. Hoppa på tallinjen. Därefter tvåsiffriga tal \
+(37 + 25 = 37 + 20 + 5). Be eleven skriva hur de tänkte i några uppgifter. \
+Typiskt fel: att glömma tiotalet som bildas."""
+
+[[group.topic]]
+id = "uppstallning-addition"
+title = "Uppställning med minnessiffra"
+grades = [3, 4]
+brief = """Skriftlig addition med uppställning: ental under ental, minnessiffra \
+när summan blir tio eller mer. Börja med två tresiffriga tal, sedan tre termer. \
+Låt eleven överslagsräkna först och jämföra. Typiskt fel: siffrorna hamnar i fel \
+kolumn, eller minnessiffran glöms."""
+
+[[group.topic]]
+id = "uppstallning-subtraktion"
+title = "Subtraktion med växling"
+grades = [3, 4, 5]
+brief = """Skriftlig subtraktion med växling (lån): 52 - 27, sedan över nollor \
+som 403 - 168. Visa växlingen med tiotalsstavar i ord. Kontrollera med addition \
+(differensen + det man tog bort = det man började med). Typiskt fel: att ta den \
+mindre siffran från den större i varje kolumn (52 - 27 = 35)."""
+
+[[group.topic]]
+id = "provning"
+title = "Pröva och uppskatta"
+grades = [3, 4, 5, 6]
+brief = """Att kontrollera sina svar: överslagsräkning (avrunda till hela tiotal \
+eller hundratal), pröva subtraktion med addition och tvärtom, och avgöra om ett \
+svar är rimligt. Blanda uppgifter där ett färdigt svar är fel och eleven ska \
+hitta felet."""
+
+[[group.topic]]
+id = "textuppgifter"
+title = "Textuppgifter med plus och minus"
+grades = [2, 3, 4, 5]
+brief = """Vardagsproblem som löses med addition eller subtraktion: köpa, få \
+växel, jämföra (hur många fler), ändring (först, sedan). Eleven ska skriva \
+uträkning och svar med enhet. Ta med uppgifter med onödig information och \
+uppgifter som kräver två steg. Typiskt fel: att addera för att ordet "fler" står \
+i texten."""
+
+[[group.topic]]
+id = "decimaltal"
+title = "Plus och minus med decimaltal"
+grades = [4, 5, 6]
+brief = """Addition och subtraktion med decimaltal: kronor och ören, meter och \
+centimeter. Ställ upp med decimaltecknet under decimaltecknet; fyll ut med nollor \
+(4,5 - 1,25 = 4,50 - 1,25). Typiskt fel: att ställa upp siffrorna från höger som \
+med heltal."""
+
+[[group.topic]]
+id = "negativa-tal"
+title = "Negativa tal"
+grades = [6, 7, 8]
+brief = """Negativa tal på tallinjen och termometern: ordna, jämföra, räkna \
+temperaturskillnader. Sedan addition och subtraktion: -3 + 5, 2 - 6, och att \
+subtrahera ett negativt tal (4 - (-2)). Typiskt fel: att tro att -8 är större än \
+-3."""
+
+[[group]]
+id = "brak-division"
+title = "Bråk och division"
+area = "Matte"
+description = "Division, bråk och hur de hänger ihop med decimaltal och procent."
+
+[[group.topic]]
+id = "division-delning"
+title = "Division som delning"
+grades = [2, 3, 4]
+brief = """Division som att dela lika (12 kakor på 3 barn) och som innehåll (hur \
+många 3-grupper finns i 12). Koppla till multiplikationstabellen: 12 / 3 = 4 för \
+att 3 * 4 = 12. Skriv divisionen med snedstreck. Typiskt fel: att blanda ihop \
+täljare och nämnare, 3 / 12."""
+
+[[group.topic]]
+id = "division-rest"
+title = "Division med rest"
+grades = [3, 4, 5]
+brief = """Division som inte går jämnt ut: 17 / 5 = 3 rest 2. Vad gör man med \
+resten i vardagen (fler bilar behövs, bitar blir över, dela resten i bråkdelar)? \
+Kontrollera med 5 * 3 + 2 = 17. Typiskt fel: en rest som är större än det man \
+delar med."""
+
+[[group.topic]]
+id = "kort-division"
+title = "Kort division"
+grades = [4, 5, 6]
+brief = """Skriftlig division med kort division: 672 / 4 siffra för siffra med \
+minnessiffra (rest) till nästa position. Börja utan rest, sedan med rest och med \
+nolla i kvoten (412 / 4). Överslag först. Typiskt fel: att glömma nollan i \
+kvoten, 412 / 4 = 13."""
+
+[[group.topic]]
+id = "brak-del-av-helhet"
+title = "Bråk som del av en helhet"
+grades = [2, 3, 4]
+brief = """Vad ett bråk är: en pizza i fyra lika delar, tre av dem är 3/4. \
+Täljare och nämnare. Delarna måste vara lika stora. Beskriv bilderna i ord, till \
+exempel en rektangel i sex rutor där två är skuggade. Typiskt fel: att tro att \
+1/8 är mer än 1/4 för att 8 är större än 4."""
+
+[[group.topic]]
+id = "brak-av-antal"
+title = "Bråk av ett antal"
+grades = [3, 4, 5]
+brief = """Att räkna ut en del av ett antal: 1/3 av 12 (dela med 3), sedan 2/3 \
+av 12 (dela med 3, gånger 2). Vardagsexempel med pengar, elever och godis. \
+Typiskt fel: att bara dela med täljaren."""
+
+[[group.topic]]
+id = "brak-som-division"
+title = "Bråk som division"
+grades = [4, 5, 6]
+brief = """Att ett bråk är en division: 3/4 betyder 3 delat med 4, alltså tre \
+pizzor på fyra personer. Skriv divisioner som bråk och bråk som division, och \
+räkna ut värdet som decimaltal (3/4 = 0,75). Bråk större än 1: 7/4 = 1 3/4."""
+
+[[group.topic]]
+id = "forlanga-forkorta"
+title = "Förlänga och förkorta"
+grades = [4, 5, 6, 7]
+brief = """Likvärdiga bråk: 1/2 = 2/4 = 4/8. Förlänga (gånger samma tal uppe och \
+nere) och förkorta (dela med samma tal). Förkorta så långt det går. Typiskt fel: \
+att lägga till samma tal uppe och nere (1/2 = 2/3)."""
+
+[[group.topic]]
+id = "jamfora-brak"
+title = "Jämföra och storleksordna bråk"
+grades = [4, 5, 6, 7]
+brief = """Vilket bråk är störst? Samma nämnare, samma täljare, jämförelse med \
+1/2 och med 1, och gemensam nämnare. Placera bråk på en tallinje mellan 0 och 2. \
+Typiskt fel: att jämföra bara nämnarna eller bara täljarna."""
+
+[[group.topic]]
+id = "blandad-form"
+title = "Blandad form"
+grades = [5, 6, 7]
+brief = """Bråk i blandad form: 2 1/3 är två hela och en tredjedel. Skriv om \
+mellan blandad form och bråkform (2 1/3 = 7/3) i båda riktningarna. Vardagsexempel \
+med tårtor och recept. Typiskt fel: 2 1/3 = 3/3."""
+
+[[group.topic]]
+id = "addera-brak"
+title = "Addera och subtrahera bråk"
+grades = [5, 6, 7, 8]
+brief = """Addition och subtraktion av bråk: först samma nämnare (2/5 + 1/5), \
+sedan med gemensam nämnare (1/2 + 1/3 = 3/6 + 2/6), och blandad form. Förkorta \
+svaret. Typiskt fel: att addera nämnarna, 1/2 + 1/3 = 2/5."""
+
+[[group.topic]]
+id = "multiplicera-dividera-brak"
+title = "Multiplicera och dividera bråk"
+grades = [7, 8, 9]
+brief = """Bråk gånger heltal (3 * 2/5), bråk gånger bråk (2/3 * 3/4) och \
+division med bråk (hur många 1/4 ryms i 3, sedan att multiplicera med det \
+inverterade talet). Förklara varför division med ett tal mindre än 1 ger ett \
+större svar."""
+
+[[group.topic]]
+id = "brak-decimal-procent"
+title = "Bråk, decimaltal och procent"
+grades = [5, 6, 7, 8, 9]
+brief = """Samma tal på tre sätt: 1/4 = 0,25 = 25 %. Kända par (1/2, 1/4, 3/4, \
+1/5, 1/10), omvandling åt alla håll och procent av ett belopp (20 % av 350 kr). \
+Rea och ränta som vardagsexempel. Typiskt fel: 0,5 % tolkas som 50 %."""

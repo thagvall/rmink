@@ -6,6 +6,10 @@ Workbooks live beside the drawings, in a folder of their own:
      Bråk/
        Bråk r02 · 1 att kolla   the revision to write in
        Tidigare/                earlier revisions, oldest first
+     Skola/
+       Bråk och division/       a group of workbooks (rmink.workbook.catalog)
+         Bråk åk 5/
+           Bråk åk 5 r01
 
 Each revision is the PDF rebuilt with the answers read so far, plus ink:
 - handwriting a round has read goes to the hidden "Handskrift" layer with
@@ -59,6 +63,28 @@ def revision_title(workbook: Workbook) -> str:
     if n := len(workbook.unsure()):
         title += f" · {n} att kolla"
     return title
+
+
+def workbook_folder(workbook: Workbook) -> str:
+    """'/rmink/Skola/Bråk och division/Bråk åk 5' for a workbook in a group,
+    '/rmink/Bråk' for one without."""
+    if not workbook.group:
+        return drawing_folder(workbook.name)
+    parts = [workbook.area, workbook.group, workbook.name]
+    return "/".join([RMINK_FOLDER, *(safe_name(p) for p in parts if p)])
+
+
+def _make_folders(token: str, folder: str) -> list[cloud.Entry]:
+    """The entries of ``folder``, made with the folders above it if missing."""
+    try:
+        return cloud.ls(token, folder)
+    except cloud.CloudNotFoundError:
+        pass
+    path = ""
+    for part in folder.strip("/").split("/"):
+        path += "/" + part
+        cloud.mkdir(token, path)  # a folder that is there counts as made
+    return []
 
 
 def _on(strokes: list[Stroke], layer: str) -> list[Stroke]:
@@ -123,13 +149,8 @@ def send_revision(workbook: Workbook, path: Path, token: str, store: Store) -> s
     """Upload a revision to the workbook's folder, save the workbook with where
     it went and move the notebook this round read into ``Tidigare``. Returns
     the cloud path."""
-    folder = drawing_folder(workbook.name)
-    try:
-        entries = cloud.ls(token, folder)
-    except cloud.CloudNotFoundError:
-        cloud.mkdir(token, RMINK_FOLDER)
-        cloud.mkdir(token, folder)
-        entries = []
+    folder = workbook_folder(workbook)
+    entries = _make_folders(token, folder)
     sent_as = f"{folder}/{cloud.put(path, token, folder=folder, name=revision_title(workbook))}"
     read = workbook.document
     workbook.sent_as = sent_as
@@ -147,3 +168,31 @@ def send_revision(workbook: Workbook, path: Path, token: str, store: Store) -> s
         except cloud.CloudError as e:
             log.warning("Could not move %s to %s: %s", read, archive, e)
     return sent_as
+
+
+def move_to_group(workbook: Workbook, area: str, group: str, token: str, store: Store) -> str:
+    """Move a workbook's folder, with its revisions and Tidigare, into
+    rmink/<area>/<group>/ and save it with its new paths. Returns the new
+    folder; a folder already there is left alone (CloudExistsError)."""
+    old = workbook_folder(workbook)
+    moved = workbook.model_copy(update={"area": area, "group": group})
+    new = workbook_folder(moved)
+    if old == new:
+        return new
+    _make_folders(token, new.rpartition("/")[0])
+    cloud.mv(token, old, new)
+
+    def renamed(path: str) -> str:
+        return new + path[len(old) :] if path.startswith(old + "/") else path
+
+    moved.sent_as, moved.document = renamed(workbook.sent_as), renamed(workbook.document)
+    moved.log.append(f"r{moved.revision:02d}: flyttad till {new.removeprefix(RMINK_FOLDER + '/')}")
+    store.save_workbook(moved)
+    link = WORKBOOK_LINK + moved.name
+    for e in cloud.ls(token, new):
+        if e.folder and e.name == ARCHIVE:
+            for old_rev in cloud.ls(token, f"{new}/{ARCHIVE}"):
+                store.link(f"{new}/{ARCHIVE}/{old_rev.name}", link)
+        elif not e.folder:
+            store.link(f"{new}/{e.name}", link)
+    return new

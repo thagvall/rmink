@@ -37,6 +37,10 @@ class FakeRmapi:
         elif args[1:3] == ["-ni", "ls"]:
             if token != "tok.en-1":
                 err, code = "missing token, not asking, aborting", 1
+            elif (args[3].rsplit("/", 1)[0] or "/") not in self.folders | {"/"}:
+                # rmapi's wording when a folder on the way is missing
+                name = args[3].strip("/").split("/")[0]
+                err, code = f"ERROR: main.go:86: Error:  entry '{name}' doesnt exist", 1
             elif args[3] != "/" and args[3] not in self.folders:
                 name = args[3].rsplit("/", 1)[-1]
                 err, code = f"ERROR: main.go:86: Error:  no matches for '{name}'", 1
@@ -180,6 +184,8 @@ def test_ls_and_get(rmapi):
 def test_folders(rmapi, examples, tmp_path):
     with pytest.raises(cloud.CloudNotFoundError):
         cloud.ls("tok.en-1", "/rmink")
+    with pytest.raises(cloud.CloudNotFoundError):
+        cloud.ls("tok.en-1", "/rmink/Skola/Bråk och division")
     with pytest.raises(cloud.CloudError, match="doesn't exist"):
         cloud.mkdir("tok.en-1", "/rmink/Altan")
     cloud.mkdir("tok.en-1", "/rmink")

@@ -68,9 +68,13 @@ class RunRequest(BaseModel):
 
 
 class CreateRequest(BaseModel):
-    topic: str = Field(min_length=3, max_length=4000)
+    # What it is about; with a group (rmink skola), the user's own wishes.
+    topic: str = Field(default="", max_length=4000)
     name: str = Field(default="", max_length=60)
     mode: Literal["practice", "test"] = "practice"
+    group: str = Field(default="", max_length=60)
+    topic_id: str = Field(default="", max_length=60)
+    grade: int | None = Field(default=None, ge=1, le=9)
     device: str = "rm2"
     drawings: dict[str, str] = {}
     links: dict[str, str] = {}
@@ -134,9 +138,18 @@ def router() -> APIRouter:
             out["store"] = {"drawings": store.changed, "links": store.links}
         return out
 
+    @r.get("/api/workbook/catalog")
+    def catalog(x_rmink_secret: str | None = Header(None)) -> list:
+        _check(x_rmink_secret)
+        from rmink.workbook import catalog
+
+        return catalog.to_json()
+
     @r.post("/api/workbook/create")
     async def create(req: CreateRequest, x_rmink_secret: str | None = Header(None)) -> dict:
         _check(x_rmink_secret)
+        if not req.group and len(req.topic.strip()) < 3:
+            raise HTTPException(422, "Skriv vad arbetsboken ska handla om, eller välj en grupp.")
         _token()
         from rmink.drawing.agent import RoundError
         from rmink.drawing.store import MemoryStore, redis_from_env
@@ -147,7 +160,16 @@ def router() -> APIRouter:
         name = safe_name(req.name) if req.name.strip() else None
         try:
             result = await anyio.to_thread.run_sync(
-                lambda: create_workbook(req.topic, req.device, store, name=name, mode=req.mode)
+                lambda: create_workbook(
+                    req.topic,
+                    req.device,
+                    store,
+                    name=name,
+                    mode=req.mode,
+                    group=req.group or None,
+                    topic_id=req.topic_id or None,
+                    grade=req.grade,
+                )
             )
         except RoundError as e:
             raise HTTPException(422, str(e)) from e

@@ -113,6 +113,10 @@ class Workbook(BaseModel):
     mode: Literal["practice", "test"] = "practice"
     title: str = ""
     intro: str = ""
+    # rmink skola: the area and group it belongs to ("Skola", "Bråk och
+    # division"), which put it in rmink/<area>/<group>/<name>/ on the tablet.
+    area: str = ""
+    group: str = ""
     sections: list[Section] = Field(default_factory=list)
     revision: int = 1
     date: str = ""

@@ -227,7 +227,9 @@ def _failed(proc: subprocess.CompletedProcess) -> bool:
 
 def _missing(proc: subprocess.CompletedProcess) -> bool:
     output = proc.stdout + proc.stderr
-    return "no matches for" in output or "doesn't exist" in output
+    # rmapi says "directory doesn't exist", or "entry 'X' doesnt exist" for a
+    # missing folder on the way.
+    return "no matches for" in output or re.search(r"doesn'?t exist", output) is not None
 
 
 @dataclass(frozen=True)

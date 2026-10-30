@@ -112,6 +112,9 @@ def test_guess_drawing_name():
     assert guess_drawing_name("C:\\ritningar\\Garage r02.rmdoc") == "Garage"
     assert guess_drawing_name("/rmink/Altan/Tidigare/Altan r00 skiss") == "Altan"
     assert guess_drawing_name("/rmink/Bastu/Bastuskiss") == "Bastu"
+    school = "/rmink/Skola/Bråk och division/Bråk åk5"
+    assert guess_drawing_name(f"{school}/Bråk åk5 r02 · 3 av 4 p") == "Bråk åk5"
+    assert guess_drawing_name(f"{school}/Tidigare/Bråk åk5 r01") == "Bråk åk5"
 
 
 def test_revision_title():
@@ -389,7 +392,12 @@ class FakeCloud:
             raise cloud.CloudExistsError(dst)
         self.folders[sp].remove(sn)
         self.folders[dp].add(dn)
-        self.documents[dst] = self.documents.pop(src, b"")
+        # A folder moves with everything in it.
+        for tree in (self.folders, self.documents):
+            for key in [k for k in tree if k == src or k.startswith(src + "/")]:
+                tree[dst + key[len(src) :]] = tree.pop(key)
+        if dst not in self.folders:
+            self.documents.setdefault(dst, b"")
 
     def get(self, token, path):
         return self.documents[path]

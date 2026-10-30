@@ -56,7 +56,8 @@ server = MCPServer(
         "exactly as written (do not correct it) and pass the answers to "
         "`save_workbook_answers` with a grade per box that has a solution. The next "
         "revision has the answers as PDF text, the solutions on a hidden 'Facit' layer and a "
-        "results page."
+        "results page. For school (rmink skola), `list_school_topics` gives groups such as "
+        "'Bråk och division' with topics and briefs; pass the group to `create_workbook`."
     ),
 )
 
@@ -446,7 +447,11 @@ def _workbook_output(output_path: str | None, send: bool, name: str) -> Path | N
 
 @server.tool()
 def create_workbook(
-    workbook: dict, device: str = "rm2", send: bool = False, output_path: str | None = None
+    workbook: dict,
+    device: str = "rm2",
+    send: bool = False,
+    output_path: str | None = None,
+    group: str | None = None,
 ) -> dict:
     """Lay out a new workbook as a linked PDF in the tablet's page format: a cover with
     the table of contents, each section on its own pages with links back and on, and a
@@ -469,15 +474,31 @@ def create_workbook(
         send: Upload to the user's reMarkable Cloud (needs cloud_connect).
         output_path: Where to write the .rmdoc (default when not sending:
             ~/.config/rmink/drawings/workbooks/).
+        group: An rmink skola group id from list_school_topics; the workbook then goes
+            in rmink/Skola/<group>/<name>/. Write it from the topic's brief.
     """
     from rmink.drawing.store import default_store
+    from rmink.workbook import catalog
     from rmink.workbook.agent import check_workbook, start_workbook
 
     wb = check_workbook(workbook)
+    if group:
+        wb.area, wb.group = catalog.AREA, catalog.group(group).title
     output = _workbook_output(output_path, send, wb.name)
     return _workbook_result(
         start_workbook(wb, device, default_store(), send, output=output), output
     )
+
+
+@server.tool()
+def list_school_topics() -> list:
+    """The rmink skola groups ("Plus och minus", "Bråk och division") and their topics:
+    for each topic its id, title, the school years it suits and a brief of what a
+    workbook on it should practise and which mistakes to catch. Pass the group id to
+    create_workbook."""
+    from rmink.workbook import catalog
+
+    return [g.model_dump() for g in catalog.load()]
 
 
 @server.tool()

@@ -43,6 +43,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .drawing .rev { font-variant-numeric: tabular-nums; }
 .questions { margin: 0; padding-left: 1.2em; color: var(--mark); font-size: .95rem; }
 .qcount { color: var(--mark); font-weight: 600; font-size: .92rem; }
+.group-head { font-size: .9rem; color: var(--muted); font-weight: 600; margin: 8px 0 0; }
 .kind { font-size: .78rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; margin-left: 6px; font-weight: 500; }
 details { font-size: .9rem; }
 summary { cursor: pointer; color: var(--muted); }
@@ -98,8 +99,16 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
 
   <section class="card" id="create" hidden>
     <h2>Ny arbetsbok</h2>
-    <p class="muted">Claude skriver en arbetsbok med innehållsförteckning, avsnitt och svarsrutor och lägger den i rmink/&lt;namn&gt;. Skriv svaren för hand, låt plattan synka och kör nästa varv, så blir handstilen text.</p>
-    <label for="topic">Vad ska den handla om?</label>
+    <p class="muted">Claude skriver en arbetsbok med innehållsförteckning, avsnitt och svarsrutor och lägger den i rmink/&lt;namn&gt;, eller i rmink/Skola/&lt;grupp&gt;/&lt;namn&gt; när du väljer en grupp. Skriv svaren för hand, låt plattan synka och kör nästa varv, så blir handstilen text.</p>
+    <label for="wbgroup">Skola</label>
+    <select id="wbgroup"><option value="">Ingen grupp: skriv själv vad den ska handla om</option></select>
+    <div id="wbschool" hidden>
+      <label for="wbtopic">Moment</label>
+      <select id="wbtopic"></select>
+      <label for="wbgrade">Årskurs</label>
+      <select id="wbgrade"></select>
+    </div>
+    <label for="topic" id="topicLabel">Vad ska den handla om?</label>
     <textarea id="topic" maxlength="4000" placeholder="T.ex. Bråk och procent för åk 5, med vardagsexempel"></textarea>
     <label for="wbname">Namn <span class="muted">(valfritt)</span></label>
     <input id="wbname" maxlength="60" placeholder="T.ex. Bråk">
@@ -158,8 +167,38 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
     $("#pick").hidden = !secret;
     $("#drawings").hidden = !secret;
     $("#create").hidden = !secret;
-    if (secret) { drawings(); load(path); }
+    if (secret) { drawings(); load(path); loadCatalog(); }
   }
+
+  // rmink skola: groups and their topics, for the "Ny arbetsbok" card.
+  let catalog = [];
+  async function loadCatalog() {
+    if (catalog.length) return;
+    try { catalog = await api("/api/workbook/catalog"); } catch { return; }
+    const sel = $("#wbgroup");
+    for (const g of catalog) { const o = el("option", null, `${g.area}: ${g.title}`); o.value = g.id; sel.appendChild(o); }
+  }
+  function schoolChoices() {
+    const g = catalog.find((x) => x.id === $("#wbgroup").value);
+    $("#wbschool").hidden = !g;
+    $("#topicLabel").textContent = g ? "Önskemål (valfritt)" : "Vad ska den handla om?";
+    $("#topic").placeholder = g ? "T.ex. med vardagsexempel om pengar" : "T.ex. Bråk och procent för åk 5, med vardagsexempel";
+    if (!g) return;
+    const t = $("#wbtopic"); t.innerHTML = "";
+    const all = el("option", null, "Blanda alla moment"); all.value = ""; t.appendChild(all);
+    for (const x of g.topics) { const o = el("option", null, `${x.title} (åk ${x.grades[0]}–${x.grades[x.grades.length - 1]})`); o.value = x.id; t.appendChild(o); }
+    grades();
+  }
+  function grades() {
+    const g = catalog.find((x) => x.id === $("#wbgroup").value);
+    const x = g && g.topics.find((y) => y.id === $("#wbtopic").value);
+    const sel = $("#wbgrade"), was = sel.value; sel.innerHTML = "";
+    const any = el("option", null, "Ingen särskild"); any.value = ""; sel.appendChild(any);
+    for (const n of x ? x.grades : [1, 2, 3, 4, 5, 6, 7, 8, 9]) { const o = el("option", null, `Åk ${n}`); o.value = String(n); sel.appendChild(o); }
+    if ([...sel.options].some((o) => o.value === was)) sel.value = was;
+  }
+  $("#wbgroup").addEventListener("change", schoolChoices);
+  $("#wbtopic").addEventListener("change", grades);
 
   $("#save").addEventListener("click", () => {
     secret = $("#secret").value.trim();
@@ -170,11 +209,21 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
   function drawings() {
     const all = Object.entries(memory().drawings).map(([key, raw]) => { try { return { ...JSON.parse(raw), key }; } catch { return null; } }).filter(Boolean);
     all.sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.revision - a.revision);
+    // rmink skola groups first, in the order they were last used, then the rest.
+    const groupOf = (d) => d.group || "";
+    const order = [...new Set(all.map(groupOf))].sort((a, b) => (a === "") - (b === ""));
+    all.sort((a, b) => order.indexOf(groupOf(a)) - order.indexOf(groupOf(b)));
+    const grouped = order.length > 1 || order[0] !== "";
     const n = all.length;
     $("#memory").textContent = n ? `${n} sparade i den här webbläsaren.` : "Ritningar och arbetsböcker sparas i den här webbläsaren mellan varven.";
     const list = $("#drawing-list"); list.innerHTML = "";
     if (!n) { list.appendChild(el("p", "muted", "Inga än. Börja med en skiss eller en arbetsbok nedan.")); return; }
+    let heading = null;
     for (const d of all) {
+      if (grouped && groupOf(d) !== heading) {
+        heading = groupOf(d);
+        list.appendChild(el("h3", "group-head", heading ? `${d.area || "Skola"} · ${heading}` : "Övrigt"));
+      }
       const card = el("div", "drawing");
       const head = el("div", "row between");
       const wb = d.kind === "workbook";
@@ -313,9 +362,10 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
   }
 
   $("#createRun").addEventListener("click", () => {
-    const topic = $("#topic").value.trim();
-    if (topic.length < 3) { $("#createStatus").textContent = "Skriv vad arbetsboken ska handla om."; return; }
-    roundTrip("/api/workbook/create", { topic, name: $("#wbname").value.trim(), mode: $("#wbmode").value, device: device.value }, $("#createStatus"), true)
+    const topic = $("#topic").value.trim(), group = $("#wbgroup").value;
+    if (!group && topic.length < 3) { $("#createStatus").textContent = "Skriv vad arbetsboken ska handla om, eller välj en grupp."; return; }
+    const school = group ? { group, topic_id: $("#wbtopic").value, grade: $("#wbgrade").value ? Number($("#wbgrade").value) : null } : {};
+    roundTrip("/api/workbook/create", { topic, name: $("#wbname").value.trim(), mode: $("#wbmode").value, device: device.value, ...school }, $("#createStatus"), true)
       .then((ok) => { if (ok) { $("#topic").value = ""; $("#wbname").value = ""; } });
   });
 

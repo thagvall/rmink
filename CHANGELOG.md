@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.12.0 — 2026-10-30
+
+- rmink skola: workbooks for school, grouped by area. The first groups are "Plus och minus" (9 topics, from number bonds to negative numbers) and "Bråk och division" (12 topics, from sharing to fractions, decimals and percent), each topic with the school years it suits.
+  - A workbook in a group goes in `rmink/Skola/<group>/<name>/` on the tablet, with `Tidigare/` as before. Workbooks without a group stay in `rmink/<name>/`.
+  - `/rounds`: "Ny arbetsbok" has pickers for group, topic and school year, and the list of drawings and workbooks has a heading per group.
+  - CLI: `rmink workbook new --group brak-division --topic-id forlanga-forkorta --grade 5`, and `rmink workbook catalog` lists the groups and topics.
+  - MCP: `list_school_topics`, and `create_workbook` takes a `group`.
+  - The catalogue is data in `src/rmink/workbook/data/skola.toml`, so new groups need no code.
+  - `rmink workbook move Bråktest --group brak-division` moves an existing workbook, with its earlier revisions, into a group; the next round carries on there.
+- Fix: a cloud path whose folder on the way is missing ("entry 'X' doesnt exist" from rmapi) now counts as missing, so rmink makes the folders instead of failing.
+
 ## 2.11.0 — 2026-10-30
 
 - Workbooks get multiple-choice questions, mixed with the written ones: "Välj ett" (one right choice) or "Välj alla som stämmer" (all that apply).

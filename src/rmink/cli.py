@@ -374,8 +374,17 @@ def _print_round(r) -> None:
 
 @workbook_app.command("new")
 def workbook_new(
-    topic: Annotated[str, typer.Argument(help='What it is about, e.g. "Bråk för åk 5"')],
+    topic: Annotated[
+        str, typer.Argument(help='What it is about, e.g. "Bråk för åk 5"; with --group, wishes')
+    ] = "",
     name: Annotated[str | None, typer.Option(help="Folder name on the tablet")] = None,
+    group: Annotated[
+        str | None, typer.Option(help="rmink skola group, e.g. brak-division (see: catalog)")
+    ] = None,
+    topic_id: Annotated[
+        str | None, typer.Option(help="The group's topic, e.g. forlanga-forkorta")
+    ] = None,
+    grade: Annotated[int | None, typer.Option(min=1, max=9, help="School year, 1-9")] = None,
     mode: Annotated[
         str, typer.Option(help="practice: solutions hidden from the start; test: after grading")
     ] = "practice",
@@ -383,9 +392,12 @@ def workbook_new(
     effort: Annotated[str, typer.Option(help="low | medium | high | xhigh | max")] = "medium",
     send: Annotated[bool, typer.Option("--send/--no-send", help="Upload it")] = True,
 ) -> None:
-    """Have Claude write a workbook and put it in rmink/<name>/ (needs ANTHROPIC_API_KEY)."""
+    """Have Claude write a workbook and put it in rmink/<name>/, or in
+    rmink/Skola/<group>/<name>/ with --group (needs ANTHROPIC_API_KEY)."""
     if mode not in ("practice", "test"):
         raise typer.BadParameter("--mode is practice or test")
+    if not group and len(topic.strip()) < 3:
+        raise typer.BadParameter("Say what it is about, or pick a --group")
     try:
         from rmink.workbook.agent import RoundError, create_workbook
     except ImportError as e:
@@ -395,12 +407,63 @@ def workbook_new(
 
     try:
         r = create_workbook(
-            topic, device, default_store(), name=name, effort=effort, send=send, mode=mode
+            topic,
+            device,
+            default_store(),
+            name=name,
+            effort=effort,
+            send=send,
+            mode=mode,
+            group=group,
+            topic_id=topic_id,
+            grade=grade,
         )
     except RoundError as e:
         typer.secho(f"error: {e}", fg="red", err=True)
         raise typer.Exit(1) from e
     _print_round(r)
+
+
+@workbook_app.command("catalog")
+def workbook_catalog() -> None:
+    """List the rmink skola groups and topics a workbook can be written for."""
+    from rmink.workbook import catalog
+
+    for g in catalog.load():
+        typer.echo(f"{g.id}: {g.title} ({g.area})")
+        for t in g.topic:
+            grades = f"åk {t.grades[0]}-{t.grades[-1]}" if t.grades else ""
+            typer.echo(f"  {t.id:28} {t.title}  {grades}")
+
+
+@workbook_app.command("move")
+def workbook_move(
+    name: Annotated[str, typer.Argument(help="The workbook, e.g. Bråktest")],
+    group: Annotated[str, typer.Option(help="rmink skola group, e.g. brak-division")],
+) -> None:
+    """Move a workbook, with its earlier revisions, into rmink/Skola/<group>/."""
+    from rmink import cloud
+    from rmink.drawing.store import default_store
+    from rmink.workbook import catalog, workflow
+
+    store = default_store()
+    wb = store.load_workbook(name)
+    if wb is None:
+        raise typer.BadParameter(f'No saved workbook "{name}"')
+    try:
+        title = catalog.group(group).title
+    except ValueError as e:
+        raise typer.BadParameter(str(e)) from e
+    token = cloud.load_token()
+    if not token:
+        typer.secho("error: rmink is not connected to reMarkable Cloud", fg="red", err=True)
+        raise typer.Exit(1)
+    try:
+        folder = workflow.move_to_group(wb, catalog.AREA, title, token, store)
+    except cloud.CloudError as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+    typer.echo(f"{wb.name} is in {folder}")
 
 
 @workbook_app.command("round")

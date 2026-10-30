@@ -1,6 +1,6 @@
 # Arbetsbok: länkad PDF där handstil blir text
 
-Status: släppt i 2.9.0, facit och resultat i 2.10.0, flerval i 2.11.0 (modulen `rmink.workbook`, CLI, MCP och webbsidan `/rounds`). Länkar,
+Status: släppt i 2.9.0, facit och resultat i 2.10.0, flerval i 2.11.0, grupper (rmink skola) i 2.12.0 (modulen `rmink.workbook`, CLI, MCP och webbsidan `/rounds`). Länkar,
 koordinater, dolt lager och ett helt varv med Claude är verifierade på en rm2 (2026-10-30).
 
 ## Idé
@@ -99,14 +99,46 @@ Det här gäller i båda lägena:
 - Sidor man själv lagt till i dokumentet på plattan följer inte med till nästa revision. Varvets
   logg säger hur många.
 
+## rmink skola: grupper
+
+Arbetsböcker för skolan samlas i grupper efter område. Katalogen finns i
+`src/rmink/workbook/data/skola.toml` (modulen `rmink.workbook.catalog`):
+
+- **Plus och minus:** talkamrater, ental/tiotal/hundratal, huvudräkning över tiotalet, uppställning
+  med minnessiffra, subtraktion med växling, pröva och uppskatta, textuppgifter, decimaltal,
+  negativa tal.
+- **Bråk och division:** division som delning, division med rest, kort division, bråk som del av en
+  helhet, bråk av ett antal, bråk som division, förlänga och förkorta, jämföra bråk, blandad form,
+  addera och subtrahera bråk, multiplicera och dividera bråk, bråk–decimaltal–procent.
+
+Varje moment har en beskrivning för Claude (vad som ska övas, i vilken ordning och vilka typiska fel
+uppgifterna ska fånga) och de årskurser det passar. Man väljer grupp, moment (eller *blanda alla*)
+och årskurs. Önskemål i fritext läggs till. En arbetsbok i en grupp hamnar i
+`rmink/Skola/<grupp>/<namn>/`:
+
+    rmink/
+      Skola/
+        Bråk och division/
+          Förkorta åk 5/
+            Förkorta åk 5 r02 · 4 av 5 p
+            Tidigare/
+
+En befintlig arbetsbok flyttas in i en grupp med `rmink workbook move <namn> --group <grupp>`.
+Mappen flyttas med alla revisioner och *Tidigare*, och nästa varv fortsätter där.
+
+Nya grupper (gånger, geometri, svenska …) läggs till i TOML-filen utan kodändring. Arbetsböcker
+utan grupp fungerar som förut i `rmink/<namn>/`.
+
 ## Använda
 
 - **Webb** (`/rounds`, bara för ägaren): kortet *Ny arbetsbok* skapar en arbetsbok. Den syns sedan
   under *Ritningar och arbetsböcker* med *Kör nästa varv* och valet för handstilen.
 - **CLI**:
   - `rmink workbook new "Bråk för åk 5" --name Bråk --mode test`
+  - `rmink workbook new --group brak-division --topic-id forlanga-forkorta --grade 5`
+  - `rmink workbook catalog` listar grupper och moment
   - `rmink workbook round Bråk --ink keep`
-- **MCP**: `create_workbook` (Claude skriver JSON:en själv), `read_workbook` (en bild per ruta med
+- **MCP**: `list_school_topics`, `create_workbook` (Claude skriver JSON:en själv, valfri `group`), `read_workbook` (en bild per ruta med
   nytt bläck), `save_workbook_answers`.
 
 ## Hur det fungerar
