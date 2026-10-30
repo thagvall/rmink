@@ -392,3 +392,97 @@ def test_tick_confirms_an_unsure_answer(tmp_path):
     assert saved.field("s1f2").confident and not r.open_questions
     assert workflow.revision_title(saved) == "Bråk r03"
     assert "sätt en bock" not in pymupdf.open(stream=build_pdf(saved, RM2))[0].get_text()
+
+
+def _solved(mode: str) -> Workbook:
+    data = json.loads(json.dumps(WORKBOOK))
+    data["mode"] = mode
+    solutions = {"s1f1": "12/4 = 3, 3*3 = 9", "s1f2": "Dela i fyra delar och ta tre.", "s2f1": "20"}
+    for s in data["sections"]:
+        for f in s["fields"]:
+            f["solution"] = solutions[f["id"]]
+    data["sections"][0]["fields"][1]["points"] = 2
+    wb = Workbook.model_validate(data)
+    build_pdf(wb, RM2)
+    return wb
+
+
+def _layers(path):
+    with zipfile.ZipFile(path) as zf:
+        out = {}
+        for n in zf.namelist():
+            if n.endswith(".rm"):
+                for g in rmscene.read_tree(io.BytesIO(zf.read(n))).root.children.values():
+                    out[g.label.value] = g.visible.value
+        return out
+
+
+def test_practice_has_hidden_solutions_from_the_start(tmp_path):
+    wb = _solved("practice")
+    path = workflow.build_revision(wb, tmp_path / "r01", RM2)
+    assert _layers(path) == {"Layer 1": True, "Facit": False}
+    ink = read_ink(path.read_bytes(), RM2)
+    facit = [s for s in ink.pages[1] if s.layer == "Facit"]
+    assert facit
+    # The solution ink sits under its box, and is never read as an answer.
+    box = wb.field("s1f1").rect
+    assert min(float(s.points[:, 1].min()) for s in facit) * 72 / RM2.dpi > box[3]
+    assert not sort_ink(ink, wb, RM2).by_field
+    assert "Facit" in pymupdf.open(stream=build_pdf(wb, RM2))[1].get_text()
+
+
+def test_test_mode_has_no_solutions_before_grading(tmp_path):
+    wb = _solved("test")
+    path = workflow.build_revision(wb, tmp_path / "r01", RM2)
+    assert not read_ink(path.read_bytes(), RM2).pages
+    assert "Facit" not in pymupdf.open(stream=build_pdf(wb, RM2))[1].get_text()
+
+
+def test_round_grades_and_adds_results(tmp_path):
+    store = FileStore(tmp_path / "d")
+    wb = _solved("test")
+    store.save_workbook(wb)
+    synced = _synced(
+        wb,
+        tmp_path,
+        {1: [_writing_in(wb, "s1f1"), _writing_in(wb, "s1f2")], 2: [_writing_in(wb, "s2f1")]},
+        name="Bråk r01",
+    )
+    client = FakeClient(
+        # The first try leaves out a grade and is sent back.
+        _answers(
+            {"id": "s1f1", "text": "9", "confident": True, "verdict": ""},
+            {"id": "s1f2", "text": "x", "confident": True, "verdict": "wrong"},
+            {"id": "s2f1", "text": "20", "confident": True, "verdict": "correct"},
+        )
+        + _answers(
+            {"id": "s1f1", "text": "9", "confident": True, "verdict": "correct", "awarded": 1},
+            {
+                "id": "s1f2",
+                "text": "tre fjärdedelar",
+                "confident": True,
+                "verdict": "partial",
+                "awarded": 1,
+                "comment": "Förklara hur du delar.",
+            },
+            {"id": "s2f1", "text": "25", "confident": True, "verdict": "wrong", "awarded": 0},
+        )
+    )
+    r = run_round(str(synced), None, store, client=client, send=False)
+    assert "Solution (2 p)" in json.dumps(client.requests[0]["messages"][0]["content"][2:4])
+    assert "grade the answer" in client.requests[1]["messages"][-1]["content"][0]["content"]
+    saved = store.load_workbook("Bråk")
+    assert saved.score() == (2.0, 4)
+    assert workflow.revision_title(saved) == "Bråk r02 · 2 av 4 p"
+    assert "2 av 4 poäng" in r.summary
+
+    doc = pymupdf.open(stream=build_pdf(saved, RM2))
+    assert doc.get_toc()[-1] == [1, "Resultat", doc.page_count]
+    results = doc[-1]
+    text = results.get_text()
+    assert "2 av 4 poäng (50 %)" in text and "Förklara hur du delar." in text
+    assert [ln["page"] for ln in results.get_links()] == [0, 1, 1, 2]
+    assert "Resultat" in doc[0].get_text()
+    # Now the test is graded, its solutions are on the tablet.
+    path = workflow.build_revision(saved, tmp_path / "r02", RM2)
+    assert _layers(path)["Facit"] is False

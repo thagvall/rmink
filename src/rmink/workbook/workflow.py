@@ -12,6 +12,8 @@ Each revision is the PDF rebuilt with the answers read so far, plus ink:
   ``ink="keep"``, or is dropped with ``ink="remove"`` (the default);
 - handwriting kept by an earlier round stays on that layer either way;
 - ink outside the boxes, and in boxes Claude could not read, stays as it was.
+
+The solutions go on the hidden "Facit" layer when the workbook shows them.
 """
 
 from __future__ import annotations
@@ -36,7 +38,7 @@ from rmink.drawing.workflow import (
 )
 from rmink.model import Page, Stroke
 from rmink.package.rmdoc import RmdocPage, UuidFactory, write_rmdoc
-from rmink.workbook.build import build_pdf
+from rmink.workbook.build import FACIT_LAYER, build_pdf, solution_strokes
 from rmink.workbook.model import Workbook
 from rmink.workbook.read import HANDWRITING_LAYER, Sorted
 from rmink.writer.rm_v6 import write_page
@@ -47,8 +49,12 @@ InkMode = Literal["remove", "keep"]
 
 
 def revision_title(workbook: Workbook) -> str:
-    """'Bråk r02 · 1 att kolla': answers rmink was unsure of are counted."""
+    """'Bråk r02 · 3 av 4 p · 1 att kolla': the score once graded, and the
+    answers rmink was unsure of."""
     title = f"{safe_name(workbook.name)} r{workbook.revision:02d}"
+    got, total = workbook.score()
+    if workbook.graded() and total:
+        title += f" · {got:g} av {total} p"
     if n := len(workbook.unsure()):
         title += f" · {n} att kolla"
     return title
@@ -72,6 +78,7 @@ def build_revision(
     ink = ink or Sorted()
     pdf = build_pdf(workbook, device)
     count = pymupdf.open(stream=pdf).page_count
+    facit = solution_strokes(workbook, device) if workbook.show_solutions() else {}
     visible: dict[int, list[Stroke]] = {p: list(s) for p, s in ink.loose.items()}
     hidden: dict[int, list[Stroke]] = {p: list(s) for p, s in ink.kept.items()}
     for field_id, strokes in ink.by_field.items():
@@ -88,12 +95,12 @@ def build_revision(
     pages = []
     for n in range(count):
         strokes = _on(visible.get(n, []), "Layer 1") + _on(hidden.get(n, []), HANDWRITING_LAYER)
+        strokes += facit.get(n, [])
         if not strokes:
             pages.append(RmdocPage(b""))
             continue
         page = Page(device.width, device.height, strokes, ["Layer 1"])
-        if hidden.get(n):
-            page.hidden_layers = {HANDWRITING_LAYER}
+        page.hidden_layers = {HANDWRITING_LAYER, FACIT_LAYER}
         pages.append(RmdocPage(write_page(page, device, author), None, page.layers))
 
     output = Path(output)

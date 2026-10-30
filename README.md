@@ -109,11 +109,13 @@ mode, the preview → tune → convert loop, and transferring the file.
 Claude writes a workbook on a topic: a PDF in the tablet's page format with a
 linked table of contents, short sections and ruled answer boxes. You write the
 answers by hand. The next round reads each box, has Claude transcribe it word
-for word, and sends a new revision with the answers set as PDF text. The
-handwriting is either removed or kept on a hidden layer.
+for word, grades it against Claude's solution, and sends a new revision with the
+answers set as PDF text and a results page at the end. The handwriting is
+either removed or kept on a hidden layer. The solutions are on a hidden
+"Facit" layer, from the start in practice mode or after grading in a test.
 
 ```bash
-rmink workbook new "Fractions for year 5" --name Fractions   # needs rmink[rounds]
+rmink workbook new "Fractions for year 5" --name Fractions --mode test   # needs rmink[rounds]
 rmink workbook round Fractions --ink keep
 ```
 

@@ -54,7 +54,9 @@ server = MCPServer(
         "and send it to rmink/<name>/. After the user has written and synced, "
         "`read_workbook` returns a picture of each box with new handwriting; transcribe each "
         "exactly as written (do not correct it) and pass the answers to "
-        "`save_workbook_answers`, which sets them as PDF text in the next revision."
+        "`save_workbook_answers` with a grade per box that has a solution. The next "
+        "revision has the answers as PDF text, the solutions on a hidden 'Facit' layer and a "
+        "results page."
     ),
 )
 
@@ -451,10 +453,13 @@ def create_workbook(
     ruled box per field. Saved for later rounds; ``send`` puts it in rmink/<name>/.
 
     Args:
-        workbook: {"name": short folder name, "title", "intro", "sections": [{"id",
-            "title", "text": a short explanation (plain text, about 120 words at most),
-            "fields": [{"id": unique, "prompt": the question, "lines": ruled lines for
-            the answer, 1-12}]}]}. Use Latin-1 characters only (3/4, x^2, sqrt(2)).
+        workbook: {"name": short folder name, "title", "intro", "mode": "practice"
+            (solutions on a hidden layer from the start) or "test" (solutions and a
+            results page after the first graded round), "sections": [{"id", "title",
+            "text": a short explanation (plain text, about 120 words at most), "fields":
+            [{"id": unique, "prompt": the question, "lines": ruled lines for the answer,
+            1-12, "solution": expected answer with the key step (two short lines at most),
+            "points": 1 unless several parts}]}]}. Latin-1 characters only (3/4, x^2).
         device: rm2 | pure | pro | move.
         send: Upload to the user's reMarkable Cloud (needs cloud_connect).
         output_path: Where to write the .rmdoc (default when not sending:
@@ -503,7 +508,11 @@ def save_workbook_answers(
         answers: [{"id": box id, "text": exactly what was written, "confident": false
             when any part is a guess}], one per box read_workbook returned; an empty text
             leaves the box's ink as it is. A tick alone in an answered box confirms the
-            earlier answer: give it unchanged with confident true.
+            earlier answer: give it unchanged with confident true. For a box with a
+            solution (read_workbook shows it), also grade: "verdict" correct, partial or
+            wrong, "awarded" points, and a short "comment" in the workbook's language on
+            what is missing when not correct. Equivalent answers are correct; the right
+            method with an arithmetic slip is partial.
         ink: "remove" drops the handwriting that was read; "keep" moves it to a hidden
             layer "Handskrift" the user can show again.
         send: Upload to the workbook's folder; the revision read moves to Tidigare.

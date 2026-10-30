@@ -376,11 +376,16 @@ def _print_round(r) -> None:
 def workbook_new(
     topic: Annotated[str, typer.Argument(help='What it is about, e.g. "Bråk för åk 5"')],
     name: Annotated[str | None, typer.Option(help="Folder name on the tablet")] = None,
+    mode: Annotated[
+        str, typer.Option(help="practice: solutions hidden from the start; test: after grading")
+    ] = "practice",
     device: Device = "rm2",
     effort: Annotated[str, typer.Option(help="low | medium | high | xhigh | max")] = "medium",
     send: Annotated[bool, typer.Option("--send/--no-send", help="Upload it")] = True,
 ) -> None:
     """Have Claude write a workbook and put it in rmink/<name>/ (needs ANTHROPIC_API_KEY)."""
+    if mode not in ("practice", "test"):
+        raise typer.BadParameter("--mode is practice or test")
     try:
         from rmink.workbook.agent import RoundError, create_workbook
     except ImportError as e:
@@ -389,7 +394,9 @@ def workbook_new(
     from rmink.drawing.store import default_store
 
     try:
-        r = create_workbook(topic, device, default_store(), name=name, effort=effort, send=send)
+        r = create_workbook(
+            topic, device, default_store(), name=name, effort=effort, send=send, mode=mode
+        )
     except RoundError as e:
         typer.secho(f"error: {e}", fg="red", err=True)
         raise typer.Exit(1) from e

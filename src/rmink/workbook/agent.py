@@ -51,6 +51,11 @@ symbols outside Latin-1 such as arrows or Greek letters. Give "name" as a short 
 folder name (1-3 words). Ids are short and unique: s1, s2 for sections and \
 s1f1, s1f2 for fields.
 
+Give every field a "solution": the expected answer with the key step, in at \
+most two short lines (it is drawn in small capitals under the box, on a layer \
+the reader can show). For an open question, give what a good answer must \
+contain. "points" is what the field is worth, 1 unless it has several parts.
+
 Call write_workbook once with the whole workbook."""
 
 TRANSCRIBE_PROMPT = """\
@@ -68,6 +73,16 @@ the reader confirms the earlier answer: return it unchanged with confident \
 true. Set confident to false when any word or figure is a guess. Return an \
 empty text for a box with nothing legible (a stray mark).
 
+Then grade it. A box with a solution gets a verdict: "correct", "partial" or \
+"wrong", and "awarded" points between 0 and the box's points. Accept answers \
+that are equivalent to the solution (2/4 for 1/2, other wording with the same \
+meaning). Grade the reasoning as well as the result where the question asks \
+for it: the right method with a slip in the arithmetic is "partial", with \
+part of the points. For anything but correct, "comment" says in one short sentence, in the \
+workbook's language, what is missing or wrong, kindly and without giving away \
+more than needed. A box without a solution gets verdict "" and no points. A \
+box with no legible text gets verdict "".
+
 Call save_answers once with an entry for every box."""
 
 FIELD_SCHEMA = {
@@ -76,8 +91,10 @@ FIELD_SCHEMA = {
         "id": {"type": "string"},
         "prompt": {"type": "string"},
         "lines": {"type": "integer", "minimum": 1, "maximum": 12},
+        "solution": {"type": "string"},
+        "points": {"type": "integer", "minimum": 0, "maximum": 20},
     },
-    "required": ["id", "prompt", "lines"],
+    "required": ["id", "prompt", "lines", "solution"],
 }
 CREATE_TOOL = {
     "name": "write_workbook",
@@ -119,8 +136,11 @@ ANSWERS_TOOL = {
                         "id": {"type": "string"},
                         "text": {"type": "string"},
                         "confident": {"type": "boolean"},
+                        "verdict": {"type": "string", "enum": ["", "correct", "partial", "wrong"]},
+                        "awarded": {"type": "number", "minimum": 0},
+                        "comment": {"type": "string"},
                     },
-                    "required": ["id", "text", "confident"],
+                    "required": ["id", "text", "confident", "verdict"],
                 },
             }
         },
@@ -277,8 +297,11 @@ def create_workbook(
     name: str | None = None,
     effort: str | None = None,
     send: bool = True,
+    mode: str = "practice",
 ) -> RoundResult:
-    """Have Claude write a workbook on ``topic`` and send revision 1."""
+    """Have Claude write a workbook on ``topic`` and send revision 1. In a
+    ``"test"`` the solutions come after the first round; in ``"practice"``
+    they are on the tablet (hidden) from the start."""
     if client is None:
         import anthropic
 
@@ -295,6 +318,7 @@ def create_workbook(
     )
     if name:
         wb.name = name
+    wb.mode = "test" if mode == "test" else "practice"
     result = start_workbook(wb, device_key, store, send, started)
     result.usage = _cost(usage)
     return result
@@ -329,21 +353,40 @@ class OpenRound:
             f = self.workbook.field(field_id)
             section = next(s for s in self.workbook.sections if f in s.fields)
             text = f'Box {f.id}, section "{section.title}". Question: {f.prompt}'
+            if f.solution:
+                text += f"\nSolution ({f.points} p): {f.solution}"
             if f.answer:
                 text += f"\nEarlier answer: {json.dumps(f.answer, ensure_ascii=False)}"
             out.append((f, text, field_png(self.ink.pdf, f, strokes, self.device)))
         return out
 
     def check(self, args: dict) -> dict[str, dict]:
-        """``{"answers": [{id, text, confident}]}`` as answers by box id; one
-        entry per box with new ink."""
+        """``{"answers": [{id, text, confident, verdict, awarded, comment}]}``
+        as answers by box id; one entry per box with new ink. Grading only
+        counts for boxes with a solution."""
         answers = {}
         for a in args.get("answers") or []:
             if not isinstance(a, dict) or a.get("id") not in self.marks.by_field:
                 raise ValueError(f"Unknown box {a!r}; the boxes are {list(self.marks.by_field)}.")
+            f = self.workbook.field(a["id"])
+            text = str(a.get("text") or "").strip()
+            verdict = str(a.get("verdict") or "") if f.solution and text else ""
+            if verdict not in ("", "correct", "partial", "wrong"):
+                raise ValueError(f"Box {f.id}: verdict is correct, partial, wrong or empty.")
+            if f.solution and text and not verdict:
+                raise ValueError(f"Box {f.id} has a solution: grade the answer.")
+            try:
+                awarded = float(a.get("awarded") or 0)
+            except (TypeError, ValueError):
+                raise ValueError(f"Box {f.id}: awarded is a number.") from None
+            if verdict == "correct" and not a.get("awarded"):
+                awarded = f.points
             answers[a["id"]] = {
-                "text": str(a.get("text") or "").strip(),
+                "text": text,
                 "confident": bool(a.get("confident", True)),
+                "verdict": verdict,
+                "awarded": min(max(awarded, 0.0), float(f.points)) if verdict else 0.0,
+                "comment": str(a.get("comment") or "").strip() if verdict else "",
             }
         if missing := set(self.marks.by_field) - set(answers):
             raise ValueError(f"No entry for {sorted(missing)}.")
@@ -398,6 +441,8 @@ def finish_round(
         if a["text"]:
             f = wb.field(field_id)
             f.answer, f.confident = a["text"], a["confident"]
+            f.verdict = a.get("verdict", "")
+            f.awarded, f.comment = a.get("awarded", 0.0), a.get("comment", "")
             read.add(field_id)
 
     wb.revision += 1
@@ -412,9 +457,13 @@ def finish_round(
         note += f", {unread} gick inte att läsa"
     if r.ink.added_pages:
         note += f", {r.ink.added_pages} egna sidor kom inte med"
+    got, total = wb.score()
+    if wb.graded() and total:
+        note += f", {got:g} av {total} poäng"
     wb.log.append(note)
     sent_as = _write(wb, r.device, store, send, output, r.marks, read, ink)
-    first = min((wb.field(i).page for i in read), default=0)
+    # The results page (last) once graded, else the first page answered.
+    first = 10**6 if wb.graded() else min((wb.field(i).page for i in read), default=0)
     return RoundResult(
         sent_as=sent_as,
         drawing=wb.name,

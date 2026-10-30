@@ -3,7 +3,8 @@
 A PDF document's ``.content`` maps each page to a PDF page ("redir"); a page
 the user added on the tablet has none and its ink is left out. Ink on rmink's
 own "Handskrift" layer is handwriting an earlier round already read, kept
-hidden; everything else is new. New ink whose middle lies in a field's box
+hidden, and the "Facit" layer is rmink's solutions, rewritten each revision;
+everything else is new. New ink whose middle lies in a field's box
 (a little enlarged) belongs to that field; the rest stays on the page as it is,
 except dots from tapping links.
 """
@@ -20,6 +21,7 @@ import pymupdf
 from rmink.devices import DeviceProfile
 from rmink.ingest.rm import read_page
 from rmink.model import Stroke
+from rmink.workbook.build import FACIT_LAYER
 from rmink.workbook.model import AnswerField, Workbook
 
 HANDWRITING_LAYER = "Handskrift"
@@ -80,6 +82,8 @@ def sort_ink(ink: Ink, workbook: Workbook, device: DeviceProfile) -> Sorted:
             boxes.setdefault(f.page, []).append(f)
     for page, strokes in ink.pages.items():
         for s in strokes:
+            if s.layer == FACIT_LAYER:
+                continue
             if s.layer == HANDWRITING_LAYER:
                 out.kept.setdefault(page, []).append(s)
                 continue

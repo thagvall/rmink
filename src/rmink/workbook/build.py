@@ -10,14 +10,28 @@ bottom of its last page, one to the next section. The outline (the tablet's
 contents panel) lists the same sections. Answers are set inside their boxes as
 real PDF text; an answer rmink was unsure of gets a "?" in the margin, and
 the cover says to tick the box if the text is right or write the correction.
+
+Under a box with a solution there is room for it: the solution itself is ink
+on the hidden "Facit" layer (:func:`solution_strokes`), in rmink's
+single-stroke capitals, since the tablet can hide layers but not PDF text.
+Once answers are graded, a results page closes the workbook.
 """
 
 from __future__ import annotations
 
 import pymupdf
+from rmscene.scene_items import PenColor
 
 from rmink.devices import DeviceProfile
+from rmink.drawing.font import text_paths, text_width
+from rmink.model import Stroke
 from rmink.workbook.model import AnswerField, Workbook
+
+FACIT_LAYER = "Facit"
+SOLUTION_SIZE = 7.0  # pt, cap height of the solution ink
+SOLUTION_LINE = 13.0  # pt between solution lines
+SOLUTION_INDENT = 34.0  # pt, room for the "Facit" label
+VERDICTS = {"correct": "Rätt", "partial": "Delvis rätt", "wrong": "Fel", "": "Inte rättad"}
 
 MARGIN = 40.0
 LINE = 26.0  # ruled line spacing in the answer boxes
@@ -100,11 +114,53 @@ def _link(page: pymupdf.Page, rect: pymupdf.Rect, label: str, target: int) -> No
 
 def _answer(page: pymupdf.Page, f: AnswerField) -> None:
     box = pymupdf.Rect(f.rect)
-    _text(page, box + (8, 6, -8, -4), f.answer, 14, color=ANSWER)
+    # A graded box has its verdict in the top right corner.
+    right = -72 if f.verdict else -8
+    _text(page, box + (8, 6, right, -4), f.answer, 14, color=ANSWER)
     if not f.confident:
         page.insert_text(
             (box.x0 - 16, box.y0 + 20), "?", fontsize=18, fontname="hebo", color=UNSURE
         )
+
+
+def solution_lines(text: str, width: float) -> list[str]:
+    """``text`` wrapped to ``width`` pt in the single-stroke font."""
+    lines = []
+    for para in text.splitlines() or [""]:
+        line = ""
+        for word in para.split():
+            trial = f"{line} {word}".strip()
+            if line and text_width(trial, SOLUTION_SIZE) > width:
+                lines.append(line)
+                line = word
+            else:
+                line = trial
+        lines.append(line)
+    return [ln for ln in lines if ln] or [""]
+
+
+def _solution_width(box: tuple[float, float, float, float]) -> float:
+    return box[2] - box[0] - SOLUTION_INDENT - 6
+
+
+def solution_strokes(workbook: Workbook, device: DeviceProfile) -> dict[int, list[Stroke]]:
+    """The solutions as ink for the "Facit" layer, by PDF page. Run after
+    :func:`build_pdf`, which places them."""
+    k = device.dpi / 72
+    color = PenColor.RED if device.color else PenColor.BLACK
+    out: dict[int, list[Stroke]] = {}
+    for f in workbook.fields():
+        if not f.solution or f.solution_rect is None:
+            continue
+        x0, y0, x1, _ = f.solution_rect
+        for i, line in enumerate(solution_lines(f.solution, _solution_width(f.solution_rect))):
+            base = ((x0 + SOLUTION_INDENT) * k, (y0 + (i + 1) * SOLUTION_LINE - 3) * k)
+            # The single-stroke font has × but no *.
+            for path in text_paths(line.replace("*", "×"), base, SOLUTION_SIZE * k):
+                out.setdefault(f.page, []).append(
+                    Stroke(path, width=1.6, color=color, layer=FACIT_LAYER)
+                )
+    return out
 
 
 def build_pdf(workbook: Workbook, device: DeviceProfile) -> bytes:
@@ -146,7 +202,9 @@ def build_pdf(workbook: Workbook, device: DeviceProfile) -> bytes:
         for f in section.fields:
             prompt_h = _measure(f.prompt, inner, 11)
             box_h = f.lines * LINE + 8
-            if y + prompt_h + 4 + box_h > bottom and y > 80:
+            sol_w = w - MARGIN - (MARGIN + 12) - SOLUTION_INDENT - 6
+            sol_h = len(solution_lines(f.solution, sol_w)) * SOLUTION_LINE + 4 if f.solution else 0
+            if y + prompt_h + 4 + box_h + sol_h > bottom and y > 80:
                 page, y = new_page(section.title, cont=True)
             y += _text(page, pymupdf.Rect(MARGIN, y, w - MARGIN, y + prompt_h + 4), f.prompt, 11)
             y += 4
@@ -159,9 +217,26 @@ def build_pdf(workbook: Workbook, device: DeviceProfile) -> bytes:
             f.page, f.rect = doc.page_count - 1, (box.x0, box.y0, box.x1, box.y1)
             if f.answer:
                 _answer(page, f)
-            y = box.y1 + 18
+            f.solution_rect = None
+            if f.solution:
+                f.solution_rect = (box.x0, box.y1 + 4, box.x1, box.y1 + 4 + sol_h)
+                if workbook.show_solutions():
+                    page.insert_text(
+                        (box.x0, box.y1 + 4 + SOLUTION_LINE - 3), "Facit", fontsize=7, color=RULE
+                    )
+                if f.verdict:
+                    mark = {"correct": "Rätt", "partial": "Delvis", "wrong": "Fel"}[f.verdict]
+                    page.insert_text(
+                        (box.x1 - 66, box.y0 + 12),
+                        f"{mark} {f.awarded:g}/{f.points} p",
+                        fontsize=8,
+                        fontname="hebo",
+                        color=ANSWER,
+                    )
+            y = box.y1 + 18 + sol_h
         last_pages.append(doc.page_count - 1)
 
+    results = _results(doc, workbook, w, h) if workbook.graded() else None
     for last, nxt in zip(last_pages, workbook.sections[1:], strict=False):
         _link(
             doc[last],
@@ -187,10 +262,13 @@ def build_pdf(workbook: Workbook, device: DeviceProfile) -> bytes:
     cover.insert_text((MARGIN, y + 14), "Innehåll", fontsize=16, fontname="hebo")
     y += 30
     # Leave room at the bottom for the note about unsure answers.
-    row = max(16.0, min(30.0, (h - MARGIN - 70 - y) / max(len(workbook.sections), 1)))
-    for n, section in enumerate(workbook.sections, 1):
+    entries = [(f"{n}. {s.title}", s.page) for n, s in enumerate(workbook.sections, 1)] + (
+        [("Resultat", results)] if results is not None else []
+    )
+    row = max(16.0, min(30.0, (h - MARGIN - 70 - y) / max(len(entries), 1)))
+    for label, target in entries:
         r = pymupdf.Rect(MARGIN, y, w - MARGIN, y + row - 6)
-        _link(cover, r, f"{n}. {section.title}   ...   sid {section.page + 1}", section.page)
+        _link(cover, r, f"{label}   ...   sid {target + 1}", target)
         y += row
     if workbook.unsure():
         _text(
@@ -206,6 +284,56 @@ def build_pdf(workbook: Workbook, device: DeviceProfile) -> bytes:
     )
     cover.insert_text((MARGIN, h - MARGIN), plain(footer), fontsize=8, color=(0.4, 0.4, 0.4))
 
-    doc.set_toc([[1, "Innehåll", 1]] + [[1, plain(s.title), s.page + 1] for s in workbook.sections])
+    toc = [[1, "Innehåll", 1]] + [[1, plain(s.title), s.page + 1] for s in workbook.sections]
+    if results is not None:
+        toc.append([1, "Resultat", results + 1])
+    doc.set_toc(toc)
     doc.set_metadata({"title": plain(workbook.title or workbook.name), "creator": "rmink"})
     return doc.tobytes(garbage=3, deflate=True)
+
+
+def _results(doc: pymupdf.Document, workbook: Workbook, w: float, h: float) -> int:
+    """Add the results page(s) and return the index of the first. Each row
+    links to its question."""
+    bottom = h - MARGIN
+    inner = w - 2 * MARGIN
+
+    def new_page() -> tuple[pymupdf.Page, float]:
+        doc.new_page(width=w, height=h)
+        page = doc[-1]
+        _link(page, pymupdf.Rect(w - MARGIN - 100, 24, w - MARGIN, 46), "<< Innehåll", 0)
+        return page, 60.0
+
+    page, y = new_page()
+    first = doc.page_count - 1
+    got, total = workbook.score()
+    page.insert_text((MARGIN, y + 20), "Resultat", fontsize=20, fontname="hebo")
+    y += 34
+    if total:
+        pct = round(100 * got / total)
+        page.insert_text((MARGIN, y + 16), f"{got:g} av {total} poäng ({pct} %)", fontsize=15)
+        y += 30
+    n = 0
+    for section in workbook.sections:
+        if y + 40 > bottom:
+            page, y = new_page()
+        page.insert_text((MARGIN, y + 14), plain(section.title), fontsize=12, fontname="hebo")
+        y += 22
+        for f in section.fields:
+            n += 1
+            verdict = VERDICTS[f.verdict] if f.answer else "Inte besvarad"
+            points = f" {f.awarded:g}/{f.points} p" if f.solution and f.verdict else ""
+            text = f"{n}. {f.prompt}\nSvar: {f.answer or '-'}\n{verdict}{points}"
+            if f.comment and f.verdict != "correct":
+                text += f" - {f.comment}"
+            row_h = _measure(text, inner - 12, 9) + 6
+            if y + row_h > bottom:
+                page, y = new_page()
+            rect = pymupdf.Rect(MARGIN, y, w - MARGIN, y + row_h)
+            _text(page, rect + (6, 3, -6, 0), text, 9)
+            page.draw_rect(rect, color=RULE, width=0.4)
+            page.insert_link(
+                {"kind": pymupdf.LINK_GOTO, "from": rect, "page": f.page, "to": pymupdf.Point(0, 0)}
+            )
+            y += row_h + 4
+    return first

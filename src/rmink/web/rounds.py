@@ -70,6 +70,7 @@ class RunRequest(BaseModel):
 class CreateRequest(BaseModel):
     topic: str = Field(min_length=3, max_length=4000)
     name: str = Field(default="", max_length=60)
+    mode: Literal["practice", "test"] = "practice"
     device: str = "rm2"
     drawings: dict[str, str] = {}
     links: dict[str, str] = {}
@@ -146,7 +147,7 @@ def router() -> APIRouter:
         name = safe_name(req.name) if req.name.strip() else None
         try:
             result = await anyio.to_thread.run_sync(
-                lambda: create_workbook(req.topic, req.device, store, name=name)
+                lambda: create_workbook(req.topic, req.device, store, name=name, mode=req.mode)
             )
         except RoundError as e:
             raise HTTPException(422, str(e)) from e

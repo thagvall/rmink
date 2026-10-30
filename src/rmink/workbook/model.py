@@ -7,6 +7,11 @@ After the user has written in the boxes, a round reads the ink per box, has
 Claude transcribe it and writes the next revision with the answers set as PDF
 text. The workbook is saved between rounds like a drawing.
 
+Each field can have a solution. It is written as ink on the hidden layer
+"Facit": from the start in a practice workbook, and after the first round
+in a test. Rounds grade the answers against it, and a results page at the
+end shows how it went.
+
 Field rectangles are PDF points on the field's page (origin top-left), set by
 the layout; they map to tablet pixels by ``dpi / 72``.
 """
@@ -18,6 +23,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 Rect = tuple[float, float, float, float]  # x0, y0, x1, y1 in PDF points
+Verdict = Literal["", "correct", "partial", "wrong"]
 
 
 class AnswerField(BaseModel):
@@ -29,6 +35,13 @@ class AnswerField(BaseModel):
     confident: bool = True
     page: int = -1  # PDF page index, set by the layout
     rect: Rect | None = None
+    solution: str = ""  # the expected answer, with the key step
+    points: int = Field(default=1, ge=0, le=20)
+    # Grading of the current answer; empty until a round has graded it.
+    verdict: Verdict = ""
+    awarded: float = 0.0
+    comment: str = ""  # why it is not right, for the results page
+    solution_rect: Rect | None = None  # where the solution ink goes, set by the layout
 
 
 class Section(BaseModel):
@@ -42,6 +55,9 @@ class Section(BaseModel):
 class Workbook(BaseModel):
     kind: Literal["workbook"] = "workbook"
     name: str  # folder and notebook name on the tablet
+    # practice: the solutions are on the tablet (hidden) from the start;
+    # test: they come with the first graded revision.
+    mode: Literal["practice", "test"] = "practice"
     title: str = ""
     intro: str = ""
     sections: list[Section] = Field(default_factory=list)
@@ -60,3 +76,14 @@ class Workbook(BaseModel):
 
     def unsure(self) -> list[AnswerField]:
         return [f for f in self.fields() if f.answer and not f.confident]
+
+    def graded(self) -> bool:
+        return any(f.verdict for f in self.fields())
+
+    def score(self) -> tuple[float, int]:
+        """Points awarded and points possible, over the fields with a solution."""
+        fields = [f for f in self.fields() if f.solution]
+        return sum(f.awarded for f in fields), sum(f.points for f in fields)
+
+    def show_solutions(self) -> bool:
+        return self.mode == "practice" or self.graded()

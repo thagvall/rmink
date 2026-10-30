@@ -1,6 +1,6 @@
 # Arbetsbok: länkad PDF där handstil blir text
 
-Status: släppt i 2.9.0 (modulen `rmink.workbook`, CLI, MCP och webbsidan `/rounds`). Länkar,
+Status: släppt i 2.9.0, facit och resultat i 2.10.0 (modulen `rmink.workbook`, CLI, MCP och webbsidan `/rounds`). Länkar,
 koordinater, dolt lager och ett helt varv med Claude är verifierade på en rm2 (2026-10-30).
 
 ## Idé
@@ -26,6 +26,27 @@ Försättsbladet förklarar vad man gör:
 - **Texten är fel:** skriv rättelsen i rutan. Nytt bläck i en besvarad ruta läses som en ändring
   eller ett tillägg till svaret.
 
+## Facit och resultat
+
+Claude skriver ett facit för varje fråga: det väntade svaret med det viktigaste steget, och hur
+många poäng frågan ger (oftast 1). Facit ritas under rutan i rminks enstreckstypsnitt, i lagret
+*Facit*, som är dolt. Plattan kan dölja lager men inte PDF-text, och därför är facit bläck och
+inte text. Under rutan står "Facit" i ljusgrått när lagret finns.
+
+Man väljer läge när arbetsboken skapas:
+
+- **Övning** (standard): facitlagret finns redan i r01. Tänd det för att jämföra själv.
+- **Prov**: r01 har inget facit. Facit kommer i den första rättade revisionen.
+
+I varvet rättar Claude varje svar mot facit: *rätt*, *delvis rätt* eller *fel*, med poäng och en
+kort kommentar när svaret inte är rätt. Likvärdiga svar räknas som rätt, till exempel 2/4 för
+1/2. Rätt metod med ett räknefel ger delvis rätt. Betyget står i rutans övre högra hörn. En sida **Resultat** sist i dokumentet visar poängen
+totalt och per fråga, och varje rad länkar till frågan. Resultatsidan finns i innehållsförteckningen
+och i plattans innehållspanel, och revisionen heter t.ex. *Bråk r02 · 3 av 4 p*.
+
+Rättas ett svar om (en rättelse eller en bock) rättas det igen. Arbetsböcker utan facit, som de
+från 2.9.0, fungerar som förut utan rättning.
+
 ## Handstilen efter varvet
 
 Man väljer per varv:
@@ -48,7 +69,7 @@ Det här gäller i båda lägena:
 - **Webb** (`/rounds`, bara för ägaren): kortet *Ny arbetsbok* skapar en arbetsbok. Den syns sedan
   under *Ritningar och arbetsböcker* med *Kör nästa varv* och valet för handstilen.
 - **CLI**:
-  - `rmink workbook new "Bråk för åk 5" --name Bråk`
+  - `rmink workbook new "Bråk för åk 5" --name Bråk --mode test`
   - `rmink workbook round Bråk --ink keep`
 - **MCP**: `create_workbook` (Claude skriver JSON:en själv), `read_workbook` (en bild per ruta med
   nytt bläck), `save_workbook_answers`.

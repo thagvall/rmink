@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.10.0 — 2026-10-30
+
+- Workbooks get solutions and grading.
+  - Claude writes a solution and points for every question. The solution is drawn under the box in rmink's single-stroke capitals, on a hidden layer "Facit" that can be shown in the layer panel.
+  - Two modes: in a practice workbook (the default) the solutions are on the tablet from the start. In a test (`--mode test`, or "Prov" on `/rounds`) they come with the first graded revision.
+  - Rounds grade each answer against the solution: correct, partial or wrong, with points and a short comment when it is not right. Equivalent answers count as correct, and the right method with an arithmetic slip is partial. The verdict is shown in the box.
+  - A results page at the end shows the score and one row per question. Each row links to its question, and the page is listed in the contents and the outline. The revision is named e.g. "Procent r02 · 3 av 5 p".
+  - Workbooks without solutions, like those from 2.9.0, work as before.
+
 ## 2.9.0 — 2026-10-30
 
 - Workbooks: Claude writes a workbook on a topic, and you answer it by hand on the tablet.

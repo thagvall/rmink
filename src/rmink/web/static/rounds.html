@@ -103,6 +103,11 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
     <textarea id="topic" maxlength="4000" placeholder="T.ex. Bråk och procent för åk 5, med vardagsexempel"></textarea>
     <label for="wbname">Namn <span class="muted">(valfritt)</span></label>
     <input id="wbname" maxlength="60" placeholder="T.ex. Bråk">
+    <label for="wbmode">Facit</label>
+    <select id="wbmode">
+      <option value="practice">Övning: facit i ett dolt lager från början</option>
+      <option value="test">Prov: facit och resultat efter rättningen</option>
+    </select>
     <div class="row">
       <button class="primary run" id="createRun" type="button">Skapa arbetsbok</button>
       <span class="status muted" id="createStatus"></span>
@@ -182,7 +187,11 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
       const unsure = fields.filter((f) => f.answer && !f.confident);
       const open = (d.annotations || []).filter((a) => a.status === "open");
       if (wb) {
-        card.appendChild(el("p", "muted", `${fields.filter((f) => f.answer).length} av ${fields.length} frågor besvarade`));
+        const graded = fields.filter((f) => f.solution && f.verdict);
+        const got = fields.filter((f) => f.solution).reduce((a, f) => a + (f.awarded || 0), 0);
+        const total = fields.filter((f) => f.solution).reduce((a, f) => a + (f.points ?? 1), 0);
+        const score = graded.length && total ? ` · ${got} av ${total} poäng` : "";
+        card.appendChild(el("p", "muted", `${d.mode === "test" ? "Prov" : "Övning"} · ${fields.filter((f) => f.answer).length} av ${fields.length} frågor besvarade${score}`));
         if (unsure.length) {
           card.appendChild(el("p", "qcount", `${unsure.length} svar att kolla (markerade med ? på plattan)`));
           const ul = el("ol", "questions");
@@ -305,7 +314,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
   $("#createRun").addEventListener("click", () => {
     const topic = $("#topic").value.trim();
     if (topic.length < 3) { $("#createStatus").textContent = "Skriv vad arbetsboken ska handla om."; return; }
-    roundTrip("/api/workbook/create", { topic, name: $("#wbname").value.trim(), device: device.value }, $("#createStatus"), true)
+    roundTrip("/api/workbook/create", { topic, name: $("#wbname").value.trim(), mode: $("#wbmode").value, device: device.value }, $("#createStatus"), true)
       .then((ok) => { if (ok) { $("#topic").value = ""; $("#wbname").value = ""; } });
   });
 
