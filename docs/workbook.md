@@ -1,6 +1,6 @@
 # Arbetsbok: länkad PDF där handstil blir text
 
-Status: släppt i 2.9.0, facit och resultat i 2.10.0 (modulen `rmink.workbook`, CLI, MCP och webbsidan `/rounds`). Länkar,
+Status: släppt i 2.9.0, facit och resultat i 2.10.0, flerval i 2.11.0 (modulen `rmink.workbook`, CLI, MCP och webbsidan `/rounds`). Länkar,
 koordinater, dolt lager och ett helt varv med Claude är verifierade på en rm2 (2026-10-30).
 
 ## Idé
@@ -46,6 +46,41 @@ och i plattans innehållspanel, och revisionen heter t.ex. *Bråk r02 · 3 av 4 
 
 Rättas ett svar om (en rättelse eller en bock) rättas det igen. Arbetsböcker utan facit, som de
 från 2.9.0, fungerar som förut utan rättning.
+
+## Flerval
+
+En fråga kan också vara flerval, med alternativen A, B, C… och en ruta per alternativ. Claude
+blandar in flerval där det passar. Frågan säger vilken typ den är:
+
+- **Välj ett:** exakt ett alternativ är rätt.
+- **Välj alla som stämmer:** ett eller flera alternativ är rätt.
+
+Kryssa i rutan för att välja ett alternativ. Har du ångrat dig fyller du i rutan helt eller drar
+ett streck genom raden. Försättsbladet förklarar det.
+
+**Läsning.** rmink läser kryssen själv, så det kostar inget och går fort:
+- Bläck i en ruta är ett kryss.
+- Täcker bläcket minst halva rutan är rutan ifylld, alltså ångrad.
+- Ett streck över minst halva raden ångrar raden.
+
+Allt annat skickas till Claude som en bild av frågan, till exempel en ring runt texten eller en
+ruta som är fylld till 30–50 %. Ett varv med bara tydliga kryss gör inget anrop alls.
+
+**Poäng.** Claude skriver vilka alternativ som är rätta och en mening om varför varje alternativ
+är rätt eller fel.
+- *Välj ett:* rätt alternativ ger frågans poäng.
+- *Välj alla som stämmer:* varje rätt kryss ger +1 och varje fel kryss −1, aldrig under 0, skalat
+  till frågans poäng. Är A och C rätt (2 p) ger A, C och D 1 p.
+
+**Försök.** I **övningsläget** får ett fel svar en ledtråd i nästa revision, till exempel
+"Försök 2 av 3. Du valde A. A: En tredjedel är mindre än en halv.". Ledtråden förklarar varför det
+man valde är fel, men säger inte vad som är rätt. Rutorna är tomma igen för ett nytt försök, och
+man har högst tre försök. Facit kommer i lagret *Facit* när frågan är rätt eller efter sista
+försöket: en ring runt varje rätt ruta och förklaringen. I **provläget** låses frågan när den är
+rättad, och facit kommer direkt. Bläck på en låst fråga ligger kvar som en anteckning.
+
+**Resultat.** Resultatsidan visar *Första försöket: x av y poäng* bredvid slutpoängen och, per
+fråga, hur många försök det tog.
 
 ## Handstilen efter varvet
 

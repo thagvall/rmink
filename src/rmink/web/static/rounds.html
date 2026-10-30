@@ -187,9 +187,10 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
       const unsure = fields.filter((f) => f.answer && !f.confident);
       const open = (d.annotations || []).filter((a) => a.status === "open");
       if (wb) {
-        const graded = fields.filter((f) => f.solution && f.verdict);
-        const got = fields.filter((f) => f.solution).reduce((a, f) => a + (f.awarded || 0), 0);
-        const total = fields.filter((f) => f.solution).reduce((a, f) => a + (f.points ?? 1), 0);
+        const solved = (f) => f.solution || (f.choices || []).length;
+        const graded = fields.filter((f) => solved(f) && f.verdict);
+        const got = fields.filter(solved).reduce((a, f) => a + (f.awarded || 0), 0);
+        const total = fields.filter(solved).reduce((a, f) => a + (f.points ?? 1), 0);
         const score = graded.length && total ? ` · ${got} av ${total} poäng` : "";
         card.appendChild(el("p", "muted", `${d.mode === "test" ? "Prov" : "Övning"} · ${fields.filter((f) => f.answer).length} av ${fields.length} frågor besvarade${score}`));
         if (unsure.length) {

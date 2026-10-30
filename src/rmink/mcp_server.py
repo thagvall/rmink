@@ -459,7 +459,12 @@ def create_workbook(
             "text": a short explanation (plain text, about 120 words at most), "fields":
             [{"id": unique, "prompt": the question, "lines": ruled lines for the answer,
             1-12, "solution": expected answer with the key step (two short lines at most),
-            "points": 1 unless several parts}]}]}. Latin-1 characters only (3/4, x^2).
+            "points": 1 unless several parts}]}]}. A multiple-choice field instead has
+            "kind": "single" (one right) or "multi" (all that apply, "points" = number of
+            right choices) and "choices": [{"text", "correct", "why": one sentence on why it
+            is right or wrong, shown as a hint after a wrong cross, so never naming the
+            right choice}]; rmink reads and grades the crosses, and in practice gives up to
+            three attempts. Latin-1 characters only (3/4, x^2).
         device: rm2 | pure | pro | move.
         send: Upload to the user's reMarkable Cloud (needs cloud_connect).
         output_path: Where to write the .rmdoc (default when not sending:
@@ -485,9 +490,13 @@ def read_workbook(document: str) -> list:
     """
     from rmink.drawing.store import default_store
     from rmink.workbook.agent import open_round
+    from rmink.workbook.model import letter
 
     r = open_round(document, None, default_store())
-    out: list = []
+    out: list = [
+        f"Box {i}: rmink read the crosses itself ({', '.join(map(letter, c)) or 'none'})."
+        for i, c in r.chosen.items()
+    ]
     for _, text, png in r.boxes():
         out += [text, Image(data=png, format="png")]
     return out
@@ -512,7 +521,9 @@ def save_workbook_answers(
             solution (read_workbook shows it), also grade: "verdict" correct, partial or
             wrong, "awarded" points, and a short "comment" in the workbook's language on
             what is missing when not correct. Equivalent answers are correct; the right
-            method with an arithmetic slip is partial.
+            method with an arithmetic slip is partial. For a multiple-choice box, "text" is
+            the chosen letters ("A, C", or "" for none) and rmink grades it; boxes whose
+            crosses rmink read itself need no entry.
         ink: "remove" drops the handwriting that was read; "keep" moves it to a hidden
             layer "Handskrift" the user can show again.
         send: Upload to the workbook's folder; the revision read moves to Tidigare.

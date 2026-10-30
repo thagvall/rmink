@@ -486,3 +486,201 @@ def test_round_grades_and_adds_results(tmp_path):
     # Now the test is graded, its solutions are on the tablet.
     path = workflow.build_revision(saved, tmp_path / "r02", RM2)
     assert _layers(path)["Facit"] is False
+
+
+CHOICES = {
+    "name": "Val",
+    "sections": [
+        {
+            "id": "s1",
+            "title": "Bråk",
+            "fields": [
+                {
+                    "id": "s1f1",
+                    "prompt": "Vilket bråk är störst?",
+                    "kind": "single",
+                    "choices": [
+                        {"text": "1/3", "why": "En tredjedel är mindre än en halv."},
+                        {"text": "1/2", "correct": True, "why": "Hälften är mest."},
+                        {"text": "1/4", "why": "Fler delar gör varje del mindre."},
+                    ],
+                },
+                {
+                    "id": "s1f2",
+                    "prompt": "Vilka är lika med 1/2?",
+                    "kind": "multi",
+                    "points": 2,
+                    "choices": [
+                        {"text": "2/4", "correct": True, "why": "Förläng med 2."},
+                        {"text": "2/3", "why": "Två av tre är mer än hälften."},
+                        {"text": "50 %", "correct": True, "why": "Procent är hundradelar."},
+                        {"text": "1/5", "why": "En femtedel är mindre."},
+                    ],
+                },
+                {"id": "s1f3", "prompt": "Förklara.", "solution": "Dela.", "lines": 2},
+            ],
+        }
+    ],
+}
+
+
+def _choice_wb(mode="practice") -> Workbook:
+    from rmink.workbook.agent import check_workbook
+
+    wb = check_workbook(json.loads(json.dumps(CHOICES)) | {"mode": mode})
+    build_pdf(wb, RM2)
+    return wb
+
+
+def _cross(wb: Workbook, field_id: str, i: int) -> list[Stroke]:
+    x0, y0, x1, y1 = (v * RM2.dpi / 72 for v in wb.field(field_id).choices[i].rect)
+    return [
+        Stroke(np.linspace((x0 + 8, y0 + 8), (x1 - 8, y1 - 8), 12)),
+        Stroke(np.linspace((x1 - 8, y0 + 8), (x0 + 8, y1 - 8), 12)),
+    ]
+
+
+def _fill(wb: Workbook, field_id: str, i: int) -> list[Stroke]:
+    x0, y0, x1, y1 = (v * RM2.dpi / 72 for v in wb.field(field_id).choices[i].rect)
+    return [
+        Stroke(np.linspace((x0 + 2, y), (x1 - 2, y), 10), width=6.0)
+        for y in np.arange(y0 + 2, y1 - 1, 4.0)
+    ]
+
+
+def _strike(wb: Workbook, field_id: str, i: int) -> list[Stroke]:
+    x0, y0, x1, y1 = (v * RM2.dpi / 72 for v in wb.field(field_id).choices[i].row)
+    ym = (y0 + y1) / 2
+    return [Stroke(np.linspace((x0 + 70, ym), (x1 - 20, ym + 4), 30))]
+
+
+def test_choice_questions_are_laid_out_with_boxes():
+    wb = _choice_wb()
+    f = wb.field("s1f2")
+    assert all(c.rect and c.row for c in f.choices)
+    # The rows follow each other, inside the field.
+    tops = [c.row[1] for c in f.choices]
+    assert tops == sorted(tops) and f.rect[1] == tops[0] and f.rect[3] == f.choices[-1].row[3]
+    doc = pymupdf.open(stream=build_pdf(wb, RM2))
+    text = doc[1].get_text()
+    assert "(Välj ett.)" in text and "(Välj alla som stämmer.)" in text and "C  50 %" in text
+    assert "Flerval: kryssa i rutan" in doc[0].get_text()
+    # A practice choice question has no solution until it is done.
+    assert all(s.layer == "Facit" for s in workflow.solution_strokes(wb, RM2).get(1, []))
+    assert text.count("Facit") == 1
+
+
+def test_check_workbook_rejects_bad_choices():
+    from rmink.workbook.agent import check_workbook
+
+    data = json.loads(json.dumps(CHOICES))
+    data["sections"][0]["fields"][0]["choices"][0]["correct"] = True
+    with pytest.raises(ValueError, match="exactly one"):
+        check_workbook(data)
+
+
+def test_crosses_are_read_without_claude():
+    from rmink.workbook.read import read_choices
+
+    wb = _choice_wb()
+    f = wb.field("s1f2")
+    assert read_choices(f, _cross(wb, "s1f2", 0) + _cross(wb, "s1f2", 2), RM2) == [0, 2]
+    # Filled in or struck through: taken back.
+    assert read_choices(f, _cross(wb, "s1f2", 0) + _fill(wb, "s1f2", 1), RM2) == [0]
+    assert read_choices(
+        f, _cross(wb, "s1f2", 0) + _cross(wb, "s1f2", 3) + _strike(wb, "s1f2", 3), RM2
+    ) == [0]
+    # A ring round a choice's text is Claude's call.
+    x0, y0, x1, y1 = (v * RM2.dpi / 72 for v in f.choices[1].row)
+    t = np.linspace(0, 2 * np.pi, 30)
+    ring = Stroke(np.stack([x0 + 120 + 40 * np.cos(t), (y0 + y1) / 2 + 20 * np.sin(t)], axis=1))
+    assert read_choices(f, [ring], RM2) is None
+
+
+def test_grade_choice():
+    from rmink.workbook.agent import grade_choice
+
+    wb = _choice_wb()
+    multi = wb.field("s1f2")
+    grade_choice(multi, [0, 2, 3])
+    assert (multi.verdict, multi.awarded, multi.answer) == ("partial", 1.0, "A, C, D")
+    assert multi.comment == "Du valde A, C och D. D: En femtedel är mindre."
+    grade_choice(multi, [1, 3])
+    assert (multi.verdict, multi.awarded, multi.attempts, multi.first_awarded) == ("wrong", 0, 2, 1)
+    assert "Minst ett rätt alternativ saknas." in multi.comment
+    single = wb.field("s1f1")
+    grade_choice(single, [0, 1])
+    assert single.verdict == "wrong" and "Välj bara ett." in single.comment
+    assert "Hälften" not in single.comment  # the hint does not give it away
+    grade_choice(single, [1])
+    assert single.verdict == "correct" and single.awarded == 1 and single.comment == ""
+
+
+def test_practice_choice_round_hint_retry_and_solution(tmp_path):
+    store = FileStore(tmp_path / "d")
+    wb = _choice_wb()
+    store.save_workbook(wb)
+    synced = _synced(
+        wb, tmp_path, {1: _cross(wb, "s1f1", 0) + _cross(wb, "s1f2", 0)}, name="Val r01"
+    )
+    client = FakeClient([])  # crosses only: no call to Claude
+    r = run_round(str(synced), None, store, client=client, send=False)
+    assert not client.requests and r.usage["usd"] == 0
+    saved = store.load_workbook("Val")
+    assert saved.field("s1f1").verdict == "wrong" and saved.field("s1f2").verdict == "partial"
+    assert saved.score() == (1.0, 4)
+
+    # r02: the boxes are empty, with the hint, and the solution is still hidden.
+    path = workflow.build_revision(saved, tmp_path / "Val r02", RM2)
+    text = pymupdf.open(stream=build_pdf(saved, RM2))[1].get_text()
+    assert "Försök 2 av 3. Du valde A. A: En tredjedel" in text
+    assert not read_ink(path.read_bytes(), RM2).pages.get(1)
+
+    # Second attempt: both right.
+    store.link(str(path), "workbook:Val")
+    synced = _synced(
+        saved,
+        tmp_path,
+        {1: _cross(saved, "s1f1", 1) + _cross(saved, "s1f2", 0) + _cross(saved, "s1f2", 2)},
+        name="Val r02",
+    )
+    run_round(str(synced), None, store, client=client, send=False)
+    done = store.load_workbook("Val")
+    assert done.score() == (3.0, 4) and done.first_score() == 1.0
+    assert all(done.field(i).done("practice") for i in ("s1f1", "s1f2"))
+    doc = pymupdf.open(stream=build_pdf(done, RM2))
+    assert "Försök" not in doc[1].get_text()
+    assert "Första försöket: 1 av 4 poäng" in doc[-1].get_text()
+    # The solutions now: a ring round each right box, and the letters.
+    facit = workflow.solution_strokes(done, RM2)[1]
+    assert len(facit) > 3
+    # New ink on a done question is a note, not an answer.
+    later = _synced(done, tmp_path, {1: _cross(done, "s1f1", 0)}, name="Val r03")
+    marks = sort_ink(read_ink(later.read_bytes(), RM2), done, RM2)
+    assert not marks.by_field and marks.loose
+
+
+def test_test_choice_is_done_after_grading(tmp_path):
+    from rmink.workbook.agent import grade_choice
+
+    wb = _choice_wb("test")
+    grade_choice(wb.field("s1f1"), [0], wb.mode)
+    assert wb.field("s1f1").done("test") and not wb.open_for_answers(wb.field("s1f1"))
+    assert "Försök" not in pymupdf.open(stream=build_pdf(wb, RM2))[1].get_text()
+
+
+def test_unclear_crosses_go_to_claude(tmp_path):
+    store = FileStore(tmp_path / "d")
+    wb = _choice_wb()
+    store.save_workbook(wb)
+    f = wb.field("s1f1")
+    x0, y0, x1, y1 = (v * RM2.dpi / 72 for v in f.choices[1].row)
+    t = np.linspace(0, 2 * np.pi, 30)
+    ring = Stroke(np.stack([x0 + 120 + 40 * np.cos(t), (y0 + y1) / 2 + 20 * np.sin(t)], axis=1))
+    synced = _synced(wb, tmp_path, {1: [ring] + _cross(wb, "s1f2", 0)}, name="Val r01")
+    client = FakeClient(_answers({"id": "s1f1", "text": "B", "confident": True}))
+    run_round(str(synced), None, store, client=client, send=False)
+    texts = [b["text"] for b in client.requests[0]["messages"][0]["content"] if b["type"] == "text"]
+    assert len(texts) == 1 and "B) 1/2" in texts[0]
+    saved = store.load_workbook("Val")
+    assert saved.field("s1f1").verdict == "correct" and saved.field("s1f2").answer == "A"

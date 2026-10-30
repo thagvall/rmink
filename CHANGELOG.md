@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.11.0 — 2026-10-30
+
+- Workbooks get multiple-choice questions, mixed with the written ones: "Välj ett" (one right choice) or "Välj alla som stämmer" (all that apply).
+  - Each choice has a box to cross. To take a cross back, fill the box in or strike through the row.
+  - rmink reads the crosses itself and grades them, so a round with only crosses makes no call to Claude. Unclear ink, like a ring around a choice, goes to Claude.
+  - Scoring: one right choice gives the question's points. With several right choices, each right cross gives a point and each wrong cross takes one away, never below 0.
+  - Practice: a wrong answer gets a hint in the next revision ("Försök 2 av 3. Du valde B. B: …"). The hint says why the chosen choice is wrong without naming the right one, and the boxes are empty for a new try, up to three attempts. The solution, a ring around each right box and the explanation, comes on the "Facit" layer when the question is right or after the last attempt.
+  - Test: a question is locked once it is graded. Ink on a locked question stays as a note.
+  - The results page shows the score of the first attempts beside the final score, and the attempts for each question.
+
+
 ## 2.10.0 — 2026-10-30
 
 - Workbooks get solutions and grading.

@@ -13,7 +13,8 @@ Each revision is the PDF rebuilt with the answers read so far, plus ink:
 - handwriting kept by an earlier round stays on that layer either way;
 - ink outside the boxes, and in boxes Claude could not read, stays as it was.
 
-The solutions go on the hidden "Facit" layer when the workbook shows them.
+The solutions go on the hidden "Facit" layer when the workbook shows them
+(a choice question's once it is done).
 """
 
 from __future__ import annotations
@@ -78,7 +79,7 @@ def build_revision(
     ink = ink or Sorted()
     pdf = build_pdf(workbook, device)
     count = pymupdf.open(stream=pdf).page_count
-    facit = solution_strokes(workbook, device) if workbook.show_solutions() else {}
+    facit = solution_strokes(workbook, device)
     visible: dict[int, list[Stroke]] = {p: list(s) for p, s in ink.loose.items()}
     hidden: dict[int, list[Stroke]] = {p: list(s) for p, s in ink.kept.items()}
     for field_id, strokes in ink.by_field.items():

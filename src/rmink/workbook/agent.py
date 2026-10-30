@@ -5,14 +5,18 @@ first revision to the tablet. :func:`run_round` reads what the user wrote in
 the answer boxes since the last revision, sends Claude a picture of each box
 with new ink, and writes the next revision with the transcribed answers set in
 the PDF. Each is one tool call; a call that does not validate is sent back
-with the error, a few times at most.
+with the error, a few times at most. Crosses in choice questions are read and
+graded by rmink (:func:`grade_choice`); Claude only sees the unclear ones, and
+a round with nothing else makes no call at all.
 """
 
 from __future__ import annotations
 
+import dataclasses
 import datetime
 import json
 import os
+import re
 import tempfile
 import time
 from dataclasses import dataclass
@@ -33,8 +37,8 @@ from rmink.drawing.agent import (
 from rmink.drawing.store import WORKBOOK_LINK, Store, guess_drawing_name
 from rmink.workbook import workflow
 from rmink.workbook.build import build_pdf
-from rmink.workbook.model import AnswerField, Workbook
-from rmink.workbook.read import Ink, Sorted, field_png, read_ink, sort_ink
+from rmink.workbook.model import AnswerField, Workbook, letter
+from rmink.workbook.read import Ink, Sorted, field_png, read_choices, read_ink, sort_ink
 
 CREATE_PROMPT = """\
 You write a workbook for a reMarkable tablet: a PDF with a table of contents \
@@ -56,12 +60,26 @@ most two short lines (it is drawn in small capitals under the box, on a layer \
 the reader can show). For an open question, give what a good answer must \
 contain. "points" is what the field is worth, 1 unless it has several parts.
 
+Mix in multiple-choice questions where they fit, often a third or so of the \
+fields: "kind" "single" has exactly one right choice, "multi" one or more \
+(the reader is told to choose all that apply). Give 3 to 5 "choices", each \
+with "text", "correct" and "why": one sentence on why it is right or wrong. \
+The why of a wrong choice is shown as a hint after a wrong attempt, so it must \
+not say which choice is right. A choice question needs no "solution" or \
+"lines"; for "multi", "points" is the number of right choices. Other fields \
+are "kind" "text".
+
 Call write_workbook once with the whole workbook."""
 
 TRANSCRIBE_PROMPT = """\
 You read handwriting from a reMarkable tablet. Each picture is one answer box \
 of a workbook, with the question it answers and, if the box was answered in an \
 earlier round, that answer.
+
+A multiple-choice box lists its choices A, B, C...: return the letters the \
+reader chose in "text", like "A, C", or an empty text when none. A cross (or \
+tick, or ring round a choice) chooses it; a box filled in solid or a line \
+through a whole row takes it back. Give no verdict: rmink grades it.
 
 Transcribe what the reader wrote, exactly: do not correct spelling, grammar or \
 mathematics, since the answer is theirs to check. Keep line breaks. Write \
@@ -90,11 +108,24 @@ FIELD_SCHEMA = {
     "properties": {
         "id": {"type": "string"},
         "prompt": {"type": "string"},
+        "kind": {"type": "string", "enum": ["text", "single", "multi"]},
         "lines": {"type": "integer", "minimum": 1, "maximum": 12},
         "solution": {"type": "string"},
         "points": {"type": "integer", "minimum": 0, "maximum": 20},
+        "choices": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string"},
+                    "correct": {"type": "boolean"},
+                    "why": {"type": "string"},
+                },
+                "required": ["text", "correct", "why"],
+            },
+        },
     },
-    "required": ["id", "prompt", "lines", "solution"],
+    "required": ["id", "prompt", "kind"],
 }
 CREATE_TOOL = {
     "name": "write_workbook",
@@ -254,7 +285,52 @@ def check_workbook(args: dict) -> Workbook:
     ids = [f.id for f in wb.fields()]
     if len(ids) != len(set(ids)):
         raise ValueError("Field ids must be unique.")
+    for f in wb.fields():
+        if not f.is_choice():
+            continue
+        if not 2 <= len(f.choices) <= 8:
+            raise ValueError(f"Field {f.id}: a choice question has 2 to 8 choices.")
+        right = len(f.correct_choices())
+        if f.kind == "single" and right != 1:
+            raise ValueError(f'Field {f.id}: "single" has exactly one right choice.')
+        if not right:
+            raise ValueError(f"Field {f.id}: mark the right choices.")
     return wb
+
+
+def _letters(indices) -> str:
+    names = [letter(i) for i in sorted(indices)]
+    return " och ".join([", ".join(names[:-1]), names[-1]]) if len(names) > 1 else "".join(names)
+
+
+def grade_choice(f: AnswerField, chosen: list[int], mode: str = "practice") -> None:
+    """Set an attempt at a choice question: the verdict, the points (for
+    "multi" one per right cross less one per wrong, never below 0) and a hint
+    that says why the wrong crosses are wrong without naming the right ones."""
+    picked, right = set(chosen), f.correct_choices()
+    if f.kind == "single":
+        awarded = float(f.points) if picked == right else 0.0
+    else:
+        net = len(picked & right) - len(picked - right)
+        awarded = round(max(net, 0) * f.points / len(right), 2)
+    f.chosen = sorted(picked)
+    f.answer = ", ".join(letter(i) for i in f.chosen)
+    f.attempts += 1
+    if f.first_awarded is None:
+        f.first_awarded = awarded
+    f.awarded = awarded
+    f.verdict = "correct" if picked == right else "partial" if awarded else "wrong"
+    hints = []
+    if f.verdict != "correct":
+        hints.append(f"Du valde {_letters(picked)}.")
+        if f.kind == "single" and len(picked) > 1:
+            hints.append("Välj bara ett.")
+        for i in sorted(picked - right):
+            why = f.choices[i].why
+            hints.append(f"{letter(i)}: {why}" if why else f"{letter(i)} stämmer inte.")
+        if f.kind == "multi" and right - picked:
+            hints.append("Minst ett rätt alternativ saknas.")
+    f.comment = " ".join(hints)
 
 
 def start_workbook(
@@ -344,18 +420,28 @@ class OpenRound:
     device: DeviceProfile
     ink: Ink
     marks: Sorted
+    # Choice questions whose crosses rmink read itself: field id -> choices.
+    chosen: dict[str, list[int]] = dataclasses.field(default_factory=dict)
+
+    def pending(self) -> list[str]:
+        """The boxes Claude has to read."""
+        return [i for i in self.marks.by_field if i not in self.chosen]
 
     def boxes(self) -> list[tuple[AnswerField, str, bytes]]:
-        """Each box with new ink: the field, what Claude needs to know about it
-        and a picture of it."""
+        """Each box Claude has to read: the field, what Claude needs to know
+        about it and a picture of it."""
         out = []
-        for field_id, strokes in self.marks.by_field.items():
+        for field_id in self.pending():
+            strokes = self.marks.by_field[field_id]
             f = self.workbook.field(field_id)
             section = next(s for s in self.workbook.sections if f in s.fields)
             text = f'Box {f.id}, section "{section.title}". Question: {f.prompt}'
-            if f.solution:
+            if f.is_choice():
+                text += f"\nMultiple choice ({'one' if f.kind == 'single' else 'all that apply'}): "
+                text += "; ".join(f"{letter(i)}) {c.text}" for i, c in enumerate(f.choices))
+            elif f.solution:
                 text += f"\nSolution ({f.points} p): {f.solution}"
-            if f.answer:
+            if f.answer and not f.is_choice():
                 text += f"\nEarlier answer: {json.dumps(f.answer, ensure_ascii=False)}"
             out.append((f, text, field_png(self.ink.pdf, f, strokes, self.device)))
         return out
@@ -365,11 +451,22 @@ class OpenRound:
         as answers by box id; one entry per box with new ink. Grading only
         counts for boxes with a solution."""
         answers = {}
+        pending = self.pending()
         for a in args.get("answers") or []:
-            if not isinstance(a, dict) or a.get("id") not in self.marks.by_field:
-                raise ValueError(f"Unknown box {a!r}; the boxes are {list(self.marks.by_field)}.")
+            if not isinstance(a, dict) or a.get("id") not in pending:
+                raise ValueError(f"Unknown box {a!r}; the boxes are {pending}.")
             f = self.workbook.field(a["id"])
             text = str(a.get("text") or "").strip()
+            if f.is_choice():
+                chosen = [ord(c.upper()) - ord("A") for c in re.findall(r"\b[A-Ha-h]\b", text)]
+                if any(i >= len(f.choices) for i in chosen):
+                    raise ValueError(f"Box {f.id}: the choices are A-{letter(len(f.choices) - 1)}.")
+                answers[a["id"]] = {
+                    "text": ", ".join(letter(i) for i in sorted(set(chosen))),
+                    "confident": bool(a.get("confident", True)),
+                    "chosen": sorted(set(chosen)),
+                }
+                continue
             verdict = str(a.get("verdict") or "") if f.solution and text else ""
             if verdict not in ("", "correct", "partial", "wrong"):
                 raise ValueError(f"Box {f.id}: verdict is correct, partial, wrong or empty.")
@@ -388,7 +485,7 @@ class OpenRound:
                 "awarded": min(max(awarded, 0.0), float(f.points)) if verdict else 0.0,
                 "comment": str(a.get("comment") or "").strip() if verdict else "",
             }
-        if missing := set(self.marks.by_field) - set(answers):
+        if missing := set(pending) - set(answers):
             raise ValueError(f"No entry for {sorted(missing)}.")
         return answers
 
@@ -421,7 +518,12 @@ def open_round(document: str, device_key: str | None, store: Store) -> OpenRound
         raise RoundError(
             "Inget nytt i svarsrutorna sedan förra revisionen. Har plattan hunnit synka?"
         )
-    return OpenRound(wb, document, device, written, marks)
+    chosen = {}
+    for field_id, strokes in marks.by_field.items():
+        f = wb.field(field_id)
+        if f.is_choice() and (read := read_choices(f, strokes, device)) is not None:
+            chosen[field_id] = read
+    return OpenRound(wb, document, device, written, marks, chosen)
 
 
 def finish_round(
@@ -437,13 +539,27 @@ def finish_round(
     started = time.monotonic() if started is None else started
     wb = r.workbook
     read = set()
+    crosses = dict(r.chosen)
     for field_id, a in answers.items():
+        f = wb.field(field_id)
+        if f.is_choice():
+            if "chosen" in a:
+                crosses[field_id] = a["chosen"]
+                f.confident = a.get("confident", True)
+            continue
         if a["text"]:
             f = wb.field(field_id)
             f.answer, f.confident = a["text"], a["confident"]
             f.verdict = a.get("verdict", "")
             f.awarded, f.comment = a.get("awarded", 0.0), a.get("comment", "")
             read.add(field_id)
+    for field_id, chosen in crosses.items():
+        f = wb.field(field_id)
+        if field_id in r.chosen:
+            f.confident = True
+        read.add(field_id)  # crosses taken back all clear the box too
+        if chosen:
+            grade_choice(f, chosen, wb.mode)
 
     wb.revision += 1
     wb.date = datetime.date.today().isoformat()
@@ -486,16 +602,30 @@ def run_round(
 ) -> RoundResult:
     """Have Claude read the answers written in ``document`` and send the next
     revision."""
-    if client is None:
-        import anthropic
-
-        client = anthropic.Anthropic()
     started = time.monotonic()
     r = open_round(document, device_key, store)
     content: list[dict] = []
     for _, text, png in r.boxes():
         content += [{"type": "text", "text": text}, _image_block(png)]
-    answers, usage = _call(client, TRANSCRIBE_PROMPT, ANSWERS_TOOL, content, r.check, effort)
+    if content:
+        if client is None:
+            import anthropic
+
+            client = anthropic.Anthropic()
+        answers, usage = _call(client, TRANSCRIBE_PROMPT, ANSWERS_TOOL, content, r.check, effort)
+    else:  # only crosses rmink read itself
+        answers, usage = (
+            {},
+            dict.fromkeys(
+                (
+                    "input_tokens",
+                    "output_tokens",
+                    "cache_read_input_tokens",
+                    "cache_creation_input_tokens",
+                ),
+                0,
+            ),
+        )
     result = finish_round(r, answers, store, ink, send, started)
     result.usage = _cost(usage)
     return result

@@ -113,6 +113,9 @@ for word, grades it against Claude's solution, and sends a new revision with the
 answers set as PDF text and a results page at the end. The handwriting is
 either removed or kept on a hidden layer. The solutions are on a hidden
 "Facit" layer, from the start in practice mode or after grading in a test.
+Questions can also be multiple choice ("choose one" or "choose all that
+apply"). rmink reads and grades the crosses itself. In practice mode a wrong
+answer gets a hint and a new attempt, up to three in all.
 
 ```bash
 rmink workbook new "Fractions for year 5" --name Fractions --mode test   # needs rmink[rounds]
