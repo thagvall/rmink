@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.12.1 — 2026-10-30
+
+- `/rounds`: a workbook without a group has "Flytta till grupp…" on its card. It moves the workbook, with its earlier revisions, into `rmink/Skola/<group>/` and updates what the browser keeps, like `rmink workbook move` does for workbooks saved on the computer.
+
 ## 2.12.0 — 2026-10-30
 
 - rmink skola: workbooks for school, grouped by area. The first groups are "Plus och minus" (9 topics, from number bonds to negative numbers) and "Bråk och division" (12 topics, from sharing to fractions, decimals and percent), each topic with the school years it suits.

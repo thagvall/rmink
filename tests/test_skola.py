@@ -155,3 +155,37 @@ def test_move_into_a_group(tmp_path, monkeypatch):
     )
     assert r.sent_as == f"{folder}/Bråk r03"
     assert fake.folders[f"{folder}/Tidigare"] == {"Bråk r01", "Bråk r02"}
+
+
+def test_web_move_into_a_group(tmp_path, monkeypatch):
+    pytest.importorskip("fastapi")
+    from fastapi.testclient import TestClient
+
+    from rmink.drawing.store import MemoryStore
+    from rmink.web.app import Limits, create_app
+
+    monkeypatch.setenv("RMINK_ROUNDS_SECRET", "s3cret")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
+    fake = FakeCloud(monkeypatch, {"/": {"rmink"}, "/rmink": set()})
+    browser = MemoryStore()
+    client = FakeClient([([_tool("c1", "write_workbook", WORKBOOK)], "tool_use")])
+    create_workbook("Plus och minus", "rm2", browser, client=client)
+    memory = {"drawings": browser.drawings, "links": browser.links}
+    app = TestClient(create_app(Limits(2_000_000, 3, 5, 60, 1)))
+    auth = {"X-Rmink-Secret": "s3cret"}
+
+    body = {"name": "Bråk", "group": "plus-minus", **memory}
+    r = app.post("/api/workbook/move", json=body, headers=auth)
+    assert r.status_code == 200, r.text
+    folder = "/rmink/Skola/Plus och minus/Bråk"
+    assert r.json()["folder"] == folder
+    assert fake.folders[folder] == {"Bråk r01"}
+    back = r.json()["store"]
+    assert back["links"]["rmink/Skola/Plus och minus/Bråk/Bråk r01"] == "workbook:Bråk"
+    moved = Workbook.model_validate_json(back["drawings"]["workbook:bråk"])
+    assert (moved.group, moved.sent_as) == ("Plus och minus", f"{folder}/Bråk r01")
+
+    missing = app.post("/api/workbook/move", json=body | {"name": "Nej"}, headers=auth)
+    assert missing.status_code == 404
+    bad = app.post("/api/workbook/move", json=body | {"group": "geometri"}, headers=auth)
+    assert bad.status_code == 422

@@ -123,7 +123,8 @@ och årskurs. Önskemål i fritext läggs till. En arbetsbok i en grupp hamnar i
             Förkorta åk 5 r02 · 4 av 5 p
             Tidigare/
 
-En befintlig arbetsbok flyttas in i en grupp med `rmink workbook move <namn> --group <grupp>`.
+En befintlig arbetsbok flyttas in i en grupp med `rmink workbook move <namn> --group <grupp>`, eller
+med *Flytta till grupp…* på arbetsbokens kort på `/rounds` om den är sparad i webbläsaren.
 Mappen flyttas med alla revisioner och *Tidigare*, och nästa varv fortsätter där.
 
 Nya grupper (gånger, geometri, svenska …) läggs till i TOML-filen utan kodändring. Arbetsböcker

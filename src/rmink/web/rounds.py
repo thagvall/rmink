@@ -80,6 +80,13 @@ class CreateRequest(BaseModel):
     links: dict[str, str] = {}
 
 
+class MoveRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    group: str = Field(min_length=1, max_length=60)
+    drawings: dict[str, str] = {}
+    links: dict[str, str] = {}
+
+
 def router() -> APIRouter:
     r = APIRouter()
 
@@ -178,6 +185,35 @@ def router() -> APIRouter:
         except cloud.CloudError as e:
             raise HTTPException(502, str(e)) from e
         out = result.to_json()
+        if isinstance(store, MemoryStore):
+            out["store"] = {"drawings": store.changed, "links": store.links}
+        return out
+
+    @r.post("/api/workbook/move")
+    async def move(req: MoveRequest, x_rmink_secret: str | None = Header(None)) -> dict:
+        """Move a workbook, with its earlier revisions, into rmink/Skola/<group>/."""
+        _check(x_rmink_secret)
+        token = _token()
+        from rmink.drawing.store import MemoryStore, redis_from_env
+        from rmink.workbook import catalog, workflow
+
+        store = redis_from_env() or MemoryStore(req.drawings, req.links)
+        wb = store.load_workbook(req.name)
+        if wb is None:
+            raise HTTPException(404, f'Ingen sparad arbetsbok "{req.name}"')
+        try:
+            title = catalog.group(req.group).title
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
+        try:
+            folder = await anyio.to_thread.run_sync(
+                workflow.move_to_group, wb, catalog.AREA, title, token, store
+            )
+        except cloud.CloudAuthError as e:
+            raise HTTPException(401, str(e)) from e
+        except cloud.CloudError as e:
+            raise HTTPException(502, str(e)) from e
+        out = {"folder": folder}
         if isinstance(store, MemoryStore):
             out["store"] = {"drawings": store.changed, "links": store.links}
         return out
