@@ -8,13 +8,15 @@ Owner-only. The router is mounted only when ``RMINK_ROUNDS_SECRET`` and
 ``RMINK_CLOUD_TOKEN``, and the page only reaches the rmink folder and what is
 in it: other paths are refused before rmapi runs. Drawings are kept in the
 owner's browser: the page sends them with each round and stores what comes
-back. With Upstash Redis configured
-(see :func:`rmink.drawing.store.redis_from_env`) they are kept there instead.
+back. With a Vercel Blob store or Upstash Redis
+(see :func:`rmink.drawing.store.server_store`) they are kept there instead,
+and the page lists them from the server.
 """
 
 from __future__ import annotations
 
 import hmac
+import json
 import os
 from pathlib import Path
 from typing import Literal
@@ -80,6 +82,11 @@ class CreateRequest(BaseModel):
     links: dict[str, str] = {}
 
 
+class ImportRequest(BaseModel):
+    drawings: dict[str, str] = {}
+    links: dict[str, str] = {}
+
+
 class MoveRequest(BaseModel):
     name: str = Field(min_length=1, max_length=60)
     group: str = Field(min_length=1, max_length=60)
@@ -134,10 +141,10 @@ def router() -> APIRouter:
         document = _in_rmink(req.document, folder_ok=False)
         _token()
         from rmink.drawing.agent import RoundError, run_round
-        from rmink.drawing.store import MemoryStore, redis_from_env
+        from rmink.drawing.store import MemoryStore, server_store
         from rmink.workbook import agent as workbook
 
-        store = redis_from_env() or MemoryStore(req.drawings, req.links)
+        store = server_store() or MemoryStore(req.drawings, req.links)
 
         def round_():
             if workbook.find_workbook(document, store) is not None:
@@ -157,6 +164,52 @@ def router() -> APIRouter:
             out["store"] = {"drawings": store.changed, "links": store.links}
         return out
 
+    @r.get("/api/rounds/saved")
+    def saved(x_rmink_secret: str | None = Header(None)) -> dict:
+        """The drawings and workbooks the server keeps, or ``server: false``
+        when the browser keeps them."""
+        _check(x_rmink_secret)
+        from rmink.drawing.store import BlobStore, server_store
+
+        store = server_store()
+        if store is None:
+            return {"server": False, "drawings": {}}
+        everything = store.everything() if isinstance(store, BlobStore) else {}
+        return {"server": True, "drawings": everything}
+
+    @r.post("/api/rounds/import")
+    def import_(req: ImportRequest, x_rmink_secret: str | None = Header(None)) -> dict:
+        """Copy what a browser kept into the server's store: drawings and
+        workbooks the server has no newer revision of, and their links."""
+        _check(x_rmink_secret)
+        from rmink.drawing.model import Drawing
+        from rmink.drawing.store import server_store
+        from rmink.workbook.model import Workbook
+
+        store = server_store()
+        if store is None:
+            raise HTTPException(409, "Servern har ingen databas")
+        added = []
+        for raw in req.drawings.values():
+            try:
+                data = json.loads(raw)
+                if data.get("kind") == "workbook":
+                    item, have = Workbook.model_validate(data), store.load_workbook(data["name"])
+                    if have is None or have.revision < item.revision:
+                        store.save_workbook(item)
+                        added.append(item.name)
+                else:
+                    item, have = Drawing.model_validate(data), store.load(data["name"])
+                    if have is None or have.revision < item.revision:
+                        store.save(item)
+                        added.append(item.name)
+            except (ValueError, KeyError):
+                continue  # a broken entry stays in the browser
+        for document, name in req.links.items():
+            if not store.linked(document):
+                store.link(document, name)
+        return {"added": added}
+
     @r.get("/api/workbook/catalog")
     def catalog(x_rmink_secret: str | None = Header(None)) -> list:
         _check(x_rmink_secret)
@@ -171,11 +224,11 @@ def router() -> APIRouter:
             raise HTTPException(422, "Skriv vad arbetsboken ska handla om, eller välj en grupp.")
         _token()
         from rmink.drawing.agent import RoundError
-        from rmink.drawing.store import MemoryStore, redis_from_env
+        from rmink.drawing.store import MemoryStore, server_store
         from rmink.drawing.workflow import safe_name
         from rmink.workbook.agent import create_workbook
 
-        store = redis_from_env() or MemoryStore(req.drawings, req.links)
+        store = server_store() or MemoryStore(req.drawings, req.links)
         name = safe_name(req.name) if req.name.strip() else None
         try:
             result = await anyio.to_thread.run_sync(
@@ -206,10 +259,10 @@ def router() -> APIRouter:
         """Move a workbook, with its earlier revisions, into rmink/Skola/<group>/."""
         _check(x_rmink_secret)
         token = _token()
-        from rmink.drawing.store import MemoryStore, redis_from_env
+        from rmink.drawing.store import MemoryStore, server_store
         from rmink.workbook import catalog, workflow
 
-        store = redis_from_env() or MemoryStore(req.drawings, req.links)
+        store = server_store() or MemoryStore(req.drawings, req.links)
         wb = store.load_workbook(req.name)
         if wb is None:
             raise HTTPException(404, f'Ingen sparad arbetsbok "{req.name}"')
@@ -235,11 +288,11 @@ def router() -> APIRouter:
         """Send a workbook again in the current layout as its next revision."""
         _check(x_rmink_secret)
         token = _token()
-        from rmink.drawing.store import MemoryStore, redis_from_env
+        from rmink.drawing.store import MemoryStore, server_store
         from rmink.workbook import workflow
         from rmink.workbook.model import LAYOUT
 
-        store = redis_from_env() or MemoryStore(req.drawings, req.links)
+        store = server_store() or MemoryStore(req.drawings, req.links)
         wb = store.load_workbook(req.name)
         if wb is None:
             raise HTTPException(404, f'Ingen sparad arbetsbok "{req.name}"')
@@ -262,9 +315,9 @@ def router() -> APIRouter:
         _check(x_rmink_secret)
         token = _token()
         from rmink.drawing import workflow
-        from rmink.drawing.store import MemoryStore, redis_from_env
+        from rmink.drawing.store import MemoryStore, server_store
 
-        store = redis_from_env() or MemoryStore(req.drawings, req.links)
+        store = server_store() or MemoryStore(req.drawings, req.links)
         d = store.load(req.name)
         if d is None or not d.sketch.sent_as:
             raise HTTPException(404, f'Ingen sparad ritning "{req.name}"')

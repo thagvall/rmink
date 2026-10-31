@@ -378,6 +378,34 @@ def upgrade(
     typer.echo(f"{d.name}: sent as {sent_as!r}")
 
 
+@app.command("store-push")
+def store_push(
+    url: Annotated[str, typer.Option(help="The rmink site")] = "https://rmink.vercel.app",
+    secret: Annotated[
+        str, typer.Option(prompt=True, hide_input=True, envvar="RMINK_ROUNDS_SECRET")
+    ] = "",
+) -> None:
+    """Copy the drawings and workbooks saved on this computer to the site's database,
+    so /rounds shows them. The site keeps any newer revision it already has."""
+    import httpx
+
+    from rmink.drawing.store import FileStore
+
+    local = FileStore()
+    body = {"drawings": local.everything(), "links": local.links()}
+    r = httpx.post(
+        url.rstrip("/") + "/api/rounds/import",
+        json=body,
+        headers={"X-Rmink-Secret": secret},
+        timeout=120,
+    )
+    if r.status_code != 200:
+        typer.secho(f"error: {r.status_code} {r.text}", fg="red", err=True)
+        raise typer.Exit(1)
+    added = r.json()["added"]
+    typer.echo(f"Added {len(added)}: {', '.join(added) or '-'} ({len(body['links'])} links sent)")
+
+
 workbook_app = typer.Typer(
     help="Workbooks: a linked PDF with answer boxes; handwritten answers become text."
 )

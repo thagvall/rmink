@@ -23,7 +23,13 @@ RM2 = get_device("rm2")
 @pytest.fixture(autouse=True)
 def config_home(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    for key in ("RMINK_CLOUD_TOKEN", "UPSTASH_REDIS_REST_URL", "KV_REST_API_URL"):
+    for key in (
+        "RMINK_CLOUD_TOKEN",
+        "UPSTASH_REDIS_REST_URL",
+        "KV_REST_API_URL",
+        "BLOB_READ_WRITE_TOKEN",
+        "BLOB_STORE_ID",
+    ):
         monkeypatch.delenv(key, raising=False)
 
 

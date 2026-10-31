@@ -139,9 +139,29 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
   const LAYOUT = 2;  // rmink.workbook.model.LAYOUT: workbooks below it can get bigger boxes
   let secret = store.get("rmink.roundsSecret");
   // Drawings between rounds live in this browser: the server has no memory.
-  const memory = () => { try { return JSON.parse(store.get("rmink.roundsMemory")) || { drawings: {}, links: {} }; } catch { return { drawings: {}, links: {} }; } };
+  const local = () => { try { return JSON.parse(store.get("rmink.roundsMemory")) || { drawings: {}, links: {} }; } catch { return { drawings: {}, links: {} }; } };
+  // With a database on the server it keeps the drawings and this list comes from there.
+  let saved = null;
+  const memory = () => saved ? { drawings: saved, links: {} } : local();
+  async function loadSaved() {
+    let r;
+    try { r = await api("/api/rounds/saved"); } catch { return; }
+    if (!r.server) { saved = null; return; }
+    const mine = local();
+    if (Object.keys(mine.drawings).length) {
+      // Once: what this browser kept moves to the database.
+      try {
+        await api("/api/rounds/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(mine) });
+        store.set("rmink.roundsMemoryImported", store.get("rmink.roundsMemory") || "");
+        store.del("rmink.roundsMemory");
+        r = await api("/api/rounds/saved");
+      } catch {}
+    }
+    saved = r.drawings;
+  }
   function remember(back) {
-    const m = memory();
+    if (saved) return true;  // the server saved it
+    const m = local();
     Object.assign(m.drawings, back.drawings || {});
     m.links = back.links || m.links;
     try { localStorage.setItem("rmink.roundsMemory", JSON.stringify(m)); return true; } catch { return false; }
@@ -168,7 +188,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
     $("#pick").hidden = !secret;
     $("#drawings").hidden = !secret;
     $("#create").hidden = !secret;
-    if (secret) { drawings(); load(path); loadCatalog(); }
+    if (secret) { drawings(); load(path); loadCatalog(); loadSaved().then(drawings); }
   }
 
   // rmink skola: groups and their topics, for the "Ny arbetsbok" card.
@@ -217,7 +237,9 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
     all.sort((a, b) => order.indexOf(groupOf(a)) - order.indexOf(groupOf(b)));
     const grouped = order.length > 1 || order[0] !== "";
     const n = all.length;
-    $("#memory").textContent = n ? `${n} sparade i den här webbläsaren.` : "Ritningar och arbetsböcker sparas i den här webbläsaren mellan varven.";
+    $("#memory").textContent = saved
+      ? `${n} sparade i databasen på servern.`
+      : n ? `${n} sparade i den här webbläsaren.` : "Ritningar och arbetsböcker sparas i den här webbläsaren mellan varven.";
     const list = $("#drawing-list"); list.innerHTML = "";
     if (!n) { list.appendChild(el("p", "muted", "Inga än. Börja med en skiss eller en arbetsbok nedan.")); return; }
     let heading = null;
@@ -302,7 +324,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
           try {
             const r = await api("/api/workbook/move", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: d.name, group: to.value, ...memory() }) });
             if (r.store) remember(r.store);
-            drawings(); load(path);
+            await loadSaved(); drawings(); load(path);
           } catch (err) { status.innerHTML = ""; status.appendChild(el("span", "error", err.message)); to.value = ""; }
         };
         actions.appendChild(to);
@@ -317,7 +339,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
           try {
             const r = await api("/api/drawing/upgrade", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: d.name, ...memory() }) });
             if (r.store) remember(r.store);
-            drawings(); load(path);
+            await loadSaved(); drawings(); load(path);
           } catch (err) { status.innerHTML = ""; status.appendChild(el("span", "error", err.message)); }
         };
         actions.appendChild(up);
@@ -332,13 +354,13 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
           try {
             const r = await api("/api/workbook/relayout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: d.name, ...memory() }) });
             if (r.store) remember(r.store);
-            drawings(); load(path);
+            await loadSaved(); drawings(); load(path);
           } catch (err) { status.innerHTML = ""; status.appendChild(el("span", "error", err.message)); }
         };
         actions.appendChild(re);
       }
       actions.appendChild(status);
-      actions.appendChild(forget);
+      if (!saved) actions.appendChild(forget);  // the database keeps everything
       card.appendChild(actions);
       if ((d.log || []).length) {
         const det = el("details"); det.appendChild(el("summary", null, "Historik"));
@@ -451,6 +473,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
       result.appendChild(el("p", "muted", `${r.seconds} s · ${r.usage.input_tokens + r.usage.cache_read_input_tokens + r.usage.cache_creation_input_tokens} in- och ${r.usage.output_tokens} ut-tokens · ca ${r.usage.usd} USD`));
       result.hidden = false;
       status.textContent = "";
+      await loadSaved();
       drawings();
       load(path);
       result.scrollIntoView({ behavior: "smooth" });

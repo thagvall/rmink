@@ -63,11 +63,15 @@ unless these are set under *Settings → Environment Variables*:
   (it is printed into `~/.config/rmink/cloud.toml`)
 - `RMINK_ROUND_EFFORT` (optional): `low`, `medium` (default) or `high`
 
-Drawings are kept between rounds in the browser you run them from (the page
-sends them with each round and stores what comes back), so no database is
-needed; a different phone or a cleared browser starts the drawing over from
-its latest revision. Optionally, the **Upstash for Redis** integration
-(`KV_REST_API_URL`, `KV_REST_API_TOKEN`) keeps them on the server instead. The rounds need `rmink[rounds]`
+Drawings and workbooks are kept on the server when the project has a **Vercel
+Blob** store (`BLOB_READ_WRITE_TOKEN`, the same store as the cloud cache): one
+JSON file per save under `rmink/store/`, never overwritten, so a round always
+reads the newest and the older files are the history. `/rounds` lists them from
+there, on any device, and moves what a browser kept before into it the first
+time it opens. The **Upstash for Redis** integration (`KV_REST_API_URL`,
+`KV_REST_API_TOKEN`) is used instead when it is set. Without either, the page
+keeps them in the browser you run rounds from. `rmink store-push` copies
+the drawings saved on your computer to the site. The rounds need `rmink[rounds]`
 in `requirements.txt`. Locally, `rmink round Altan` (a drawing name) or
 `rmink round /rmink/Garage` (a new sketch) runs the same round with drawings in
 `~/.config/rmink/drawings`.

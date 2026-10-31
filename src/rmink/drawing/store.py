@@ -18,9 +18,11 @@ a notebook linked to one is linked as "workbook:<name>".
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
+import time
 from pathlib import Path
 from typing import Protocol
 
@@ -108,6 +110,18 @@ class FileStore:
             return None
         return Workbook.model_validate_json(path.read_text(encoding="utf-8"))
 
+    def everything(self) -> dict[str, str]:
+        """Every saved drawing and workbook as JSON, keyed like the browser
+        keeps them ("<slug>", "workbook:<slug>")."""
+        out = {p.stem: p.read_text(encoding="utf-8") for p in self.root.glob("*.json")}
+        out.pop("documents", None)
+        for p in (self.root / "workbooks").glob("*.json"):
+            out[WORKBOOK_LINK + p.stem] = p.read_text(encoding="utf-8")
+        return out
+
+    def links(self) -> dict[str, str]:
+        return self._links()
+
 
 class MemoryStore:
     """Drawings for one request, sent by the browser that keeps them.
@@ -189,12 +203,104 @@ class RedisStore:
         return Workbook.model_validate_json(raw) if raw else None
 
 
+class BlobStore:
+    """Drawings, workbooks and links in a private Vercel Blob store, for the
+    hosted site, where instances keep nothing between requests.
+
+    Blob serves an overwritten file from its cache for a while, so a drawing
+    is never overwritten: each save is a new file, ``drawing/<slug>/<time>.json``,
+    and a load reads the newest one a listing (which is not cached) shows.
+    The older files are the drawing's history."""
+
+    PREFIX = "rmink/store/"
+
+    def __init__(self) -> None:
+        from vercel.blob import sync as blob
+
+        self._blob = blob
+
+    def _put(self, path: str, text: str) -> None:
+        self._blob.put_blob(
+            self.PREFIX + path,
+            text.encode(),
+            access="private",
+            content_type="application/json",
+            allow_overwrite=True,
+        )
+
+    def _get(self, path: str) -> str | None:
+        try:
+            return self._blob.get_blob(self.PREFIX + path, access="private").body.decode()
+        except self._blob.BlobNotFoundError:
+            return None
+
+    def _save(self, kind: str, name: str, text: str) -> str:
+        path = f"{kind}/{slug(name)}/{time.time_ns() // 1000:016d}.json"
+        self._put(path, text)
+        return f"blob:{path}"
+
+    def _latest(self, kind: str, name: str) -> str | None:
+        prefix = f"{self.PREFIX}{kind}/{slug(name)}/"
+        paths = [b.pathname for b in self._blob.query_blobs(prefix=prefix)]
+        return self._get(max(paths).removeprefix(self.PREFIX)) if paths else None
+
+    def save(self, drawing: Drawing) -> str:
+        return self._save("drawing", drawing.name, drawing.model_dump_json())
+
+    def load(self, name: str) -> Drawing | None:
+        raw = self._latest("drawing", name)
+        return Drawing.model_validate_json(raw) if raw else None
+
+    def save_workbook(self, workbook: Workbook) -> str:
+        return self._save("workbook", workbook.name, workbook.model_dump_json())
+
+    def load_workbook(self, name: str) -> Workbook | None:
+        raw = self._latest("workbook", name)
+        return Workbook.model_validate_json(raw) if raw else None
+
+    @staticmethod
+    def _link_path(document: str) -> str:
+        return f"link/{hashlib.sha1(document.strip('/').encode()).hexdigest()}.json"
+
+    def link(self, document: str, name: str) -> None:
+        # A notebook keeps its owner, so a link is written once and not changed.
+        self._put(self._link_path(document), json.dumps({"document": document, "name": name}))
+
+    def linked(self, document: str) -> str | None:
+        raw = self._get(self._link_path(document))
+        return json.loads(raw)["name"] if raw else None
+
+    def everything(self) -> dict[str, str]:
+        """The newest JSON of every drawing and workbook, keyed like the
+        browser keeps them: "<slug>" and "workbook:<slug>"."""
+        newest: dict[str, str] = {}
+        for kind in ("drawing", "workbook"):
+            for b in self._blob.query_blobs(prefix=f"{self.PREFIX}{kind}/"):
+                name = b.pathname.removeprefix(f"{self.PREFIX}{kind}/").split("/")[0]
+                key = name if kind == "drawing" else WORKBOOK_LINK + name
+                newest[key] = max(newest.get(key, ""), b.pathname)
+        out = {}
+        for key, path in newest.items():
+            if raw := self._get(path.removeprefix(self.PREFIX)):
+                out[key] = raw
+        return out
+
+
 def redis_from_env() -> RedisStore | None:
     url = os.environ.get("UPSTASH_REDIS_REST_URL") or os.environ.get("KV_REST_API_URL")
     token = os.environ.get("UPSTASH_REDIS_REST_TOKEN") or os.environ.get("KV_REST_API_TOKEN")
     return RedisStore(url, token) if url and token else None
 
 
+def server_store() -> RedisStore | BlobStore | None:
+    """Where the hosted site keeps drawings: Redis when the Upstash variables
+    are set, else the Vercel Blob store when there is one; None leaves them
+    in the browser."""
+    from rmink import blob_cache
+
+    return redis_from_env() or (BlobStore() if blob_cache.enabled() else None)
+
+
 def default_store() -> Store:
-    """Redis when the Upstash variables are set, else files."""
-    return redis_from_env() or FileStore()
+    """Redis or Blob when configured (:func:`server_store`), else files."""
+    return server_store() or FileStore()

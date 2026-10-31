@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.14.0 — 2026-10-31
+
+- The hosted site keeps drawings and workbooks in its Vercel Blob store instead of the browser, so `/rounds` shows them on every device and a cleared browser loses nothing.
+  - Each save is a new file under `rmink/store/`, never overwritten, so a round always reads the newest version and the older ones are the history.
+  - The first time `/rounds` opens with the database, it moves what that browser kept into it.
+  - `rmink store-push` copies the drawings and workbooks saved on your computer to the site. It asks for the site's key.
+  - Upstash Redis is still used instead when it is configured.
+
 ## 2.13.0 — 2026-10-31
 
 - Workbooks use the page better, with room to write (layout 2, for new workbooks):
