@@ -463,8 +463,10 @@ def create_workbook(
             results page after the first graded round), "sections": [{"id", "title",
             "text": a short explanation (plain text, about 120 words at most), "fields":
             [{"id": unique, "prompt": the question, "lines": ruled lines for the answer,
-            1-12, "solution": expected answer with the key step (two short lines at most),
-            "points": 1 unless several parts}]}]}. A multiple-choice field instead has
+            2 for a short answer, 4-8 to show working or
+            explain (each box also gets the free space left on its page), "solution":
+            expected answer with the key step (two short lines at most), "points": 1
+            unless several parts}]}]}. A multiple-choice field instead has
             "kind": "single" (one right) or "multi" (all that apply, "points" = number of
             right choices) and "choices": [{"text", "correct", "why": one sentence on why it
             is right or wrong, shown as a hint after a wrong cross, so never naming the

@@ -136,6 +136,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
     del: (k) => { try { localStorage.removeItem(k); } catch {} },
   };
   const INBOX = "/rmink";
+  const LAYOUT = 2;  // rmink.workbook.model.LAYOUT: workbooks below it can get bigger boxes
   let secret = store.get("rmink.roundsSecret");
   // Drawings between rounds live in this browser: the server has no memory.
   const memory = () => { try { return JSON.parse(store.get("rmink.roundsMemory")) || { drawings: {}, links: {} }; } catch { return { drawings: {}, links: {} }; } };
@@ -211,7 +212,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
     const all = Object.entries(memory().drawings).map(([key, raw]) => { try { return { ...JSON.parse(raw), key }; } catch { return null; } }).filter(Boolean);
     all.sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.revision - a.revision);
     // rmink skola groups first, in the order they were last used, then the rest.
-    const groupOf = (d) => d.group || "";
+    const groupOf = (d) => d.group || (d.kind !== "workbook" && d.area ? d.area : "");
     const order = [...new Set(all.map(groupOf))].sort((a, b) => (a === "") - (b === ""));
     all.sort((a, b) => order.indexOf(groupOf(a)) - order.indexOf(groupOf(b)));
     const grouped = order.length > 1 || order[0] !== "";
@@ -223,7 +224,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
     for (const d of all) {
       if (grouped && groupOf(d) !== heading) {
         heading = groupOf(d);
-        list.appendChild(el("h3", "group-head", heading ? `${d.area || "Skola"} · ${heading}` : "Övrigt"));
+        list.appendChild(el("h3", "group-head", !heading ? "Övrigt" : d.group ? `${d.area || "Skola"} · ${heading}` : heading));
       }
       const card = el("div", "drawing");
       const head = el("div", "row between");
@@ -305,6 +306,36 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
           } catch (err) { status.innerHTML = ""; status.appendChild(el("span", "error", err.message)); to.value = ""; }
         };
         actions.appendChild(to);
+      }
+      if (!wb && sent && !d.area) {
+        // Made before areas: file it under rmink/Bygg and draw it the current way.
+        const up = el("button", null, "Till Bygg, större ritning"); up.type = "button";
+        up.title = "Flyttar ritningen till rmink/Bygg och skickar den igen förstorad, med tre SVAR-rader per fråga.";
+        up.onclick = async () => {
+          if (running) return;
+          status.textContent = "Skickar…";
+          try {
+            const r = await api("/api/drawing/upgrade", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: d.name, ...memory() }) });
+            if (r.store) remember(r.store);
+            drawings(); load(path);
+          } catch (err) { status.innerHTML = ""; status.appendChild(el("span", "error", err.message)); }
+        };
+        actions.appendChild(up);
+      }
+      if (wb && sent && (d.layout || 1) < LAYOUT) {
+        // Made before the bigger answer boxes: send it again in the new layout.
+        const re = el("button", null, "Större svarsrutor"); re.type = "button";
+        re.title = "Skickar arbetsboken igen med den nya layouten. Kör nästa varv först om du har skrivit i den.";
+        re.onclick = async () => {
+          if (running) return;
+          status.textContent = "Skickar…";
+          try {
+            const r = await api("/api/workbook/relayout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: d.name, ...memory() }) });
+            if (r.store) remember(r.store);
+            drawings(); load(path);
+          } catch (err) { status.innerHTML = ""; status.appendChild(el("span", "error", err.message)); }
+        };
+        actions.appendChild(re);
       }
       actions.appendChild(status);
       actions.appendChild(forget);

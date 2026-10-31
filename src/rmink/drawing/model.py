@@ -190,6 +190,9 @@ class SketchRef(BaseModel):
 
 class Drawing(BaseModel):
     name: str
+    # The area it is filed under on the tablet, rmink/<area>/<name>/: "Bygg"
+    # for new drawings; empty for drawings made before, in rmink/<name>/.
+    area: str = ""
     revision: int = 1
     phase: str = ""  # e.g. "Förslag", "Granskning", "Beslut"
     date: str = ""

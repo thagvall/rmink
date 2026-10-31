@@ -42,6 +42,8 @@ _DASHES: dict[str, tuple[float, ...]] = {
 }
 _ARROW = 16.0  # arrowhead length, px
 _MARGIN = 60.0
+_ANSWER_LINES = 3  # lines to write on under each remark
+_ANSWER_GAP = 76.0  # px between them (about 8.5 mm on an rm2)
 
 
 def drawing_layer(revision: int) -> str:
@@ -414,11 +416,14 @@ def _title_block(pen: _Pen, top: float, open_remarks: list[tuple[int, Annotation
             for i, line in enumerate(_wrap(f"{n}. {ann.text}", 18, x1 - x0, 3)):
                 y += 32 if i == 0 else 26
                 pen.text(line, (x0, y), 18, st_c)
-            # A line to write the answer on, so it is clear which remark it answers.
+            # Lines to write the answer on, so it is clear which remark it answers.
             y += 84
             pen.text("SVAR:", (x0 + 28, y), 16, st_c)
             start = x0 + 28 + text_width("SVAR:", 16) + 12
             pen.paths([np.array([[start, y], [x1, y]])], answer_line)
+            for _ in range(_ANSWER_LINES - 1):
+                y += _ANSWER_GAP
+                pen.paths([np.array([[x0 + 28, y], [x1, y]])], answer_line)
             y += 12
     if d.log:
         y += 36

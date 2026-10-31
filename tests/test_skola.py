@@ -189,3 +189,33 @@ def test_web_move_into_a_group(tmp_path, monkeypatch):
     assert missing.status_code == 404
     bad = app.post("/api/workbook/move", json=body | {"group": "geometri"}, headers=auth)
     assert bad.status_code == 422
+
+
+def test_web_relayout(tmp_path, monkeypatch):
+    pytest.importorskip("fastapi")
+    from fastapi.testclient import TestClient
+
+    from rmink.drawing.store import MemoryStore
+    from rmink.web.app import Limits, create_app
+
+    monkeypatch.setenv("RMINK_ROUNDS_SECRET", "s3cret")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
+    fake = FakeCloud(monkeypatch, {"/": {"rmink"}, "/rmink": set()})
+    browser = MemoryStore()
+    client = FakeClient([([_tool("c1", "write_workbook", WORKBOOK)], "tool_use")])
+    create_workbook("Bråk", "rm2", browser, client=client)
+    wb = browser.load_workbook("Bråk")
+    wb.layout = 1  # made before 2.13
+    browser.save_workbook(wb)
+    memory = {"drawings": browser.drawings, "links": browser.links}
+    app = TestClient(create_app(Limits(2_000_000, 3, 5, 60, 1)))
+    auth = {"X-Rmink-Secret": "s3cret"}
+
+    r = app.post("/api/workbook/relayout", json={"name": "Bråk", **memory}, headers=auth)
+    assert r.status_code == 200, r.text
+    assert r.json()["sent_as"] == "/rmink/Bråk/Bråk r02"
+    assert fake.folders["/rmink/Bråk/Tidigare"] == {"Bråk r01"}
+    back = r.json()["store"]
+    assert Workbook.model_validate_json(back["drawings"]["workbook:bråk"]).layout == 2
+    again = app.post("/api/workbook/relayout", json={"name": "Bråk", **back}, headers=auth)
+    assert again.status_code == 409

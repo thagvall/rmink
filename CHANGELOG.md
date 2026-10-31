@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.13.0 — 2026-10-31
+
+- Workbooks use the page better, with room to write (layout 2, for new workbooks):
+  - Answer boxes share the free space at the bottom of each page, so a page no longer ends in a blank third. A box that asks for more lines gets more of it.
+  - Ruled lines are 34 pt apart instead of 26 pt (about 12 mm), since handwriting on a tablet is large, and every written answer has at least two lines.
+  - Choice boxes are 20 pt instead of 16 pt.
+  - Narrower margins (22 pt instead of 40 pt), and the answer boxes start under the question text and run out to the margin. The ruled lines go almost to the edges of the box.
+  - Claude is asked for 2 lines for a short answer and 4–8 where the reader shows working or explains.
+  - Workbooks made before keep their layout, so their next round still finds the boxes where you wrote.
+  - `rmink workbook relayout <name>`, or "Större svarsrutor" on `/rounds`, sends an older workbook again in the new layout as its next revision, with the answers so far.
+- Drawings:
+  - A drawing sketched small is enlarged to fill the page width, at most 60 % of the page height, from the top. Text sizes stay, and labels stay on the page. Dimensions keep their values, so scale and measurements are unchanged. A drawing that already fills the page is left as it is.
+  - Each open remark has three lines to write the answer on instead of one.
+  - rmink bygg: new drawings are filed under `rmink/Bygg/<name>/`, beside `rmink/Skola/`. A sketch in a folder of its own (`rmink/Garage/skiss`) still gets its revisions in that folder.
+  - `rmink upgrade <name>`, or "Till Bygg, större ritning" on `/rounds`, moves an older drawing into `rmink/Bygg/` and sends it again drawn the new way. It refuses when the current revision has marks a round has not read.
+
 ## 2.12.1 — 2026-10-30
 
 - `/rounds`: a workbook without a group has "Flytta till grupp…" on its card. It moves the workbook, with its earlier revisions, into `rmink/Skola/<group>/` and updates what the browser keeps, like `rmink workbook move` does for workbooks saved on the computer.

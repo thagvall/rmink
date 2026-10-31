@@ -426,12 +426,14 @@ def test_rounds_file_revisions_in_the_drawing_folder(sketch, tmp_path, monkeypat
     }
     r = run_round("/rmink/Altan", "rm2", store, client=FakeClient(_turns(with_question)))
 
-    # The sketch had the drawing's name: renamed first, then filed under Tidigare.
-    assert r.sent_as == "/rmink/Altan/Altan r01 · 1 fråga"
-    assert fake.folders["/rmink"] == {"Altan", "Garage"}
-    assert fake.folders["/rmink/Altan"] == {"Altan r01 · 1 fråga", "Tidigare"}
-    assert fake.folders["/rmink/Altan/Tidigare"] == {"Altan r00 skiss"}
-    assert fake.calls[0] == ("mv", "/rmink/Altan", "/rmink/Altan r00 skiss")
+    # A new drawing goes under rmink/Bygg; the sketch is filed under Tidigare.
+    folder = "/rmink/Bygg/Altan"
+    assert r.sent_as == f"{folder}/Altan r01 · 1 fråga"
+    assert fake.folders["/rmink"] == {"Bygg", "Garage"}
+    assert fake.folders[folder] == {"Altan r01 · 1 fråga", "Tidigare"}
+    assert fake.folders[f"{folder}/Tidigare"] == {"Altan r00 skiss"}
+    assert ("mv", "/rmink/Altan", f"{folder}/Tidigare/Altan r00 skiss") in fake.calls
+    assert store.load("Altan").area == "Bygg"
     saved = store.load("Altan")
     assert saved.sketch.sent_as == r.sent_as and saved.date
     assert store.linked(r.sent_as) == "Altan"
@@ -443,10 +445,10 @@ def test_rounds_file_revisions_in_the_drawing_folder(sketch, tmp_path, monkeypat
     r2 = run_round("Altan", "rm2", store, client=client)
     intro = client.requests[0]["messages"][0]["content"][0]["text"]
     assert "Round 2" in intro and 'Open remarks on the page: 1 = a1 "Höjd?"' in intro
-    assert r2.sent_as == "/rmink/Altan/Altan r02"
-    assert fake.folders["/rmink/Altan"] == {"Altan r02", "Tidigare"}
-    assert fake.folders["/rmink/Altan/Tidigare"] == {"Altan r00 skiss", "Altan r01 · 1 fråga"}
-    assert store.linked("/rmink/Altan/Tidigare/Altan r01 · 1 fråga") == "Altan"
+    assert r2.sent_as == f"{folder}/Altan r02"
+    assert fake.folders[folder] == {"Altan r02", "Tidigare"}
+    assert fake.folders[f"{folder}/Tidigare"] == {"Altan r00 skiss", "Altan r01 · 1 fråga"}
+    assert store.linked(f"{folder}/Tidigare/Altan r01 · 1 fråga") == "Altan"
 
 
 def test_a_sketch_in_its_own_folder_stays_in_that_folder(sketch, tmp_path, monkeypatch):
@@ -466,10 +468,10 @@ def test_a_sketch_in_its_own_folder_stays_in_that_folder(sketch, tmp_path, monke
 def test_notebooks_outside_rmink_stay_put(sketch, tmp_path, monkeypatch):
     fake = FakeCloud(monkeypatch, {"/": {"Altan"}}, {"/Altan": sketch.read_bytes()})
     r = run_round("/Altan", "rm2", FileStore(tmp_path / "d"), client=FakeClient(_turns()))
-    assert r.sent_as == "/rmink/Altan/Altan r01"
+    assert r.sent_as == "/rmink/Bygg/Altan/Altan r01"
     assert fake.folders["/"] == {"Altan", "rmink"}
     assert not [c for c in fake.calls if c[0] == "mv"]
-    assert ("mkdir", "/rmink") in fake.calls and ("mkdir", "/rmink/Altan") in fake.calls
+    assert ("mkdir", "/rmink") in fake.calls and ("mkdir", "/rmink/Bygg/Altan") in fake.calls
 
 
 def test_a_failed_move_does_not_fail_the_round(sketch, tmp_path, monkeypatch):
@@ -481,11 +483,11 @@ def test_a_failed_move_does_not_fail_the_round(sketch, tmp_path, monkeypatch):
     fake.fail_moves_to = "/Tidigare/"
     store = FileStore(tmp_path / "d")
     r = run_round("/rmink/Garage", "rm2", store, client=FakeClient(_turns()))
-    assert r.sent_as == "/rmink/Garage/Garage r01"
+    assert r.sent_as == "/rmink/Bygg/Garage/Garage r01"
     assert store.load("Garage").sketch.sent_as == r.sent_as
-    # The sketch was renamed to free the folder name but stays in rmink.
-    assert fake.folders["/rmink"] == {"Garage", "Garage r00 skiss"}
-    assert fake.folders["/rmink/Garage"] == {"Garage r01", "Tidigare"}
+    # The sketch could not be filed under Tidigare, so it stays in rmink.
+    assert fake.folders["/rmink"] == {"Bygg", "Garage"}
+    assert fake.folders["/rmink/Bygg/Garage"] == {"Garage r01", "Tidigare"}
 
 
 def test_open_remarks_get_answer_lines():
@@ -496,13 +498,13 @@ def test_open_remarks_get_answer_lines():
         Annotation(id="a2", kind="cross", targets=["M1"], text="Stämmer måttet?"),
     ]
     with_remarks = render_drawing(d, RM2)
-    # Rings, badges, the remark texts and a SVAR line under each remark.
+    # Rings, badges, the remark texts and three SVAR lines under each remark.
     answer_lines = [
         s for s in with_remarks.strokes
         if len(s.points) == 2 and s.points[0][1] == s.points[1][1] and s.width == 1.2
     ]  # fmt: skip
-    assert len(answer_lines) == 2
-    assert _bottom(with_remarks) - _bottom(without) > 2 * 64
+    assert len(answer_lines) == 2 * 3
+    assert _bottom(with_remarks) - _bottom(without) > 2 * (84 + 2 * 76)
 
 
 def _bottom(page):
@@ -525,3 +527,139 @@ def test_long_remarks_and_log_lines_wrap_instead_of_being_cut():
     short = render_drawing(d, RM2)
     d.log = [text * 2]
     assert _bottom(render_drawing(d, RM2)) - _bottom(short) >= 22
+
+
+def test_a_small_sketch_is_enlarged_to_the_page():
+    small = Drawing.model_validate(
+        {
+            "name": "Hus",
+            "elements": [
+                {"id": "V1", "kind": "rect", "points": [[400, 600], [900, 860]]},
+                {"id": "T1", "kind": "text", "points": [[920, 560]], "text": "SKORSTEN"},
+                {"id": "C1", "kind": "circle", "center": [500, 700], "radius": 20},
+            ],
+            "dimensions": [{"id": "M1", "start": [400, 860], "end": [900, 860], "text": "10"}],
+            "symbols": [{"id": "S1", "kind": "door", "at": [600, 860], "size": 40}],
+            "annotations": [{"id": "a1", "kind": "note", "at": [650, 700], "text": "?"}],
+        }
+    )
+    fitted = workflow.fit_to_page(small, RM2)
+    (x0, y0), (x1, y1) = fitted.elements[0].points
+    k = (x1 - x0) / 500
+    assert k > 1.5 and (y1 - y0) / 260 == pytest.approx(k, rel=0.01)
+    assert workflow._extent(fitted)[0][1] == pytest.approx(workflow.FIT_TOP)  # from the top
+    assert x0 >= workflow.FIT_MARGIN and x1 <= RM2.width - workflow.FIT_MARGIN
+    # The text stays its size and on the page; the rest scales with the walls.
+    from rmink.drawing.font import text_width
+
+    t = fitted.elements[1]
+    assert t.size == small.elements[1].size
+    assert t.points[0][0] + text_width(t.text, t.size) <= RM2.width - workflow.FIT_MARGIN / 2
+    assert fitted.elements[2].radius == pytest.approx(20 * k, rel=0.01)
+    assert fitted.symbols[0].size == pytest.approx(40 * k, rel=0.01)
+    assert fitted.dimensions[0].text == "10"
+    assert fitted.annotations[0].at != small.annotations[0].at
+    # Measurements come out the same, and fitting again changes nothing.
+    before, after = (workflow.measure(d, ["V1"])["items"][0] for d in (small, fitted))
+    assert after["length"] == pytest.approx(before["length"], rel=0.01)
+    assert after["area"] == pytest.approx(before["area"], rel=0.02)
+    assert workflow.fit_to_page(fitted, RM2) == fitted
+
+
+def test_a_drawing_that_fills_the_page_is_left_alone():
+    big = Drawing.model_validate(
+        DRAWING | {"elements": [{"id": "V1", "kind": "rect", "points": [[100, 300], [1300, 900]]}]}
+    )
+    assert workflow.fit_to_page(big, RM2) == big
+
+
+def test_new_area_follows_the_sketch():
+    assert workflow.new_area("/rmink/Altan") == "Bygg"
+    assert workflow.new_area("/Skisser/Altan") == "Bygg"
+    assert workflow.new_area("/rmink/Bygg/Altan") == "Bygg"
+    assert workflow.new_area("/rmink/Bygg/Altan/skiss") == "Bygg"
+    assert workflow.new_area("/rmink/Garage/skiss") == ""  # a folder of its own
+    assert workflow.drawing_folder("Altan", "Bygg") == "/rmink/Bygg/Altan"
+    assert workflow.drawing_folder("Altan") == "/rmink/Altan"
+
+
+def test_a_sketch_in_a_bygg_folder_gets_its_revisions_there(sketch, tmp_path, monkeypatch):
+    fake = FakeCloud(
+        monkeypatch,
+        {"/": {"rmink"}, "/rmink": {"Bygg"}, "/rmink/Bygg": {"Bod"}, "/rmink/Bygg/Bod": {"skiss"}},
+        {"/rmink/Bygg/Bod/skiss": sketch.read_bytes()},
+    )
+    r = run_round(
+        "/rmink/Bygg/Bod/skiss", "rm2", FileStore(tmp_path / "d"), client=FakeClient(_turns())
+    )
+    assert r.sent_as == "/rmink/Bygg/Bod/Bod r01"
+    assert fake.folders["/rmink/Bygg/Bod/Tidigare"] == {"Bod r00 skiss"}
+
+
+def test_move_an_old_drawing_into_bygg_and_resend(sketch, tmp_path, monkeypatch):
+    fake = FakeCloud(
+        monkeypatch,
+        {"/": {"rmink"}, "/rmink": {"Garage"}, "/rmink/Garage": {"skiss"}},
+        {"/rmink/Garage/skiss": sketch.read_bytes()},
+    )
+    store = FileStore(tmp_path / "d")
+    with_question = DRAWING | {
+        "annotations": [{"id": "a1", "kind": "circle", "targets": ["V1"], "text": "Höjd?"}]
+    }
+    r = run_round("/rmink/Garage/skiss", "rm2", store, client=FakeClient(_turns(with_question)))
+    assert r.sent_as == "/rmink/Garage/Garage r01 · 1 fråga"  # made before areas
+    old = store.load("Garage")
+    assert old.area == ""
+
+    folder = workflow.move_to_area(old, "Bygg", "tok", store)
+    assert folder == "/rmink/Bygg/Garage"
+    assert "Garage" not in fake.folders["/rmink"]
+    moved = store.load("Garage")
+    assert moved.area == "Bygg" and moved.sketch.sent_as == f"{folder}/Garage r01 · 1 fråga"
+    assert store.linked(f"{folder}/Tidigare/Garage r00 skiss") == "Garage"
+
+    sent_as = workflow.resend(moved, "tok", store)
+    assert sent_as == f"{folder}/Garage r02 · 1 fråga"
+    assert fake.folders[f"{folder}/Tidigare"] == {"Garage r00 skiss", "Garage r01 · 1 fråga"}
+    again = store.load("Garage")
+    assert again.revision == 2 and again.log[-1].startswith("r2: ny layout")
+    pages = read_rmdoc(fake.documents[sent_as], RM2).pages
+    assert len(pages) == 2  # the drawing and the sketch
+    # The next round reads the new revision.
+    fake.documents[sent_as] = _mark_up(fake.documents[sent_as], tmp_path)
+    r3 = run_round("Garage", "rm2", store, client=FakeClient(_turns()))
+    assert r3.sent_as == f"{folder}/Garage r03"
+
+
+def test_upgrade_refuses_unread_marks_and_web_upgrades(sketch, tmp_path, monkeypatch):
+    pytest.importorskip("fastapi")
+    from fastapi.testclient import TestClient
+
+    from rmink.drawing.store import MemoryStore
+    from rmink.web.app import Limits, create_app
+
+    monkeypatch.setenv("RMINK_ROUNDS_SECRET", "s3cret")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
+    fake = FakeCloud(
+        monkeypatch,
+        {"/": {"rmink"}, "/rmink": {"Bastu"}, "/rmink/Bastu": {"skiss"}},
+        {"/rmink/Bastu/skiss": sketch.read_bytes()},
+    )
+    browser = MemoryStore()
+    r = run_round("/rmink/Bastu/skiss", "rm2", browser, client=FakeClient(_turns()))
+    memory = {"drawings": browser.drawings, "links": browser.links}
+    app = TestClient(create_app(Limits(2_000_000, 3, 5, 60, 1)))
+    auth = {"X-Rmink-Secret": "s3cret"}
+
+    marked = fake.documents[r.sent_as]
+    fake.documents[r.sent_as] = _mark_up(marked, tmp_path)
+    refused = app.post("/api/drawing/upgrade", json={"name": "Bastu", **memory}, headers=auth)
+    assert refused.status_code == 409 and "varv" in refused.json()["detail"]
+    assert "Bygg" not in fake.folders["/rmink"]  # nothing moved
+
+    fake.documents[r.sent_as] = marked
+    ok = app.post("/api/drawing/upgrade", json={"name": "Bastu", **memory}, headers=auth)
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["sent_as"] == "/rmink/Bygg/Bastu/Bastu r02"
+    saved = Drawing.model_validate_json(ok.json()["store"]["drawings"]["bastu"])
+    assert saved.area == "Bygg" and saved.revision == 2

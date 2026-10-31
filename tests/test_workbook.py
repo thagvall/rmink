@@ -684,3 +684,76 @@ def test_unclear_crosses_go_to_claude(tmp_path):
     assert len(texts) == 1 and "B) 1/2" in texts[0]
     saved = store.load_workbook("Val")
     assert saved.field("s1f1").verdict == "correct" and saved.field("s1f2").answer == "A"
+
+
+def test_layout_2_fills_each_page_and_keeps_its_boxes():
+    from rmink.workbook.build import METRICS
+
+    margin = METRICS[2].margin
+    wb = Workbook.model_validate(WORKBOOK | {"layout": 2})
+    build_pdf(wb, RM2)
+    w, h = page_size(RM2)
+    rects = {f.id: f.rect for f in wb.fields()}
+    # Boxes are as wide as the text above them, out to the narrow margins.
+    assert all(f.rect[0] == margin and f.rect[2] == w - margin for f in wb.fields())
+    # The last box on each page reaches down to the "next" link.
+    for page in {f.page for f in wb.fields()}:
+        last = max(f.rect[3] for f in wb.fields() if f.page == page)
+        assert h - margin - 34 - 4 < last <= h - margin - 34
+    # Boxes share the space by their lines, at least two lines each.
+    s1f1, s1f2 = (wb.field(i).rect for i in ("s1f1", "s1f2"))
+    assert s1f1[3] - s1f1[1] >= 2 * 34 + 8
+    assert s1f2[3] - s1f2[1] > 1.2 * (s1f1[3] - s1f1[1])
+    # Answers and grading do not move them.
+    wb.field("s1f1").answer, wb.field("s1f1").verdict = "9", "correct"
+    build_pdf(wb, RM2)
+    assert {f.id: f.rect for f in wb.fields()} == rects
+
+
+def test_saved_workbooks_keep_layout_1():
+    wb = _wb()
+    assert wb.layout == 1
+    f = wb.field("s1f1")
+    assert f.rect[3] - f.rect[1] == 2 * 26 + 8  # as the boxes were drawn before
+
+
+def test_new_workbooks_get_the_current_layout(tmp_path):
+    from rmink.workbook.agent import start_workbook
+    from rmink.workbook.model import LAYOUT
+
+    store = FileStore(tmp_path / "d")
+    start_workbook(Workbook.model_validate(WORKBOOK), "rm2", store, send=False)
+    assert store.load_workbook("Bråk").layout == LAYOUT == 2
+
+
+def test_relayout_sends_the_answers_in_the_new_layout(tmp_path, monkeypatch):
+    fake = FakeCloud(monkeypatch, {"/": {"rmink"}, "/rmink": set()})
+    store = FileStore(tmp_path / "d")
+    wb = _wb()  # layout 1, as saved before 2.13
+    wb.field("s1f1").answer = "9"
+    from rmink.workbook.agent import start_workbook
+
+    start_workbook(wb, "rm2", store)
+    old = store.load_workbook("Bråk")
+    old.layout = 1
+    build_pdf(old, RM2)
+    store.save_workbook(old)
+    old_rect = old.field("s1f1").rect
+
+    sent_as = workflow.relayout(old, "tok", store)
+    assert sent_as == "/rmink/Bråk/Bråk r02"
+    assert fake.folders["/rmink/Bråk/Tidigare"] == {"Bråk r01"}
+    new = store.load_workbook("Bråk")
+    assert (new.layout, new.revision, new.field("s1f1").answer) == (2, 2, "9")
+    assert new.field("s1f1").rect != old_rect
+    assert store.linked(sent_as) == "workbook:Bråk"
+    # The next round reads ink in the new boxes.
+    fake.documents[sent_as] = _synced(new, tmp_path, {1: [_writing_in(new, "s1f2")]}).read_bytes()
+    r = run_round(
+        "Bråk",
+        None,
+        store,
+        client=FakeClient(_answers({"id": "s1f2", "text": "x", "confident": True})),
+    )
+    assert r.sent_as == "/rmink/Bråk/Bråk r03"
+    assert store.load_workbook("Bråk").field("s1f2").answer == "x"

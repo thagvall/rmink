@@ -25,13 +25,14 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import tempfile
 from pathlib import Path
 from typing import Literal
 
 import pymupdf
 
 from rmink import cloud
-from rmink.devices import DeviceProfile
+from rmink.devices import DeviceProfile, get_device
 from rmink.drawing.store import WORKBOOK_LINK, Store
 from rmink.drawing.workflow import (
     _GLOB,
@@ -44,7 +45,7 @@ from rmink.drawing.workflow import (
 from rmink.model import Page, Stroke
 from rmink.package.rmdoc import RmdocPage, UuidFactory, write_rmdoc
 from rmink.workbook.build import FACIT_LAYER, build_pdf, solution_strokes
-from rmink.workbook.model import Workbook
+from rmink.workbook.model import LAYOUT, Workbook
 from rmink.workbook.read import HANDWRITING_LAYER, Sorted
 from rmink.writer.rm_v6 import write_page
 
@@ -196,3 +197,19 @@ def move_to_group(workbook: Workbook, area: str, group: str, token: str, store: 
         elif not e.folder:
             store.link(f"{new}/{e.name}", link)
     return new
+
+
+def relayout(workbook: Workbook, token: str, store: Store) -> str:
+    """Send the workbook again in the current layout (:data:`LAYOUT`) as its
+    next revision, with the answers so far; the current one moves to
+    Tidigare. Run it when the current revision has no unread ink: ink drawn
+    for the old boxes, also the hidden "Handskrift" layer, stays behind in
+    Tidigare. Returns the cloud path."""
+    wb = workbook.model_copy(deep=True)
+    wb.layout = LAYOUT
+    wb.revision += 1
+    wb.document = wb.sent_as  # moves to Tidigare like a revision a round read
+    wb.log.append(f"r{wb.revision:02d}: ny layout med större svarsrutor")
+    with tempfile.TemporaryDirectory() as tmp:
+        path = build_revision(wb, Path(tmp) / "wb.rmdoc", get_device(wb.device))
+        return send_revision(wb, path, token, store)

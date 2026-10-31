@@ -87,6 +87,18 @@ class MoveRequest(BaseModel):
     links: dict[str, str] = {}
 
 
+class RelayoutRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    drawings: dict[str, str] = {}
+    links: dict[str, str] = {}
+
+
+class UpgradeRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    drawings: dict[str, str] = {}
+    links: dict[str, str] = {}
+
+
 def router() -> APIRouter:
     r = APIRouter()
 
@@ -214,6 +226,57 @@ def router() -> APIRouter:
         except cloud.CloudError as e:
             raise HTTPException(502, str(e)) from e
         out = {"folder": folder}
+        if isinstance(store, MemoryStore):
+            out["store"] = {"drawings": store.changed, "links": store.links}
+        return out
+
+    @r.post("/api/workbook/relayout")
+    async def relayout(req: RelayoutRequest, x_rmink_secret: str | None = Header(None)) -> dict:
+        """Send a workbook again in the current layout as its next revision."""
+        _check(x_rmink_secret)
+        token = _token()
+        from rmink.drawing.store import MemoryStore, redis_from_env
+        from rmink.workbook import workflow
+        from rmink.workbook.model import LAYOUT
+
+        store = redis_from_env() or MemoryStore(req.drawings, req.links)
+        wb = store.load_workbook(req.name)
+        if wb is None:
+            raise HTTPException(404, f'Ingen sparad arbetsbok "{req.name}"')
+        if wb.layout >= LAYOUT:
+            raise HTTPException(409, f"{wb.name} har redan den nya layouten")
+        try:
+            sent_as = await anyio.to_thread.run_sync(workflow.relayout, wb, token, store)
+        except cloud.CloudAuthError as e:
+            raise HTTPException(401, str(e)) from e
+        except cloud.CloudError as e:
+            raise HTTPException(502, str(e)) from e
+        out = {"sent_as": sent_as}
+        if isinstance(store, MemoryStore):
+            out["store"] = {"drawings": store.changed, "links": store.links}
+        return out
+
+    @r.post("/api/drawing/upgrade")
+    async def upgrade(req: UpgradeRequest, x_rmink_secret: str | None = Header(None)) -> dict:
+        """File an older drawing under rmink/Bygg and send it again drawn the current way."""
+        _check(x_rmink_secret)
+        token = _token()
+        from rmink.drawing import workflow
+        from rmink.drawing.store import MemoryStore, redis_from_env
+
+        store = redis_from_env() or MemoryStore(req.drawings, req.links)
+        d = store.load(req.name)
+        if d is None or not d.sketch.sent_as:
+            raise HTTPException(404, f'Ingen sparad ritning "{req.name}"')
+        try:
+            sent_as = await anyio.to_thread.run_sync(workflow.upgrade, d, token, store)
+        except workflow.NewMarksError as e:
+            raise HTTPException(409, str(e)) from e
+        except cloud.CloudAuthError as e:
+            raise HTTPException(401, str(e)) from e
+        except cloud.CloudError as e:
+            raise HTTPException(502, str(e)) from e
+        out = {"sent_as": sent_as}
         if isinstance(store, MemoryStore):
             out["store"] = {"drawings": store.changed, "links": store.links}
         return out

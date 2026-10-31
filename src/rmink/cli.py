@@ -357,6 +357,27 @@ def round_(
         typer.echo(f"  ? {q}")
 
 
+@app.command()
+def upgrade(
+    name: Annotated[str, typer.Argument(help="A saved drawing, e.g. Garage")],
+) -> None:
+    """Move a drawing made before 2.13 into rmink/Bygg/ and send it again drawn the
+    current way: enlarged to the page, three answer lines per remark."""
+    from rmink import cloud
+    from rmink.drawing import workflow
+
+    try:
+        d = workflow.load_drawing(name)
+    except FileNotFoundError as e:
+        raise typer.BadParameter(str(e)) from e
+    try:
+        sent_as = workflow.upgrade(d, _token())
+    except cloud.CloudError as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+    typer.echo(f"{d.name}: sent as {sent_as!r}")
+
+
 workbook_app = typer.Typer(
     help="Workbooks: a linked PDF with answer boxes; handwritten answers become text."
 )
@@ -464,6 +485,36 @@ def workbook_move(
         typer.secho(f"error: {e}", fg="red", err=True)
         raise typer.Exit(1) from e
     typer.echo(f"{wb.name} is in {folder}")
+
+
+@workbook_app.command("relayout")
+def workbook_relayout(
+    name: Annotated[str, typer.Argument(help="The workbook, e.g. Bråktest")],
+) -> None:
+    """Send a workbook again in the current layout (bigger answer boxes) as its next
+    revision. Run a round first if you have written in it since the last one."""
+    from rmink import cloud
+    from rmink.drawing.store import default_store
+    from rmink.workbook import workflow
+    from rmink.workbook.model import LAYOUT
+
+    store = default_store()
+    wb = store.load_workbook(name)
+    if wb is None:
+        raise typer.BadParameter(f'No saved workbook "{name}"')
+    if wb.layout >= LAYOUT:
+        typer.echo(f"{wb.name} already has the current layout")
+        return
+    token = cloud.load_token()
+    if not token:
+        typer.secho("error: rmink is not connected to reMarkable Cloud", fg="red", err=True)
+        raise typer.Exit(1)
+    try:
+        sent_as = workflow.relayout(wb, token, store)
+    except cloud.CloudError as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+    typer.echo(f"{wb.name}: sent as {sent_as!r}")
 
 
 @workbook_app.command("round")

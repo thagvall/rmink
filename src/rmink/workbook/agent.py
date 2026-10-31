@@ -37,7 +37,7 @@ from rmink.drawing.agent import (
 from rmink.drawing.store import WORKBOOK_LINK, Store, guess_drawing_name
 from rmink.workbook import catalog, workflow
 from rmink.workbook.build import build_pdf
-from rmink.workbook.model import AnswerField, Workbook, letter
+from rmink.workbook.model import LAYOUT, AnswerField, Workbook, letter
 from rmink.workbook.read import Ink, Sorted, field_png, read_choices, read_ink, sort_ink
 
 CREATE_PROMPT = """\
@@ -49,11 +49,12 @@ Write it in the language of the request (Swedish unless the request says \
 otherwise). Teach, then practise: each section opens with a short explanation \
 (at most about 120 words, plain text, no Markdown) and has 1 to 5 fields. A \
 field is one question or task; "lines" is how many ruled lines its answer \
-needs (1 for a number, 3-6 for an explanation). Use 3 to 8 sections that build \
-on each other. Use plain characters: write 3/4, x^2, sqrt(2), and avoid \
-symbols outside Latin-1 such as arrows or Greek letters. Give "name" as a short \
-folder name (1-3 words). Ids are short and unique: s1, s2 for sections and \
-s1f1, s1f2 for fields.
+needs: 2 for a short answer, 4-8 when the reader should show working or \
+explain (handwriting on a tablet is large). Each box also gets the free space \
+left on its page. Use 3 to 8 sections that build on each other. Use plain \
+characters: write 3/4, x^2, sqrt(2), and avoid symbols outside Latin-1 such \
+as arrows or Greek letters. Give "name" as a short folder name (1-3 words). \
+Ids are short and unique: s1, s2 for sections and s1f1, s1f2 for fields.
 
 Give every field a "solution": the expected answer with the key step, in at \
 most two short lines (it is drawn in small capitals under the box, on a layer \
@@ -349,6 +350,7 @@ def start_workbook(
             f'Det finns redan en arbetsbok som heter "{wb.name}"; välj ett annat namn.'
         )
     device = get_device(device_key)
+    wb.layout = LAYOUT
     wb.revision = 1
     wb.device = device.key
     wb.date = datetime.date.today().isoformat()

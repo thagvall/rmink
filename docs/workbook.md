@@ -169,6 +169,22 @@ utan grupp fungerar som förut i `rmink/<namn>/`.
 | Dolt lager (`visible = False`) | Ja: dolt när dokumentet öppnas och går att tända |
 | Text i PDF:en | Syns som text. Plattans sökning söker däremot inte i PDF-text (inte heller "Procent" som fanns från början). Texten går att söka i och kopiera i datorappen och i en exporterad PDF. |
 
+## Layout
+
+Arbetsboken sparar vilken layout den gjordes med (`layout`), och varje varv bygger samma rutor igen.
+Annars skulle bläcket hamna i fel ruta när layouten ändras.
+
+- **Layout 1** (arbetsböcker före 2.13): radavstånd 26 pt, minst en rad, flervalsrutor 16 pt.
+- **Layout 2**: radavstånd 34 pt (ca 12 mm) och minst två rader, flervalsrutor 20 pt. Marginalen är 22 pt och
+  rutorna börjar under frågetexten och går ut till marginalen. Ytan som blir över
+  längst ner på en sida delas mellan sidans skrivrutor efter hur många rader de har. Layouten byggs i två
+  pass: det första ser var varje sida slutar, det andra ger rutorna resten av sidan. Sidbrytningarna blir
+  desamma i båda passen.
+
+En äldre arbetsbok får den nya layouten med `rmink workbook relayout <namn>` eller *Större svarsrutor*
+på `/rounds`: den skickas igen som nästa revision med svaren hittills. Kör ett varv först om du har
+skrivit i den, och tänk på att handstil i det dolda lagret *Handskrift* stannar i *Tidigare*.
+
 ## Begränsningar
 
 - Typsnittet är den inbyggda Helvetica (Latin-1). Pilar, grekiska bokstäver och liknande skrivs

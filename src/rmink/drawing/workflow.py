@@ -23,11 +23,13 @@ The steps the MCP server and CLI share:
 
 from __future__ import annotations
 
+import datetime
 import io
 import json
 import logging
 import math
 import re
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -36,6 +38,7 @@ import numpy as np
 from rmink import cloud
 from rmink.devices import DeviceProfile, config_dir, get_device
 from rmink.drawing.fit import Group, analyse, overlay
+from rmink.drawing.font import text_width
 from rmink.drawing.model import Dimension, Drawing, Element, LegendEntry
 from rmink.drawing.render import default_legend, render_alternatives, render_drawing
 from rmink.drawing.store import FileStore, Store
@@ -68,8 +71,36 @@ def revision_title(drawing: Drawing) -> str:
     return title
 
 
-def drawing_folder(name: str) -> str:
-    return f"{RMINK_FOLDER}/{safe_name(name)}"
+BYGG = "Bygg"  # the area new drawings are filed under
+AREAS = (BYGG, "Skola")  # folders under rmink that hold areas, not a drawing
+
+
+def new_area(sketch: str) -> str:
+    """The area a new drawing from the notebook ``sketch`` goes in: Bygg for a
+    sketch in rmink or under rmink/Bygg, none for one in a folder of its own
+    (rmink/Garage/skiss stays in rmink/Garage), so its revisions go beside it."""
+    parts = [p for p in sketch.split("/") if p]
+    if parts[:1] != ["rmink"] or len(parts) <= 2:
+        return BYGG
+    return parts[1] if parts[1] in AREAS else ""
+
+
+def drawing_folder(name: str, area: str = "") -> str:
+    """'/rmink/Bygg/Altan', or '/rmink/Altan' without an area."""
+    return "/".join([RMINK_FOLDER, *(safe_name(p) for p in (area, name) if p)])
+
+
+def make_folders(token: str, folder: str) -> list[cloud.Entry]:
+    """The entries of ``folder``, made with the folders above it if missing."""
+    try:
+        return cloud.ls(token, folder)
+    except cloud.CloudNotFoundError:
+        pass
+    path = ""
+    for part in folder.strip("/").split("/"):
+        path += "/" + part
+        cloud.mkdir(token, path)  # a folder that is there counts as made
+    return []
 
 
 def drawings_dir() -> Path:
@@ -258,6 +289,81 @@ _NUMBER = re.compile(r"-?\d+(?:[.,]\d+)?")
 ANGLE_TOLERANCE = 2.0  # degrees between a written angle and the drawn one
 
 
+FIT_TOP = 110.0  # px, where a fitted drawing starts (under the tablet's toolbar)
+FIT_MARGIN = 90.0  # px left and right, room for dimensions and labels
+FIT_HEIGHT = 0.6  # of the page height at most, so the title block fits below
+FIT_MIN = 1.1  # enlarge only when it gains at least this much
+
+
+def _extent(drawing: Drawing) -> tuple[np.ndarray, np.ndarray] | None:
+    """Bounding box of the drawing's geometry (not its texts' sizes)."""
+    pts: list[tuple[float, float]] = []
+    for e in drawing.elements:
+        pts += e.points
+        if e.center is not None and e.radius:
+            cx, cy = e.center
+            pts += [(cx - e.radius, cy - e.radius), (cx + e.radius, cy + e.radius)]
+    for d in drawing.dimensions:
+        pts += [d.start, d.end]
+    for a in drawing.angles:
+        pts += [a.vertex, a.start, a.end]
+    for sym in drawing.symbols:
+        x, y = sym.at
+        pts += [(x - sym.size / 2, y - sym.size / 2), (x + sym.size / 2, y + sym.size / 2)]
+    if not pts:
+        return None
+    arr = np.array(pts, dtype=float)
+    return arr.min(axis=0), arr.max(axis=0)
+
+
+def fit_to_page(drawing: Drawing, device: DeviceProfile) -> Drawing:
+    """Enlarge a drawing sketched small to fill the page width (or
+    :data:`FIT_HEIGHT` of its height) from the top, keeping its shape. Sizes
+    of texts, dimension offsets and angle arcs stay; dimensions keep their
+    values, so scale and measurements are unchanged. A drawing that already
+    fills the page is returned as it is, so fitting twice changes nothing."""
+    box = _extent(drawing)
+    if box is None:
+        return drawing
+    lo, hi = box
+    w, h = max(hi[0] - lo[0], 1.0), max(hi[1] - lo[1], 1.0)
+    width = device.width - 2 * FIT_MARGIN
+    k = min(width / w, device.height * FIT_HEIGHT / h, 4.0)
+    texts = [e for e in drawing.elements if e.kind == "text" and e.points and e.text]
+
+    def at(p):
+        q = (np.asarray(p, dtype=float) - lo) * k + origin
+        return (round(float(q[0]), 1), round(float(q[1]), 1))
+
+    # Texts keep their size: shrink until the widest one stays on the page.
+    while True:
+        if k < FIT_MIN:
+            return drawing
+        origin = np.array([FIT_MARGIN + (width - w * k) / 2, FIT_TOP])
+        right = max((at(e.points[0])[0] + text_width(e.text, e.size) for e in texts), default=0.0)
+        if right <= device.width - FIT_MARGIN / 2:
+            break
+        k *= 0.95
+
+    d = drawing.model_copy(deep=True)
+    for e in d.elements:
+        e.points = [at(p) for p in e.points]
+        if e.center is not None:
+            e.center = at(e.center)
+        if e.radius:
+            e.radius = round(e.radius * k, 1)
+    for dim in d.dimensions:
+        dim.start, dim.end = at(dim.start), at(dim.end)
+    for a in d.angles:
+        a.vertex, a.start, a.end = at(a.vertex), at(a.start), at(a.end)
+    for sym in d.symbols:
+        sym.at, sym.size = at(sym.at), round(sym.size * k, 1)
+    for ann in d.annotations:
+        if ann.at is not None:
+            ann.at = at(ann.at)
+    return d
+
+
 def check_dimensions(drawing: Drawing) -> dict:
     """Written measurements against drawn lengths: the common scale and the
     dimensions that disagree with it, which are worth asking about."""
@@ -413,7 +519,11 @@ def build_revision(
     save the drawing with the ids of the strokes rmink wrote, in ``store``
     (the local drawings folder by default)."""
     device = get_device(drawing.sketch.device)
-    drawing = drawing.model_copy(deep=True)
+    drawing = fit_to_page(drawing.model_copy(deep=True), device)
+    if not drawing.area:
+        # Claude's JSON has no area: keep the saved drawing's, Bygg when new.
+        saved = (store or FileStore()).load(drawing.name)
+        drawing.area = saved.area if saved else new_area(drawing.sketch.document)
     if not drawing.legend:
         drawing.legend = [LegendEntry(key=k, meaning=m) for k, m in default_legend(drawing)]
     clean = render_drawing(drawing, device)
@@ -463,24 +573,20 @@ def send_revision(rev: Revision, token: str, store: Store | None = None) -> str:
     user's and stay put.
     """
     d, store = rev.drawing, store or FileStore()
-    folder = drawing_folder(d.name)
+    folder = drawing_folder(d.name, d.area)
+    inboxes = {RMINK_FOLDER, folder.rpartition("/")[0]}  # rmink and rmink/<area>
     read = d.sketch.document
     parent, _, base = read.rpartition("/")
-    movable = parent in (RMINK_FOLDER, folder) and not _GLOB.search(read)
-    first = parent == RMINK_FOLDER or d.revision == 1
+    movable = (parent in inboxes or parent == folder) and not _GLOB.search(read)
+    first = parent in inboxes or d.revision == 1
     archived_name = f"{safe_name(d.name)} r00 skiss" if first else base
     if movable and read == folder:
         # The sketch has the drawing's name; rmapi finds entries by name, so
         # free it before making the folder.
-        renamed = f"{RMINK_FOLDER}/{archived_name}"
+        renamed = f"{parent}/{archived_name}"
         cloud.mv(token, read, renamed)
         read = renamed
-    try:
-        entries = cloud.ls(token, folder)
-    except cloud.CloudNotFoundError:
-        cloud.mkdir(token, RMINK_FOLDER)
-        cloud.mkdir(token, folder)
-        entries = []
+    entries = make_folders(token, folder)
     sent_as = f"{folder}/{cloud.put(rev.path, token, folder=folder, name=revision_title(d))}"
     d.sketch.sent_as = sent_as
     store.save(d)
@@ -512,3 +618,68 @@ def drawing_from_json(data: str | dict) -> Drawing:
     if isinstance(data, str):
         data = json.loads(data)
     return Drawing.model_validate(data)
+
+
+def move_to_area(drawing: Drawing, area: str, token: str, store: Store | None = None) -> str:
+    """Move a drawing's folder, with its revisions and Tidigare, into
+    rmink/<area>/ and save it with its new paths. Returns the new folder."""
+    store = store or FileStore()
+    old = drawing_folder(drawing.name, drawing.area)
+    moved = drawing.model_copy(deep=True)
+    moved.area = area
+    new = drawing_folder(moved.name, area)
+    if old == new:
+        return new
+    make_folders(token, new.rpartition("/")[0])
+    cloud.mv(token, old, new)
+    for attr in ("sent_as", "document"):
+        path = getattr(moved.sketch, attr)
+        if path.startswith(old + "/"):
+            setattr(moved.sketch, attr, new + path[len(old) :])
+    store.save(moved)
+    for e in cloud.ls(token, new):
+        if e.folder and e.name == ARCHIVE:
+            for old_rev in cloud.ls(token, f"{new}/{ARCHIVE}"):
+                store.link(f"{new}/{ARCHIVE}/{old_rev.name}", moved.name)
+        elif not e.folder:
+            store.link(f"{new}/{e.name}", moved.name)
+    return new
+
+
+class NewMarksError(cloud.CloudError):
+    """The current revision has marks a round has not read yet."""
+
+
+def upgrade(drawing: Drawing, token: str, store: Store | None = None) -> str:
+    """File a drawing made before areas under rmink/Bygg/ and send it again
+    drawn the current way (:func:`resend`). Refuses, before changing
+    anything, when the current revision has marks a round has not read.
+    Returns the cloud path of the new revision."""
+    device = get_device(drawing.sketch.device)
+    page = read_rmdoc(cloud.get(token, drawing.sketch.sent_as), device).pages[0]
+    written = set(drawing.sketch.written_ids)
+    if any(s.id not in written for s in page.strokes):
+        raise NewMarksError(f"{drawing.name} har nya markeringar på plattan. Kör nästa varv först.")
+    if not drawing.area:
+        move_to_area(drawing, BYGG, token, store)
+        drawing = (store or FileStore()).load(drawing.name) or drawing
+    return resend(drawing, token, store)
+
+
+def resend(drawing: Drawing, token: str, store: Store | None = None) -> str:
+    """Send the drawing again as its next revision, drawn the way rmink draws
+    now (enlarged to the page, room to answer), with the sketch page of the
+    current revision; the current one moves to Tidigare. Run it when the
+    current revision has no new marks. Returns the cloud path."""
+    device = get_device(drawing.sketch.device)
+    current = read_rmdoc(cloud.get(token, drawing.sketch.sent_as), device)
+    n = drawing.sketch.page
+    sketch = current.pages[n] if len(current.pages) > n else None
+    d = drawing.model_copy(deep=True)
+    d.revision += 1
+    d.date = datetime.date.today().isoformat()
+    d.sketch.document = d.sketch.sent_as
+    d.log.append(f"r{d.revision}: ny layout, större ritning och fler SVAR-rader")
+    with tempfile.TemporaryDirectory() as tmp:
+        rev = build_revision(d, Path(tmp) / f"{revision_title(d)}.rmdoc", sketch, store=store)
+        return send_revision(rev, token, store)

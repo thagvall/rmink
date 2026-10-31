@@ -91,7 +91,12 @@ platta ─sync─▶ reMarkable Cloud ─rmapi get─▶ ingest/rm.py (streck, l
 
 - **Claude står för semantiken:** läser handskrift, avgör vad som är mått och vad varje symbol
   betyder, och kopplar markeringar till element.
-- **rmink står för geometrin:** anpassning, uppräkning, rendering.
+- **rmink står för geometrin:** anpassning, uppräkning, rendering. En ritning som skissades liten
+  förstoras till sidans bredd när revisionen byggs (högst 60 % av höjden, så titelrutan får plats).
+  Varje öppen anmärkning får tre SVAR-rader.
+- **Mappar:** nya ritningar hamnar i `rmink/Bygg/<namn>/` (fältet `area`), bredvid `rmink/Skola/`. En
+  skiss i en egen mapp (`rmink/Garage/skiss`) får revisionerna i den mappen. `rmink upgrade <namn>`
+  flyttar en äldre ritning till Bygg och ritar om den.
 - Claude refererar till grupper och återanvänder deras anpassade koordinater, i stället för att
   gissa koordinater ur bilden.
 - Tolkningen kostar inget för rmink: den körs i användarens egen Claude.
@@ -106,7 +111,7 @@ platta ─sync─▶ reMarkable Cloud ─rmapi get─▶ ingest/rm.py (streck, l
 | Anpassning | `drawing/fit.py` | grupperar streck och anpassar former (se nedan); ger en numrerad bild |
 | Modell | `drawing/model.py` | `Drawing`: element, mått, vinkelmått, symboler, anmärkningar, legend, logg, kategorier |
 | Rendering | `drawing/render.py`, `font.py`, `symbols.py` | rena fineliner-streck, versalfont, 33 symboler, titelblock, SVG |
-| Arbetsflöde | `drawing/workflow.py` | `read_sketch`, `rectify`, `check_dimensions` (längder och vinklar), `measure`, `build_revision` och lagring |
+| Arbetsflöde | `drawing/workflow.py` | `read_sketch`, `rectify`, `fit_to_page` (förstorar en liten skiss till sidbredden), `check_dimensions` (längder och vinklar), `measure`, `build_revision` och lagring |
 | Räkning | `calc.py` | säker aritmetik: trigonometri i grader, trianglar, lutning, area, volym, vikt, U-värde, mängder, mängdlära |
 
 Detaljer:

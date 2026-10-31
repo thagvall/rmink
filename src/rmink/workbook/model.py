@@ -32,6 +32,10 @@ Rect = tuple[float, float, float, float]  # x0, y0, x1, y1 in PDF points
 Verdict = Literal["", "correct", "partial", "wrong"]
 Kind = Literal["text", "single", "multi"]
 MAX_ATTEMPTS = 3  # attempts at a choice question in practice
+# Layout of new workbooks. A saved workbook keeps the layout it was made with,
+# so a round finds the boxes where the reader wrote: 1 is the first (small
+# boxes), 2 has taller lines, bigger choice boxes and fills each page.
+LAYOUT = 2
 
 
 def letter(i: int) -> str:
@@ -111,6 +115,7 @@ class Workbook(BaseModel):
     # practice: the solutions are on the tablet (hidden) from the start;
     # test: they come with the first graded revision.
     mode: Literal["practice", "test"] = "practice"
+    layout: int = 1  # see LAYOUT; saved workbooks without it are layout 1
     title: str = ""
     intro: str = ""
     # rmink skola: the area and group it belongs to ("Skola", "Bråk och
