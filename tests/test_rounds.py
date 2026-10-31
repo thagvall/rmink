@@ -553,7 +553,9 @@ def test_a_small_sketch_is_enlarged_to_the_page():
     (x0, y0), (x1, y1) = fitted.elements[0].points
     k = (x1 - x0) / 500
     assert k > 1.5 and (y1 - y0) / 260 == pytest.approx(k, rel=0.01)
-    assert workflow._extent(fitted)[0][1] == pytest.approx(workflow.FIT_TOP)  # from the top
+    # From the top: the highest text's cap line is at FIT_TOP.
+    t = fitted.elements[1]
+    assert t.points[0][1] - t.size == pytest.approx(workflow.FIT_TOP, abs=0.2)
     assert x0 >= workflow.FIT_MARGIN and x1 <= RM2.width - workflow.FIT_MARGIN
     # The text stays its size and on the page; the rest scales with the walls.
     from rmink.drawing.font import text_width
@@ -685,7 +687,7 @@ def test_a_drawing_off_the_page_is_brought_back():
     assert workflow.fit_to_page(fitted, RM2) == fitted
 
 
-def test_remarks_keep_the_revision_on_one_page(tmp_path):
+def test_remarks_keep_the_drawing_page_one_screen(tmp_path):
     many = Drawing.model_validate(
         DRAWING
         | {
@@ -696,7 +698,8 @@ def test_remarks_keep_the_revision_on_one_page(tmp_path):
         }
     )
     rev = workflow.build_revision(many, tmp_path / "r.rmdoc", store=FileStore(tmp_path / "d"))
-    assert render_drawing(rev.drawing, RM2).height <= RM2.height
+    apart = bool(rev.drawing.sketch.remarks_page)
+    assert render_drawing(rev.drawing, RM2, remarks_apart=apart).height <= RM2.height
     lo, hi = workflow._extent(rev.drawing)
     assert hi[1] - lo[1] >= RM2.height * workflow.FIT_FLOOR - 1  # but not tiny
 

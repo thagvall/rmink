@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.14.3 — 2026-10-31
+
+- Drawings fill the page width with their labels:
+  - The drawing and its texts are measured together, and the drawing gets the largest scale at which both fit, centred on the page. Before, labels beside the drawing made it shrink in steps and left the other side empty.
+  - The open remarks go on a page of their own whenever keeping them under the drawing would make it noticeably narrower (more than 10 %), not only when they do not fit at all. With the remarks apart, the drawing can take three quarters of the page height.
+
 ## 2.14.2 — 2026-10-31
 
 - When the open remarks do not fit under the drawing even at its smallest, they go on a page of their own (page 2) with their answer lines, and the drawing gets the whole first page. The title block says how many remarks there are and that they are on page 2.

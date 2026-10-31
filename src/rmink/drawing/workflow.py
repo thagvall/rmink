@@ -322,6 +322,8 @@ ANGLE_TOLERANCE = 2.0  # degrees between a written angle and the drawn one
 FIT_TOP = 110.0  # px, where a fitted drawing starts (under the tablet's toolbar)
 FIT_MARGIN = 50.0  # px left and right, room for dimensions and labels
 FIT_HEIGHT = 0.6  # of the page height at most, so the title block fits below
+FIT_APART = 0.75  # of the page height when the remarks have a page of their own
+FIT_WIDE = 0.9  # remarks get their own page when the drawing would lose more width
 FIT_FLOOR = 0.3  # of the page height: never smaller to make room for remarks
 FIT_MIN = 1.1  # enlarge only when it gains at least this much
 
@@ -353,10 +355,11 @@ def fit_to_page(
     """Fit the drawing to the page width (and at most ``max_height`` px,
     :data:`FIT_HEIGHT` of the page by default) from the top, keeping its
     shape: a drawing sketched small is enlarged, one that runs off the page
-    or is taller than allowed is shrunk. Sizes of texts, dimension offsets
-    and angle arcs stay, and texts stay on the page; dimensions keep their
-    values, so scale and measurements are unchanged. A drawing that already
-    fits is returned as it is, so fitting twice changes nothing."""
+    or is taller than allowed is shrunk. Texts keep their size, so the scale
+    is the largest at which the geometry and its labels together fit, and
+    the whole is centred. Dimension offsets and angle arcs stay; dimensions
+    keep their values, so scale and measurements are unchanged. A drawing
+    that already fits is returned as it is, so fitting twice changes nothing."""
     box = _extent(drawing)
     if box is None:
         return drawing
@@ -364,26 +367,51 @@ def fit_to_page(
     w, h = max(hi[0] - lo[0], 1.0), max(hi[1] - lo[1], 1.0)
     width = device.width - 2 * FIT_MARGIN
     tallest = max_height or device.height * FIT_HEIGHT
-    k = min(width / w, tallest / h, 4.0)
-    off_page = lo[0] < 0 or lo[1] < 0 or hi[0] > device.width or hi[1] > device.height
+    texts = [
+        (np.asarray(e.points[0], dtype=float) - lo, text_width(e.text, e.size), e.size)
+        for e in drawing.elements
+        if e.kind == "text" and e.points and e.text
+    ]
+
+    def span(k: float) -> tuple[float, float, float, float]:
+        """Left, right, top and bottom of geometry and texts at scale ``k``,
+        relative to the scaled corner of the geometry."""
+        left, right, top, bottom = 0.0, w * k, 0.0, h * k
+        for (x, y), tw, size in texts:
+            left, right = min(left, x * k), max(right, x * k + tw)
+            top, bottom = min(top, y * k - size), max(bottom, y * k + size * 0.3)
+        return left, right, top, bottom
+
+    def fits(k: float) -> bool:
+        left, right, top, bottom = span(k)
+        return right - left <= width and bottom - top <= tallest
+
+    # The largest scale at which it all fits (texts make it non-linear).
+    a, b = 0.05, 4.0
+    if fits(b):
+        k = b
+    else:
+        for _ in range(40):
+            mid = (a + b) / 2
+            a, b = (mid, b) if fits(mid) else (a, mid)
+        k = a
+    left, right, top, bottom = span(1.0)
+    off_page = (
+        lo[0] + left < 0
+        or lo[1] + top < 0
+        or lo[0] + right > device.width
+        or lo[1] + bottom > device.height
+    )
     # Must it change? Too big, off the page or too tall: yes. Too small: only
     # when it gains enough to be worth it.
-    must = k < 0.98 or off_page
-    texts = [e for e in drawing.elements if e.kind == "text" and e.points and e.text]
+    if not (k < 0.98 or off_page or k >= FIT_MIN):
+        return drawing
+    left, right, top, bottom = span(k)
+    origin = np.array([FIT_MARGIN + (width - (right - left)) / 2 - left, FIT_TOP - top])
 
     def at(p):
         q = (np.asarray(p, dtype=float) - lo) * k + origin
         return (round(float(q[0]), 1), round(float(q[1]), 1))
-
-    # Texts keep their size: shrink until the widest one stays on the page.
-    while True:
-        if not must and k < FIT_MIN:
-            return drawing
-        origin = np.array([FIT_MARGIN + (width - w * k) / 2, FIT_TOP])
-        right = max((at(e.points[0])[0] + text_width(e.text, e.size) for e in texts), default=0.0)
-        if right <= device.width - FIT_MARGIN / 2 or k < 0.2:
-            break
-        k *= 0.95
 
     d = drawing.model_copy(deep=True)
     for e in d.elements:
@@ -562,33 +590,39 @@ def build_revision(
     drawing = drawing.model_copy(deep=True)
     if not drawing.legend:
         drawing.legend = [LegendEntry(key=k, meaning=m) for k, m in default_legend(drawing)]
-    fitted = fit_to_page(drawing, device)
     floor = device.height * FIT_FLOOR
-    for _ in range(4):
-        # The remarks and their answer lines run past the page: make the
-        # drawing smaller so the page stays one screen, which the tablet and
-        # the desktop app show at full width. Labels and dimension offsets
-        # keep their size, so it can take a few tries.
-        over = render_drawing(fitted, device).height - device.height
-        box = _extent(fitted)
-        if over <= 0 or box is None:
-            break
-        tall = float(box[1][1] - box[0][1])
-        if tall <= floor + 1:
-            break
-        fitted = fit_to_page(drawing, device, max_height=max(tall - over - 8, floor))
-    # Still too long at the smallest: the remarks go on a page of their own,
-    # and the drawing gets the room back.
-    apart = render_drawing(fitted, device).height > device.height and bool(open_remarks(drawing))
-    if apart:
-        fitted = fit_to_page(drawing, device)
+
+    def onto_one_page(fitted: Drawing, apart: bool) -> Drawing:
+        """Shrink ``fitted`` until its page is one screen, which the tablet
+        and the desktop app show at full width. Labels and dimension offsets
+        keep their size, so it can take a few tries."""
         for _ in range(4):
-            over = render_drawing(fitted, device, remarks_apart=True).height - device.height
+            over = render_drawing(fitted, device, remarks_apart=apart).height - device.height
             box = _extent(fitted)
             if over <= 0 or box is None:
                 break
             tall = float(box[1][1] - box[0][1])
+            if tall <= floor + 1:
+                break
             fitted = fit_to_page(drawing, device, max_height=max(tall - over - 8, floor))
+        return fitted
+
+    def wide(d: Drawing) -> float:
+        box = _extent(d)
+        return float(box[1][0] - box[0][0]) if box is not None else 0.0
+
+    together = onto_one_page(fit_to_page(drawing, device), apart=False)
+    apart = False
+    if open_remarks(drawing):
+        # The remarks go on a page of their own when they would cost the
+        # drawing width, or the page is still too long with the drawing at
+        # its smallest; with only the title block under it, it can be taller.
+        alone = onto_one_page(
+            fit_to_page(drawing, device, max_height=device.height * FIT_APART), apart=True
+        )
+        too_long = render_drawing(together, device).height > device.height
+        apart = too_long or wide(together) < FIT_WIDE * wide(alone)
+    fitted = alone if apart else together
     drawing = fitted
     if not drawing.area:
         # Claude's JSON has no area: keep the saved drawing's, Bygg when new.
