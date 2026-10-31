@@ -617,8 +617,8 @@ def build_revision(
     seed: int | None = None,
     store: Store | None = None,
 ) -> Revision:
-    """Write the clean revision (then a page of open alternatives, if any, and
-    the sketch) as a notebook, and
+    """Write the clean revision (then the remarks page and a page of open
+    alternatives, if any, and ``sketch`` when given) as a notebook, and
     save the drawing with the ids of the strokes rmink wrote, in ``store``
     (the local drawings folder by default)."""
     device = get_device(drawing.sketch.device)
@@ -814,19 +814,14 @@ def upgrade(drawing: Drawing, token: str, store: Store | None = None) -> str:
 
 def resend(drawing: Drawing, token: str, store: Store | None = None) -> str:
     """Send the drawing again as its next revision, drawn the way rmink draws
-    now (enlarged to the page, room to answer), with the sketch page of the
-    current revision; the current one moves to Tidigare. Run it when the
+    now (fitted to the page, room to answer); the current one moves to
+    Tidigare, where the sketch and earlier revisions are. Run it when the
     current revision has no new marks. Returns the cloud path."""
-    device = get_device(drawing.sketch.device)
-    current = read_rmdoc(cloud.get(token, drawing.sketch.sent_as), device)
-    # rmink's pages come first: the drawing, remarks, alternatives; then the sketch.
-    n = 1 + bool(drawing.sketch.remarks_page) + bool(render_alternatives(drawing, device))
-    sketch = current.pages[n] if len(current.pages) > n else None
     d = drawing.model_copy(deep=True)
     d.revision += 1
     d.date = datetime.date.today().isoformat()
     d.sketch.document = d.sketch.sent_as
     d.log.append(f"r{d.revision}: ny layout, större ritning och fler SVAR-rader")
     with tempfile.TemporaryDirectory() as tmp:
-        rev = build_revision(d, Path(tmp) / f"{revision_title(d)}.rmdoc", sketch, store=store)
+        rev = build_revision(d, Path(tmp) / f"{revision_title(d)}.rmdoc", store=store)
         return send_revision(rev, token, store)

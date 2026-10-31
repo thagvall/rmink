@@ -399,8 +399,9 @@ def run_round(
             if state["saved"]:
                 return "Already saved this round.", True
             with tempfile.TemporaryDirectory() as tmp:
+                # The sketch and earlier revisions stay in Tidigare, not in the revision.
                 rev = workflow.build_revision(
-                    d, Path(tmp) / f"{workflow.revision_title(d)}.rmdoc", sketch.page, store=store
+                    d, Path(tmp) / f"{workflow.revision_title(d)}.rmdoc", store=store
                 )
                 sent_as = None
                 if send:

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.14.6 — 2026-10-31
+
+- A revision no longer ends with a copy of the sketch or of the revision it was made from. It has the drawing, the remarks page and the alternatives when there are any. The sketch and earlier revisions are in the drawing's `Tidigare` folder. `rmink draw` and the MCP tool still add the sketch when asked.
+
 ## 2.14.5 — 2026-10-31
 
 - The rings, corner marks and numbered badges of open remarks count when a drawing is fitted to the page too, so a badge beside an element at the edge no longer touches the side of the page.

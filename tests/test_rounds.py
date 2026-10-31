@@ -632,7 +632,7 @@ def test_move_an_old_drawing_into_bygg_and_resend(sketch, tmp_path, monkeypatch)
     again = store.load("Garage")
     assert again.revision == 2 and again.log[-1].startswith("r2: ny layout")
     pages = read_rmdoc(fake.documents[sent_as], RM2).pages
-    assert len(pages) == 2  # the drawing and the sketch
+    assert len(pages) == 1  # just the drawing; the sketch stays in Tidigare
     # The next round reads the new revision.
     fake.documents[sent_as] = _mark_up(fake.documents[sent_as], tmp_path)
     r3 = run_round("Garage", "rm2", store, client=FakeClient(_turns()))
@@ -755,7 +755,7 @@ def test_many_remarks_go_on_a_page_of_their_own(sketch, tmp_path):
     assert new[0].points[:, 1].min() == pytest.approx(pages[0].height + 400, abs=1)
 
 
-def test_resend_keeps_the_sketch_page_after_the_remarks(sketch, tmp_path, monkeypatch):
+def test_resend_sends_the_drawing_and_remarks_only(sketch, tmp_path, monkeypatch):
     fake = FakeCloud(
         monkeypatch,
         {"/": {"rmink"}, "/rmink": {"Bygg"}, "/rmink/Bygg": {"Bod"}, "/rmink/Bygg/Bod": {"skiss"}},
@@ -773,7 +773,8 @@ def test_resend_keeps_the_sketch_page_after_the_remarks(sketch, tmp_path, monkey
     sent_as = workflow.resend(d, "tok", store)
     pages = read_rmdoc(fake.documents[sent_as], RM2).pages
     original = read_rmdoc(sketch.read_bytes(), RM2).pages[0]
-    assert len(pages) == 3 and len(pages[2].strokes) == len(original.strokes)
+    assert len(pages) == 2  # the drawing and the remarks; the sketch stays in Tidigare
+    assert original.strokes  # (it was the sketch the first round read)
 
 
 def test_dimension_lines_and_labels_stay_on_the_page():
