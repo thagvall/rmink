@@ -774,3 +774,19 @@ def test_resend_keeps_the_sketch_page_after_the_remarks(sketch, tmp_path, monkey
     pages = read_rmdoc(fake.documents[sent_as], RM2).pages
     original = read_rmdoc(sketch.read_bytes(), RM2).pages[0]
     assert len(pages) == 3 and len(pages[2].strokes) == len(original.strokes)
+
+
+def test_dimension_lines_and_labels_stay_on_the_page():
+    d = Drawing.model_validate(
+        DRAWING
+        | {
+            "dimensions": [
+                {"id": "M1", "start": [200, 300], "end": [1200, 300], "text": "4800"},
+                {"id": "M2", "start": [1200, 300], "end": [1200, 1000], "text": "3600"},
+            ]
+        }
+    )
+    page = render_drawing(workflow.fit_to_page(d, RM2), RM2)
+    xs = np.concatenate([s.points[:, 0] for s in page.strokes])
+    ys = np.concatenate([s.points[:, 1] for s in page.strokes])
+    assert xs.min() >= 0 and xs.max() <= RM2.width and ys.min() >= 0

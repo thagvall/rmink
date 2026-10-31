@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.14.4 — 2026-10-31
+
+- Dimension lines, their labels and angle arcs count when a drawing is fitted to the page, so they stay inside it. Before, a dimension on the right could run 20 px off the page.
+
 ## 2.14.3 — 2026-10-31
 
 - Drawings fill the page width with their labels:

@@ -326,6 +326,7 @@ FIT_APART = 0.75  # of the page height when the remarks have a page of their own
 FIT_WIDE = 0.9  # remarks get their own page when the drawing would lose more width
 FIT_FLOOR = 0.3  # of the page height: never smaller to make room for remarks
 FIT_MIN = 1.1  # enlarge only when it gains at least this much
+DIMENSION_LABEL = 22.0  # px, cap height of dimension labels (render_drawing's size)
 
 
 def _extent(drawing: Drawing) -> tuple[np.ndarray, np.ndarray] | None:
@@ -373,13 +374,34 @@ def fit_to_page(
         if e.kind == "text" and e.points and e.text
     ]
 
+    # Dimension lines sit a fixed offset outside what they measure, with the
+    # label beyond them (see render._dimension); angle arcs have a fixed radius.
+    outside: list[tuple[np.ndarray, np.ndarray]] = []
+    for dim in drawing.dimensions:
+        a, b = np.asarray(dim.start, dtype=float) - lo, np.asarray(dim.end, dtype=float) - lo
+        length = float(np.linalg.norm(b - a))
+        if length < 1:
+            continue
+        u = (b - a) / length
+        n = np.array([u[1], -u[0]])
+        side = np.sign(dim.offset or 1)
+        out = n * (dim.offset + side * (8 + DIMENSION_LABEL + 8))
+        outside += [(a, out), (b, out)]
+    for ang in drawing.angles:
+        v = np.asarray(ang.vertex, dtype=float) - lo
+        r = ang.radius + DIMENSION_LABEL + 8
+        outside += [(v, np.array([dx, dy])) for dx in (-r, r) for dy in (-r, r)]
+
     def span(k: float) -> tuple[float, float, float, float]:
-        """Left, right, top and bottom of geometry and texts at scale ``k``,
-        relative to the scaled corner of the geometry."""
+        """Left, right, top and bottom of geometry, texts and dimensions at
+        scale ``k``, relative to the scaled corner of the geometry."""
         left, right, top, bottom = 0.0, w * k, 0.0, h * k
         for (x, y), tw, size in texts:
             left, right = min(left, x * k), max(right, x * k + tw)
             top, bottom = min(top, y * k - size), max(bottom, y * k + size * 0.3)
+        for p, out in outside:
+            x, y = p * k + out
+            left, right, top, bottom = min(left, x), max(right, x), min(top, y), max(bottom, y)
         return left, right, top, bottom
 
     def fits(k: float) -> bool:
