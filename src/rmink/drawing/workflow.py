@@ -42,6 +42,7 @@ from rmink.drawing.fit import Group, analyse, overlay
 from rmink.drawing.font import text_width
 from rmink.drawing.model import Dimension, Drawing, Element, LegendEntry
 from rmink.drawing.render import (
+    _bbox_of,
     default_legend,
     open_remarks,
     render_alternatives,
@@ -327,6 +328,7 @@ FIT_WIDE = 0.9  # remarks get their own page when the drawing would lose more wi
 FIT_FLOOR = 0.3  # of the page height: never smaller to make room for remarks
 FIT_MIN = 1.1  # enlarge only when it gains at least this much
 DIMENSION_LABEL = 22.0  # px, cap height of dimension labels (render_drawing's size)
+REMARK_PAD = 62.0  # px a remark's ring and numbered badge reach outside its target
 
 
 def _extent(drawing: Drawing) -> tuple[np.ndarray, np.ndarray] | None:
@@ -391,6 +393,17 @@ def fit_to_page(
         v = np.asarray(ang.vertex, dtype=float) - lo
         r = ang.radius + DIMENSION_LABEL + 8
         outside += [(v, np.array([dx, dy])) for dx in (-r, r) for dy in (-r, r)]
+    # Open remarks: a ring or corner marks round the target and a numbered
+    # badge outside them (see render._annotation), all of fixed size.
+    for ann in drawing.annotations:
+        if ann.status != "open":
+            continue
+        box = _bbox_of(drawing, ann.targets)
+        corners = [box[0], box[1]] if box is not None else ([ann.at] if ann.at else [])
+        for c in corners:
+            q = np.asarray(c, dtype=float) - lo
+            outside += [(q, np.array([dx, dy])) for dx in (-REMARK_PAD, REMARK_PAD)
+                        for dy in (-REMARK_PAD, REMARK_PAD)]  # fmt: skip
 
     def span(k: float) -> tuple[float, float, float, float]:
         """Left, right, top and bottom of geometry, texts and dimensions at

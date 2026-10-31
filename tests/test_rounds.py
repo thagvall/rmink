@@ -790,3 +790,19 @@ def test_dimension_lines_and_labels_stay_on_the_page():
     xs = np.concatenate([s.points[:, 0] for s in page.strokes])
     ys = np.concatenate([s.points[:, 1] for s in page.strokes])
     assert xs.min() >= 0 and xs.max() <= RM2.width and ys.min() >= 0
+
+
+def test_remark_badges_stay_on_the_page():
+    d = Drawing.model_validate(
+        DRAWING
+        | {
+            "elements": [
+                {"id": "V1", "kind": "rect", "points": [[200, 300], [1200, 1000]]},
+                {"id": "P1", "kind": "rect", "points": [[200, 400], [230, 430]]},
+            ],
+            "annotations": [{"id": "a1", "kind": "circle", "targets": ["P1"], "text": "Plint?"}],
+        }
+    )
+    page = render_drawing(workflow.fit_to_page(d, RM2), RM2)
+    xs = np.concatenate([s.points[:, 0] for s in page.strokes])
+    assert xs.min() >= 10 and xs.max() <= RM2.width - 10

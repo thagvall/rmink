@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.14.5 — 2026-10-31
+
+- The rings, corner marks and numbered badges of open remarks count when a drawing is fitted to the page too, so a badge beside an element at the edge no longer touches the side of the page.
+
 ## 2.14.4 — 2026-10-31
 
 - Dimension lines, their labels and angle arcs count when a drawing is fitted to the page, so they stay inside it. Before, a dimension on the right could run 20 px off the page.
