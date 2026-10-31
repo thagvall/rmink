@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.14.1 — 2026-10-31
+
+- Drawings use the page width and stay on one page:
+  - A drawing that runs off the page, or is taller than its share of it, is shrunk and moved onto the page. Before, only small drawings were enlarged.
+  - When the remarks and their answer lines would make the page longer than the screen, the drawing is made smaller so it all fits on one page, which the tablet and the desktop app show at full width. With four or more open remarks the page can still grow a little.
+  - Narrower side margins for the title block, the remarks and the answer lines, and slightly tighter answer lines.
+- `/rounds`: every drawing has "Rita om", which sends it again drawn the current way as its next revision.
+
 ## 2.14.0 — 2026-10-31
 
 - The hosted site keeps drawings and workbooks in its Vercel Blob store instead of the browser, so `/rounds` shows them on every device and a cleared browser loses nothing.

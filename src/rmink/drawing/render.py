@@ -41,9 +41,10 @@ _DASHES: dict[str, tuple[float, ...]] = {
     "dashdot": (26, 8, 3, 8),
 }
 _ARROW = 16.0  # arrowhead length, px
-_MARGIN = 60.0
+_MARGIN = 60.0  # px above and below
+_SIDE = 36.0  # px left and right of the title block
 _ANSWER_LINES = 3  # lines to write on under each remark
-_ANSWER_GAP = 76.0  # px between them (about 8.5 mm on an rm2)
+_ANSWER_GAP = 66.0  # px between them (about 7.5 mm on an rm2)
 
 
 def drawing_layer(revision: int) -> str:
@@ -370,7 +371,7 @@ def _wrap(text: str, size: float, width: float, max_lines: int) -> list[str]:
 def _title_block(pen: _Pen, top: float, open_remarks: list[tuple[int, Annotation]]) -> None:
     d, dev = pen.drawing, pen.device
     st_text = pen.style("text")
-    x0, x1 = _MARGIN, dev.width - _MARGIN
+    x0, x1 = _SIDE, dev.width - _SIDE
     frame = _Style(st_text.color, st_text.rgb, "solid", 2.0)
     y = top
     pen.paths([np.array([[x0, y], [x1, y]])], frame)
@@ -417,7 +418,7 @@ def _title_block(pen: _Pen, top: float, open_remarks: list[tuple[int, Annotation
                 y += 32 if i == 0 else 26
                 pen.text(line, (x0, y), 18, st_c)
             # Lines to write the answer on, so it is clear which remark it answers.
-            y += 84
+            y += 66
             pen.text("SVAR:", (x0 + 28, y), 16, st_c)
             start = x0 + 28 + text_width("SVAR:", 16) + 12
             pen.paths([np.array([[start, y], [x1, y]])], answer_line)

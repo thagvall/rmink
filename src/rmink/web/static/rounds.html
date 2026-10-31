@@ -329,10 +329,10 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
         };
         actions.appendChild(to);
       }
-      if (!wb && sent && !d.area) {
-        // Made before areas: file it under rmink/Bygg and draw it the current way.
-        const up = el("button", null, "Till Bygg, större ritning"); up.type = "button";
-        up.title = "Flyttar ritningen till rmink/Bygg och skickar den igen förstorad, med tre SVAR-rader per fråga.";
+      if (!wb && sent) {
+        // Draw it again the current way (filed under rmink/Bygg if it is not yet).
+        const up = el("button", null, d.area ? "Rita om" : "Till Bygg, större ritning"); up.type = "button";
+        up.title = "Skickar ritningen igen som nästa revision, anpassad till sidan med tre SVAR-rader per fråga. Kör nästa varv först om du har skrivit på den.";
         up.onclick = async () => {
           if (running) return;
           status.textContent = "Skickar…";

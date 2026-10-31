@@ -510,7 +510,7 @@ def test_open_remarks_get_answer_lines():
         if len(s.points) == 2 and s.points[0][1] == s.points[1][1] and s.width == 1.2
     ]  # fmt: skip
     assert len(answer_lines) == 2 * 3
-    assert _bottom(with_remarks) - _bottom(without) > 2 * (84 + 2 * 76)
+    assert _bottom(with_remarks) - _bottom(without) > 2 * (66 + 2 * 66)
 
 
 def _bottom(page):
@@ -669,3 +669,33 @@ def test_upgrade_refuses_unread_marks_and_web_upgrades(sketch, tmp_path, monkeyp
     assert ok.json()["sent_as"] == "/rmink/Bygg/Bastu/Bastu r02"
     saved = Drawing.model_validate_json(ok.json()["store"]["drawings"]["bastu"])
     assert saved.area == "Bygg" and saved.revision == 2
+
+
+def test_a_drawing_off_the_page_is_brought_back():
+    big = Drawing.model_validate(
+        DRAWING
+        | {
+            "elements": [{"id": "V1", "kind": "rect", "points": [[400, -300], [2200, 900]]}],
+            "dimensions": [{"id": "M1", "start": [400, -300], "end": [2200, -300], "text": "9"}],
+        }
+    )
+    fitted = workflow.fit_to_page(big, RM2)
+    lo, hi = workflow._extent(fitted)
+    assert lo[0] >= 0 and lo[1] >= 0 and hi[0] <= RM2.width and hi[1] <= RM2.height
+    assert workflow.fit_to_page(fitted, RM2) == fitted
+
+
+def test_remarks_keep_the_revision_on_one_page(tmp_path):
+    many = Drawing.model_validate(
+        DRAWING
+        | {
+            "annotations": [
+                {"id": f"a{i}", "kind": "circle", "targets": ["V1"], "text": f"Fråga {i}?"}
+                for i in range(3)
+            ]
+        }
+    )
+    rev = workflow.build_revision(many, tmp_path / "r.rmdoc", store=FileStore(tmp_path / "d"))
+    assert render_drawing(rev.drawing, RM2).height <= RM2.height
+    lo, hi = workflow._extent(rev.drawing)
+    assert hi[1] - lo[1] >= RM2.height * workflow.FIT_FLOOR - 1  # but not tiny

@@ -290,8 +290,9 @@ ANGLE_TOLERANCE = 2.0  # degrees between a written angle and the drawn one
 
 
 FIT_TOP = 110.0  # px, where a fitted drawing starts (under the tablet's toolbar)
-FIT_MARGIN = 90.0  # px left and right, room for dimensions and labels
+FIT_MARGIN = 50.0  # px left and right, room for dimensions and labels
 FIT_HEIGHT = 0.6  # of the page height at most, so the title block fits below
+FIT_FLOOR = 0.3  # of the page height: never smaller to make room for remarks
 FIT_MIN = 1.1  # enlarge only when it gains at least this much
 
 
@@ -316,19 +317,28 @@ def _extent(drawing: Drawing) -> tuple[np.ndarray, np.ndarray] | None:
     return arr.min(axis=0), arr.max(axis=0)
 
 
-def fit_to_page(drawing: Drawing, device: DeviceProfile) -> Drawing:
-    """Enlarge a drawing sketched small to fill the page width (or
-    :data:`FIT_HEIGHT` of its height) from the top, keeping its shape. Sizes
-    of texts, dimension offsets and angle arcs stay; dimensions keep their
+def fit_to_page(
+    drawing: Drawing, device: DeviceProfile, max_height: float | None = None
+) -> Drawing:
+    """Fit the drawing to the page width (and at most ``max_height`` px,
+    :data:`FIT_HEIGHT` of the page by default) from the top, keeping its
+    shape: a drawing sketched small is enlarged, one that runs off the page
+    or is taller than allowed is shrunk. Sizes of texts, dimension offsets
+    and angle arcs stay, and texts stay on the page; dimensions keep their
     values, so scale and measurements are unchanged. A drawing that already
-    fills the page is returned as it is, so fitting twice changes nothing."""
+    fits is returned as it is, so fitting twice changes nothing."""
     box = _extent(drawing)
     if box is None:
         return drawing
     lo, hi = box
     w, h = max(hi[0] - lo[0], 1.0), max(hi[1] - lo[1], 1.0)
     width = device.width - 2 * FIT_MARGIN
-    k = min(width / w, device.height * FIT_HEIGHT / h, 4.0)
+    tallest = max_height or device.height * FIT_HEIGHT
+    k = min(width / w, tallest / h, 4.0)
+    off_page = lo[0] < 0 or lo[1] < 0 or hi[0] > device.width or hi[1] > device.height
+    # Must it change? Too big, off the page or too tall: yes. Too small: only
+    # when it gains enough to be worth it.
+    must = k < 0.98 or off_page
     texts = [e for e in drawing.elements if e.kind == "text" and e.points and e.text]
 
     def at(p):
@@ -337,11 +347,11 @@ def fit_to_page(drawing: Drawing, device: DeviceProfile) -> Drawing:
 
     # Texts keep their size: shrink until the widest one stays on the page.
     while True:
-        if k < FIT_MIN:
+        if not must and k < FIT_MIN:
             return drawing
         origin = np.array([FIT_MARGIN + (width - w * k) / 2, FIT_TOP])
         right = max((at(e.points[0])[0] + text_width(e.text, e.size) for e in texts), default=0.0)
-        if right <= device.width - FIT_MARGIN / 2:
+        if right <= device.width - FIT_MARGIN / 2 or k < 0.2:
             break
         k *= 0.95
 
@@ -519,13 +529,29 @@ def build_revision(
     save the drawing with the ids of the strokes rmink wrote, in ``store``
     (the local drawings folder by default)."""
     device = get_device(drawing.sketch.device)
-    drawing = fit_to_page(drawing.model_copy(deep=True), device)
+    drawing = drawing.model_copy(deep=True)
+    if not drawing.legend:
+        drawing.legend = [LegendEntry(key=k, meaning=m) for k, m in default_legend(drawing)]
+    fitted = fit_to_page(drawing, device)
+    floor = device.height * FIT_FLOOR
+    for _ in range(4):
+        # The remarks and their answer lines run past the page: make the
+        # drawing smaller so the page stays one screen, which the tablet and
+        # the desktop app show at full width. Labels and dimension offsets
+        # keep their size, so it can take a few tries.
+        over = render_drawing(fitted, device).height - device.height
+        box = _extent(fitted)
+        if over <= 0 or box is None:
+            break
+        tall = float(box[1][1] - box[0][1])
+        if tall <= floor + 1:
+            break
+        fitted = fit_to_page(drawing, device, max_height=max(tall - over - 8, floor))
+    drawing = fitted
     if not drawing.area:
         # Claude's JSON has no area: keep the saved drawing's, Bygg when new.
         saved = (store or FileStore()).load(drawing.name)
         drawing.area = saved.area if saved else new_area(drawing.sketch.document)
-    if not drawing.legend:
-        drawing.legend = [LegendEntry(key=k, meaning=m) for k, m in default_legend(drawing)]
     clean = render_drawing(drawing, device)
     alternatives = render_alternatives(drawing, device)
     pages = [clean] + ([alternatives] if alternatives else [])
@@ -651,8 +677,8 @@ class NewMarksError(cloud.CloudError):
 
 
 def upgrade(drawing: Drawing, token: str, store: Store | None = None) -> str:
-    """File a drawing made before areas under rmink/Bygg/ and send it again
-    drawn the current way (:func:`resend`). Refuses, before changing
+    """Send a drawing again drawn the current way (:func:`resend`), first
+    filing it under rmink/Bygg/ if it was made before areas. Refuses, before changing
     anything, when the current revision has marks a round has not read.
     Returns the cloud path of the new revision."""
     device = get_device(drawing.sketch.device)
