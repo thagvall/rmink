@@ -368,7 +368,33 @@ def _wrap(text: str, size: float, width: float, max_lines: int) -> list[str]:
     return lines
 
 
-def _title_block(pen: _Pen, top: float, open_remarks: list[tuple[int, Annotation]]) -> None:
+def _remarks(pen: _Pen, x0: float, x1: float, y: float, open_remarks) -> float:
+    """ANMÄRKNINGAR with answer lines from ``y``; returns where they end."""
+    st_c = pen.style("comment")
+    pen.text("ANMÄRKNINGAR", (x0, y), 18, st_c)
+    answer_line = _Style(st_c.color, st_c.rgb, "solid", 1.2)
+    for n, ann in open_remarks:
+        for i, line in enumerate(_wrap(f"{n}. {ann.text}", 18, x1 - x0, 3)):
+            y += 32 if i == 0 else 26
+            pen.text(line, (x0, y), 18, st_c)
+        # Lines to write the answer on, so it is clear which remark it answers.
+        y += 66
+        pen.text("SVAR:", (x0 + 28, y), 16, st_c)
+        start = x0 + 28 + text_width("SVAR:", 16) + 12
+        pen.paths([np.array([[start, y], [x1, y]])], answer_line)
+        for _ in range(_ANSWER_LINES - 1):
+            y += _ANSWER_GAP
+            pen.paths([np.array([[x0 + 28, y], [x1, y]])], answer_line)
+        y += 12
+    return y
+
+
+def _title_block(
+    pen: _Pen,
+    top: float,
+    open_remarks: list[tuple[int, Annotation]],
+    remarks_apart: bool = False,
+) -> None:
     d, dev = pen.drawing, pen.device
     st_text = pen.style("text")
     x0, x1 = _SIDE, dev.width - _SIDE
@@ -408,24 +434,13 @@ def _title_block(pen: _Pen, top: float, open_remarks: list[tuple[int, Annotation
             pen.text(entry.meaning, (cx + 72, cy), 18, st_text)
         y += 40 + ((len(d.legend) + 1) // 2) * 44
 
-    if open_remarks:
+    if open_remarks and remarks_apart:
         y += 24
-        st_c = pen.style("comment")
-        pen.text("ANMÄRKNINGAR", (x0, y), 18, st_c)
-        answer_line = _Style(st_c.color, st_c.rgb, "solid", 1.2)
-        for n, ann in open_remarks:
-            for i, line in enumerate(_wrap(f"{n}. {ann.text}", 18, x1 - x0, 3)):
-                y += 32 if i == 0 else 26
-                pen.text(line, (x0, y), 18, st_c)
-            # Lines to write the answer on, so it is clear which remark it answers.
-            y += 66
-            pen.text("SVAR:", (x0 + 28, y), 16, st_c)
-            start = x0 + 28 + text_width("SVAR:", 16) + 12
-            pen.paths([np.array([[start, y], [x1, y]])], answer_line)
-            for _ in range(_ANSWER_LINES - 1):
-                y += _ANSWER_GAP
-                pen.paths([np.array([[x0 + 28, y], [x1, y]])], answer_line)
-            y += 12
+        n = len(open_remarks)
+        note = f"ANMÄRKNINGAR: {n} {'FRÅGA' if n == 1 else 'FRÅGOR'}, SVARA PÅ SIDA 2"
+        pen.text(note, (x0, y), 18, pen.style("comment"))
+    elif open_remarks:
+        y = _remarks(pen, x0, x1, y + 24, open_remarks)
     if d.log:
         y += 36
         pen.text("ÄNDRINGAR", (x0, y), 18, st_text)
@@ -435,8 +450,32 @@ def _title_block(pen: _Pen, top: float, open_remarks: list[tuple[int, Annotation
                 pen.text(line, (x0 + (0 if i == 0 else 24), y), 16, st_text)
 
 
-def render_drawing(drawing: Drawing, device: DeviceProfile, size: float = 22.0) -> Page:
-    """The clean revision as a page with the drawing and an empty comment layer."""
+def open_remarks(drawing: Drawing) -> list[tuple[int, Annotation]]:
+    """The open remarks with the numbers their rings carry."""
+    return [(i + 1, a) for i, a in enumerate(a for a in drawing.annotations if a.status == "open")]
+
+
+def render_remarks(drawing: Drawing, device: DeviceProfile) -> Page:
+    """The open remarks and their answer lines on a page of their own, for
+    when they do not fit under the drawing (:func:`render_drawing` with
+    ``remarks_apart``)."""
+    layer = drawing_layer(drawing.revision)
+    pen = _Pen(drawing, device, layer)
+    x0, x1 = _SIDE, device.width - _SIDE
+    st_text = pen.style("text")
+    y = _MARGIN + 50
+    pen.text(f"{drawing.name.upper()} · REV {drawing.revision}", (x0, y), 26, st_text)
+    _remarks(pen, x0, x1, y + 40, open_remarks(drawing))
+    height = max(device.height, int(_content_bottom(pen.strokes) + _MARGIN))
+    return Page(device.width, height, pen.strokes, layer_names=[layer, COMMENT_LAYER])
+
+
+def render_drawing(
+    drawing: Drawing, device: DeviceProfile, size: float = 22.0, remarks_apart: bool = False
+) -> Page:
+    """The clean revision as a page with the drawing and an empty comment
+    layer. With ``remarks_apart`` the title block only says the remarks are
+    on page 2 (:func:`render_remarks`)."""
     layer = drawing_layer(drawing.revision)
     pen = _Pen(drawing, device, layer)
     for e in drawing.elements:
@@ -454,14 +493,12 @@ def render_drawing(drawing: Drawing, device: DeviceProfile, size: float = 22.0) 
         _dimension(pen, dim, size)
     for ang in drawing.angles:
         _angle(pen, ang, size)
-    open_remarks = [
-        (i + 1, a) for i, a in enumerate(a for a in drawing.annotations if a.status == "open")
-    ]
-    for n, ann in open_remarks:
+    remarks = open_remarks(drawing)
+    for n, ann in remarks:
         _annotation(pen, ann, n)
 
     top = _content_bottom(pen.strokes) + _MARGIN
-    _title_block(pen, top, open_remarks)
+    _title_block(pen, top, remarks, remarks_apart)
     height = max(device.height, int(_content_bottom(pen.strokes) + _MARGIN))
     return Page(device.width, height, pen.strokes, layer_names=[layer, COMMENT_LAYER])
 

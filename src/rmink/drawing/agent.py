@@ -317,6 +317,11 @@ def run_round(
                 f"{n} = {a.id} {json.dumps(a.text, ensure_ascii=False)}"
                 for n, a in enumerate(remarks, 1)
             )
+            if previous.sketch.remarks_page:
+                intro += (
+                    ". The remarks and their SVAR lines were on a page of their own; the "
+                    "picture shows that page below the drawing, so writing there answers them"
+                )
         saved = previous.model_dump_json()
     messages: list[dict] = [
         {

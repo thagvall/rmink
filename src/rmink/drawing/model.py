@@ -183,6 +183,10 @@ class SketchRef(BaseModel):
     # CRDT ids (author, counter) rmink wrote on the clean page it sent; any
     # other stroke on that page was added by the user afterwards.
     written_ids: list[tuple[int, int]] = Field(default_factory=list)
+    # Page number (1-based) of the remarks page when the open remarks did not
+    # fit under the drawing, else 0. Its strokes are read as if the page lay
+    # below the drawing, with ids moved up by REMARKS_IDS.
+    remarks_page: int = 0
     # Cloud path the revision was sent as ("/rmink/Altan/Altan r03"): the
     # notebook the next round reads. Set by rmink after the upload.
     sent_as: str = ""

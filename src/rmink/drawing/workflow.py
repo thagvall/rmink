@@ -23,6 +23,7 @@ The steps the MCP server and CLI share:
 
 from __future__ import annotations
 
+import dataclasses
 import datetime
 import io
 import json
@@ -40,7 +41,13 @@ from rmink.devices import DeviceProfile, config_dir, get_device
 from rmink.drawing.fit import Group, analyse, overlay
 from rmink.drawing.font import text_width
 from rmink.drawing.model import Dimension, Drawing, Element, LegendEntry
-from rmink.drawing.render import default_legend, render_alternatives, render_drawing
+from rmink.drawing.render import (
+    default_legend,
+    open_remarks,
+    render_alternatives,
+    render_drawing,
+    render_remarks,
+)
 from rmink.drawing.store import FileStore, Store
 from rmink.ingest.rm import read_page, read_rmdoc
 from rmink.model import Document, Page
@@ -157,6 +164,25 @@ class Sketch:
         }
 
 
+REMARKS_IDS = 1 << 24  # added to counters of the remarks page's strokes
+
+
+def _with_remarks(page: Page, remarks: Page) -> Page:
+    """``page`` with the remarks page's strokes below it, their ids moved up
+    by :data:`REMARKS_IDS` so they never meet the drawing page's."""
+    moved = [
+        dataclasses.replace(
+            s,
+            points=s.points + np.array([0.0, page.height], dtype=s.points.dtype),
+            id=(s.id[0], s.id[1] + REMARKS_IDS) if s.id else None,
+        )
+        for s in remarks.strokes
+    ]
+    return dataclasses.replace(
+        page, height=page.height + remarks.height, strokes=page.strokes + moved
+    )
+
+
 def read_sketch(
     source: str, page: int, device: DeviceProfile, since: Drawing | None = None
 ) -> Sketch:
@@ -165,6 +191,10 @@ def read_sketch(
         raise ValueError(f"{doc.name} has {len(doc.pages)} pages; page {page} does not exist")
     known = {tuple(i) for i in since.sketch.written_ids} if since else None
     p = doc.pages[page - 1]
+    extra = since.sketch.remarks_page if since else 0
+    if extra and page == 1 and len(doc.pages) >= extra:
+        # Answers written on the remarks page count as written under the drawing.
+        p = _with_remarks(p, doc.pages[extra - 1])
     return Sketch(doc, page, p, analyse(p, device, known))
 
 
@@ -547,15 +577,29 @@ def build_revision(
         if tall <= floor + 1:
             break
         fitted = fit_to_page(drawing, device, max_height=max(tall - over - 8, floor))
+    # Still too long at the smallest: the remarks go on a page of their own,
+    # and the drawing gets the room back.
+    apart = render_drawing(fitted, device).height > device.height and bool(open_remarks(drawing))
+    if apart:
+        fitted = fit_to_page(drawing, device)
+        for _ in range(4):
+            over = render_drawing(fitted, device, remarks_apart=True).height - device.height
+            box = _extent(fitted)
+            if over <= 0 or box is None:
+                break
+            tall = float(box[1][1] - box[0][1])
+            fitted = fit_to_page(drawing, device, max_height=max(tall - over - 8, floor))
     drawing = fitted
     if not drawing.area:
         # Claude's JSON has no area: keep the saved drawing's, Bygg when new.
         saved = (store or FileStore()).load(drawing.name)
         drawing.area = saved.area if saved else new_area(drawing.sketch.document)
-    clean = render_drawing(drawing, device)
+    clean = render_drawing(drawing, device, remarks_apart=apart)
     alternatives = render_alternatives(drawing, device)
-    pages = [clean] + ([alternatives] if alternatives else [])
+    pages = [clean] + ([render_remarks(drawing, device)] if apart else [])
+    pages += [alternatives] if alternatives else []
     pages += [sketch] if sketch is not None and sketch.strokes else []
+    drawing.sketch.remarks_page = 2 if apart else 0
 
     uuids = UuidFactory(seed)
     author = uuids()
@@ -564,7 +608,11 @@ def build_revision(
         data = write_page(p, device, author)
         rm_pages.append(data)
         thumbs.append(render_rm(data, device, p.height))
-    drawing.sketch.written_ids = [s.id for s in read_page(rm_pages[0], device).strokes if s.id]
+    written = [s.id for s in read_page(rm_pages[0], device).strokes if s.id]
+    if apart:
+        remarks = read_page(rm_pages[1], device).strokes
+        written += [(s.id[0], s.id[1] + REMARKS_IDS) for s in remarks if s.id]
+    drawing.sketch.written_ids = written
 
     output = Path(output)
     if output.suffix.lower() != ".rmdoc":
@@ -682,8 +730,11 @@ def upgrade(drawing: Drawing, token: str, store: Store | None = None) -> str:
     anything, when the current revision has marks a round has not read.
     Returns the cloud path of the new revision."""
     device = get_device(drawing.sketch.device)
-    page = read_rmdoc(cloud.get(token, drawing.sketch.sent_as), device).pages[0]
-    written = set(drawing.sketch.written_ids)
+    pages = read_rmdoc(cloud.get(token, drawing.sketch.sent_as), device).pages
+    page = pages[0]
+    if (extra := drawing.sketch.remarks_page) and len(pages) >= extra:
+        page = _with_remarks(page, pages[extra - 1])
+    written = {tuple(i) for i in drawing.sketch.written_ids}
     if any(s.id not in written for s in page.strokes):
         raise NewMarksError(f"{drawing.name} har nya markeringar på plattan. Kör nästa varv först.")
     if not drawing.area:
@@ -699,7 +750,8 @@ def resend(drawing: Drawing, token: str, store: Store | None = None) -> str:
     current revision has no new marks. Returns the cloud path."""
     device = get_device(drawing.sketch.device)
     current = read_rmdoc(cloud.get(token, drawing.sketch.sent_as), device)
-    n = drawing.sketch.page
+    # rmink's pages come first: the drawing, remarks, alternatives; then the sketch.
+    n = 1 + bool(drawing.sketch.remarks_page) + bool(render_alternatives(drawing, device))
     sketch = current.pages[n] if len(current.pages) > n else None
     d = drawing.model_copy(deep=True)
     d.revision += 1

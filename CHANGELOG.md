@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.14.2 — 2026-10-31
+
+- When the open remarks do not fit under the drawing even at its smallest, they go on a page of their own (page 2) with their answer lines, and the drawing gets the whole first page. The title block says how many remarks there are and that they are on page 2.
+- The next round reads the remarks page as if it lay below the drawing, so writing on its SVAR lines answers the remarks as before. "Rita om" finds the sketch page after it.
+
 ## 2.14.1 — 2026-10-31
 
 - Drawings use the page width and stay on one page:

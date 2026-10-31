@@ -93,7 +93,8 @@ platta ─sync─▶ reMarkable Cloud ─rmapi get─▶ ingest/rm.py (streck, l
   betyder, och kopplar markeringar till element.
 - **rmink står för geometrin:** anpassning, uppräkning, rendering. En ritning som skissades liten
   förstoras till sidans bredd när revisionen byggs (högst 60 % av höjden, så titelrutan får plats).
-  Varje öppen anmärkning får tre SVAR-rader.
+  Varje öppen anmärkning får tre SVAR-rader. Ryms de inte under ritningen hamnar de på en egen sida
+  (sida 2, `sketch.remarks_page`); nästa varv läser den sidan som om den låg under ritningen.
 - **Mappar:** nya ritningar hamnar i `rmink/Bygg/<namn>/` (fältet `area`), bredvid `rmink/Skola/`. En
   skiss i en egen mapp (`rmink/Garage/skiss`) får revisionerna i den mappen. `rmink upgrade <namn>`
   flyttar en äldre ritning till Bygg och ritar om den.

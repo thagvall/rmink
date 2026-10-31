@@ -699,3 +699,75 @@ def test_remarks_keep_the_revision_on_one_page(tmp_path):
     assert render_drawing(rev.drawing, RM2).height <= RM2.height
     lo, hi = workflow._extent(rev.drawing)
     assert hi[1] - lo[1] >= RM2.height * workflow.FIT_FLOOR - 1  # but not tiny
+
+
+def _many_remarks(n=5):
+    return Drawing.model_validate(
+        DRAWING
+        | {
+            "annotations": [
+                {"id": f"a{i}", "kind": "circle", "targets": ["V1"], "text": f"Fråga {i}?"}
+                for i in range(n)
+            ]
+        }
+    )
+
+
+def test_many_remarks_go_on_a_page_of_their_own(sketch, tmp_path):
+    store = FileStore(tmp_path / "d")
+    page = read_rmdoc(sketch.read_bytes(), RM2).pages[0]
+    rev = workflow.build_revision(_many_remarks(), tmp_path / "r.rmdoc", page, store=store)
+    d = rev.drawing
+    assert d.sketch.remarks_page == 2
+    pages = read_rmdoc(rev.path.read_bytes(), RM2).pages
+    assert len(pages) == 3  # drawing, remarks, sketch
+    assert all(p.height <= RM2.height for p in pages[:2])
+    # The drawing gets the room back: bigger than the smallest allowed.
+    lo, hi = workflow._extent(d)
+    assert hi[1] - lo[1] > RM2.height * workflow.FIT_FLOOR + 50
+
+    # An answer on the remarks page reaches the round as writing under the drawing.
+    answer = Stroke(np.linspace((300, 400), (700, 400), 20), layer=COMMENT_LAYER)
+    remarks = pages[1]
+    synced = [pages[0], Page(remarks.width, remarks.height, remarks.strokes + [answer]), pages[2]]
+    uu = UuidFactory(4)
+    author = uu()
+    path = tmp_path / "synced.rmdoc"
+    write_rmdoc(
+        path,
+        "synced",
+        [RmdocPage(write_page(p, RM2, author)) for p in synced],
+        [str(uu()) for _ in synced],
+        author,
+        RM2,
+        str(uu()),
+    )
+    seen = workflow.read_sketch(str(path), 1, RM2, since=d)
+    new = [
+        s
+        for s in seen.page.strokes
+        if s.id and tuple(s.id) not in set(map(tuple, d.sketch.written_ids))
+    ]
+    assert len(new) == 1
+    assert new[0].points[:, 1].min() == pytest.approx(pages[0].height + 400, abs=1)
+
+
+def test_resend_keeps_the_sketch_page_after_the_remarks(sketch, tmp_path, monkeypatch):
+    fake = FakeCloud(
+        monkeypatch,
+        {"/": {"rmink"}, "/rmink": {"Bygg"}, "/rmink/Bygg": {"Bod"}, "/rmink/Bygg/Bod": {"skiss"}},
+        {"/rmink/Bygg/Bod/skiss": sketch.read_bytes()},
+    )
+    store = FileStore(tmp_path / "d")
+    run_round(
+        "/rmink/Bygg/Bod/skiss",
+        "rm2",
+        store,
+        client=FakeClient(_turns(_many_remarks().model_dump())),
+    )
+    d = store.load("Bod")
+    assert d.sketch.remarks_page == 2
+    sent_as = workflow.resend(d, "tok", store)
+    pages = read_rmdoc(fake.documents[sent_as], RM2).pages
+    original = read_rmdoc(sketch.read_bytes(), RM2).pages[0]
+    assert len(pages) == 3 and len(pages[2].strokes) == len(original.strokes)
