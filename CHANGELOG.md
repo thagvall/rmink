@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.15.1 — 2026-11-01
+
+- A notebook name you type keeps its dots: "Test 2.15.0" was sent and downloaded as "Test 2.15".
+- Drawings and workbooks saved twice in quick succession on a coarse clock (Windows) no longer get the same file name in the Blob store, so the second save does not replace the first in the history.
+
 ## 2.15.0 — 2026-11-01
 
 Photo to ink in the web UI is much quicker to adjust, and Send to reMarkable works again for accounts with many notebooks.

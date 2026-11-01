@@ -219,6 +219,15 @@ class BlobStore:
 
         self._blob = blob
 
+    _last_stamp = 0
+
+    @classmethod
+    def _stamp(cls) -> int:
+        # Strictly increasing, also where the clock is coarse (Windows), so two
+        # quick saves never share a name and overwrite the history.
+        cls._last_stamp = max(time.time_ns() // 1000, cls._last_stamp + 1)
+        return cls._last_stamp
+
     def _put(self, path: str, text: str) -> None:
         self._blob.put_blob(
             self.PREFIX + path,
@@ -235,7 +244,7 @@ class BlobStore:
             return None
 
     def _save(self, kind: str, name: str, text: str) -> str:
-        path = f"{kind}/{slug(name)}/{time.time_ns() // 1000:016d}.json"
+        path = f"{kind}/{slug(name)}/{self._stamp():016d}.json"
         self._put(path, text)
         return f"blob:{path}"
 

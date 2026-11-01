@@ -64,6 +64,12 @@ def _safe_stem(name: str) -> str:
     return re.sub(r"[^\w\- .]+", "", stem).strip() or "notebook"
 
 
+def _safe_name(name: str) -> str:
+    """A notebook name typed by the user: unlike a file name, its dots are
+    part of it ("Test 2.15.0")."""
+    return re.sub(r"[^\w\- .]+", "", name).strip() or "notebook"
+
+
 def _data_url(image) -> str:
     buf = io.BytesIO()
     image.save(buf, "PNG", optimize=True)
@@ -314,7 +320,7 @@ def create_app(limits: Limits | None = None) -> FastAPI:
         tmp = Path(tempfile.mkdtemp(prefix="rmink-"))
         try:
             paths = await _save_uploads(files, tmp)
-            notebook = _safe_stem(name) if name else _safe_stem(files[0].filename)
+            notebook = _safe_name(name) if name else _safe_stem(files[0].filename)
             opts = _options(name=notebook, **kw)
             _check_pages(paths, opts.pages)
             out = tmp / f"{notebook}.rmdoc"

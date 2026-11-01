@@ -149,3 +149,9 @@ def test_preview_styles_and_shading(client, tmp_path):
     assert (
         client.post("/api/preview", files=[_upload(img)], data={"shading": "x"}).status_code == 422
     )
+
+
+def test_typed_notebook_name_keeps_its_dots(client, examples):
+    r = client.post("/api/convert", files=[_upload(examples["svg"])], data={"name": "Test 2.15.0"})
+    assert r.status_code == 200
+    assert "Test%202.15.0.rmdoc" in r.headers["content-disposition"]
