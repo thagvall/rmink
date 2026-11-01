@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.16.0 — 2026-11-01
+
+- rmink skola has a Swedish group, **Grammatik** (Svenska), with seven topics: sentences and punctuation, nouns, verbs and tense, adjectives and comparison, more word classes, parts of a sentence, and main and subordinate clauses. Its workbooks go in `rmink/Skola/Grammatik/<name>/`. Before, a grammar workbook could only be made from free text, without a group, so it landed in `rmink/<name>/` outside Skola. Move such a workbook with *Flytta till grupp…* on its card on `/rounds`, or `rmink workbook move <name> --group grammatik`.
+- The grade instruction sent to Claude no longer speaks of numbers ("tal"), so it fits subjects other than maths.
+
 ## 2.15.1 — 2026-11-01
 
 - A notebook name you type keeps its dots: "Test 2.15.0" was sent and downloaded as "Test 2.15".

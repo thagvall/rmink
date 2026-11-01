@@ -73,7 +73,7 @@ def topic_request(
         ]
     if grade:
         lines.append(
-            f"Eleven går i årskurs {grade}. Anpassa språk, tal och svårighet till det, "
+            f"Eleven går i årskurs {grade}. Anpassa språk, exempel och svårighet till det, "
             "börja lätt och öka svårigheten avsnitt för avsnitt."
         )
     if extra.strip():

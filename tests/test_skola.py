@@ -26,7 +26,7 @@ def config_home(tmp_path, monkeypatch):
 
 def test_catalogue_is_valid():
     groups = catalog.load()
-    assert {g.title for g in groups} >= {"Plus och minus", "Bråk och division"}
+    assert {g.title for g in groups} >= {"Plus och minus", "Bråk och division", "Grammatik"}
     assert len({g.id for g in groups}) == len(groups)
     for g in groups:
         assert g.topic, g.id
@@ -45,6 +45,8 @@ def test_topic_request():
     assert "1/2 = 2/4" in text
     assert "årskurs 5" in text
     assert text.endswith("Med pizzor.")
+    swedish = catalog.topic_request("grammatik", "verb-tempus", 4)
+    assert swedish.startswith("En arbetsbok i svenska: Verb och tempus (Grammatik).")
     mixed = catalog.topic_request("Plus och minus")
     assert "Negativa tal" in mixed and "årskurs" not in mixed
     with pytest.raises(ValueError, match="plus-minus"):

@@ -110,6 +110,8 @@ Arbetsböcker för skolan samlas i grupper efter område. Katalogen finns i
 - **Bråk och division:** division som delning, division med rest, kort division, bråk som del av en
   helhet, bråk av ett antal, bråk som division, förlänga och förkorta, jämföra bråk, blandad form,
   addera och subtrahera bråk, multiplicera och dividera bråk, bråk–decimaltal–procent.
+- **Grammatik** (svenska): meningar och skiljetecken, substantiv (en/ett, singular/plural), verb och
+  tempus, adjektiv och komparation, fler ordklasser, satsdelar, huvudsats och bisats.
 
 Varje moment har en beskrivning för Claude (vad som ska övas, i vilken ordning och vilka typiska fel
 uppgifterna ska fånga) och de årskurser det passar. Man väljer grupp, moment (eller *blanda alla*)
@@ -127,8 +129,9 @@ En befintlig arbetsbok flyttas in i en grupp med `rmink workbook move <namn> --g
 med *Flytta till grupp…* på arbetsbokens kort på `/rounds` om den är sparad i webbläsaren.
 Mappen flyttas med alla revisioner och *Tidigare*, och nästa varv fortsätter där.
 
-Nya grupper (gånger, geometri, svenska …) läggs till i TOML-filen utan kodändring. Arbetsböcker
-utan grupp fungerar som förut i `rmink/<namn>/`.
+Nya grupper (gånger, geometri, läsförståelse …) läggs till i TOML-filen utan kodändring. Arbetsböcker
+utan grupp fungerar som förut i `rmink/<namn>/`, utanför *Skola*: välj en grupp för att den ska
+hamna där.
 
 ## Använda
 

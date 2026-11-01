@@ -5,7 +5,7 @@
 # "brief" går till Claude när arbetsboken skrivs: vad som ska övas, i vilken
 # ordning, typiska fel att fånga och vilka bilder eller modeller som hjälper.
 # "grades" är de årskurser momentet passar (1-9). Texterna är egna; de följer
-# Lgr22:s centrala innehåll i matematik men citerar det inte.
+# Lgr22:s centrala innehåll i matematik och svenska men citerar det inte.
 
 [[group]]
 id = "plus-minus"
@@ -201,3 +201,74 @@ grades = [5, 6, 7, 8, 9]
 brief = """Samma tal på tre sätt: 1/4 = 0,25 = 25 %. Kända par (1/2, 1/4, 3/4, \
 1/5, 1/10), omvandling åt alla håll och procent av ett belopp (20 % av 350 kr). \
 Rea och ränta som vardagsexempel. Typiskt fel: 0,5 % tolkas som 50 %."""
+
+[[group]]
+id = "grammatik"
+title = "Grammatik"
+area = "Svenska"
+description = "Svensk grammatik: ordklasser, böjningar, meningar och satsdelar."
+
+[[group.topic]]
+id = "meningar-skiljetecken"
+title = "Meningar och skiljetecken"
+grades = [1, 2, 3, 4]
+brief = """Vad en mening är: stor bokstav i början, punkt, frågetecken eller \
+utropstecken i slutet. Låt eleven sätta ut stor bokstav och skiljetecken i en \
+kort text utan dem, och välja rätt tecken till påståenden, frågor och utrop. \
+För de äldre: kommatecken i uppräkningar. Typiskt fel: en lång rad meningar \
+hopkopplade med "och sen"."""
+
+[[group.topic]]
+id = "substantiv"
+title = "Substantiv: en och ett, singular och plural"
+grades = [2, 3, 4, 5]
+brief = """Substantiv är namn på saker, djur, personer och känslor. Pröva med \
+"en" eller "ett" framför. Böj i obestämd och bestämd form, singular och plural \
+(en bil, bilen, bilar, bilarna). Typiskt fel: att räkna "springa" eller "glad" \
+som substantiv, och oregelbundna plural som "mus - möss" och "fot - fötter"."""
+
+[[group.topic]]
+id = "verb-tempus"
+title = "Verb och tempus"
+grades = [3, 4, 5, 6, 7]
+brief = """Verb är det man gör eller är. Pröva med "att" framför. Tempus: \
+presens, preteritum, perfekt och futurum (springer, sprang, har sprungit, ska \
+springa), först med regelbundna verb, sedan starka verb. Låt eleven skriva om \
+en kort text från nutid till dåtid. Typiskt fel: "springde", "har sprang"."""
+
+[[group.topic]]
+id = "adjektiv"
+title = "Adjektiv och komparation"
+grades = [3, 4, 5, 6]
+brief = """Adjektiv beskriver hur något är och böjs efter substantivet (en röd \
+bil, ett rött hus, röda bilar). Komparation: positiv, komparativ och superlativ \
+(stor, större, störst; vacker, vackrare, vackrast; bra, bättre, bäst). \
+Typiskt fel: "mer stor", "bästaste" och att glömma -t efter ett-ord."""
+
+[[group.topic]]
+id = "ordklasser"
+title = "Fler ordklasser"
+grades = [5, 6, 7, 8, 9]
+brief = """Ordklasserna utöver substantiv, verb och adjektiv: pronomen, adverb, \
+prepositioner, konjunktioner, räkneord och interjektioner. Ge ett test för \
+varje ordklass och låt eleven sortera orden i några meningar. Typiskt fel: att \
+blanda ihop adverb och adjektiv ("hon sjunger fin"), och "de" och "dem"."""
+
+[[group.topic]]
+id = "satsdelar"
+title = "Satsdelar"
+grades = [6, 7, 8, 9]
+brief = """Satsdelar: predikat, subjekt, objekt och adverbial. Börja med att \
+hitta verbet (predikatet), fråga sedan "vem eller vad gör det?" för subjektet \
+och "vad?" eller "vem?" för objektet. Adverbial svarar på när, var, hur. \
+Typiskt fel: att ta ordet först i meningen som subjekt ("Igår åt Sara glass")."""
+
+[[group.topic]]
+id = "huvudsats-bisats"
+title = "Huvudsats och bisats"
+grades = [7, 8, 9]
+brief = """En huvudsats kan stå ensam, en bisats kan det inte. Bisatsen börjar \
+ofta med en subjunktion (att, eftersom, när, som, om). Ordföljd: "inte" står \
+före verbet i bisatsen (Hon säger att hon inte kommer). Kommatecken mellan \
+huvudsats och bisats. Typiskt fel: "eftersom han kom inte" och meningar som \
+bara är en bisats."""
