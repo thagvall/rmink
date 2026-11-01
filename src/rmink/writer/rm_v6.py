@@ -44,34 +44,52 @@ _PRESSURE = 200
 _SPEED = 100
 
 
-def _line_points(stroke: Stroke, device: DeviceProfile) -> list[si.Point]:
-    pts = stroke.points.astype(np.float64)
+def _line_points(strokes: list[Stroke], device: DeviceProfile) -> list[list[si.Point]]:
+    """The v6 points of each stroke, computed for all strokes at once: shading
+    makes tens of thousands of short strokes, and per-stroke numpy calls were
+    most of the time of writing a page."""
+    if not strokes:
+        return []
+    lens = np.array([len(s) for s in strokes])
+    pts = np.concatenate([s.points for s in strokes]).astype(np.float64)
     xs = (pts[:, 0] - device.width / 2) * device.ink_scale
     ys = pts[:, 1] * device.ink_scale
 
-    if len(pts) > 1:
-        d = np.diff(pts, axis=0)
-        angles = np.arctan2(d[:, 1], d[:, 0])
-        angles = np.append(angles, angles[-1])
-    else:
-        angles = np.zeros(1)
+    # Each point points to the next one; a stroke's last point repeats the
+    # direction before it, and a single point has direction 0.
+    ends = np.cumsum(lens) - 1
+    d = np.diff(pts, axis=0, append=pts[-1:])
+    angles = np.arctan2(d[:, 1], d[:, 0])
+    angles[ends] = np.where(lens > 1, angles[np.maximum(ends - 1, 0)], 0.0)
     directions = np.round((angles % (2 * math.pi)) * 255 / (2 * math.pi)).astype(int) % 256
 
-    widths = stroke.widths if stroke.widths is not None else np.full(len(pts), stroke.width)
+    widths = np.concatenate(
+        [s.widths if s.widths is not None else np.full(len(s), s.width) for s in strokes]
+    )
     # v2 points store width * 4 as uint16.
     widths_q = np.clip(np.round(widths * device.ink_scale * 4), 1, 65535).astype(int)
-    pressures = (
-        np.clip(np.round(stroke.pressures), 0, 255).astype(int)
-        if stroke.pressures is not None
-        else np.full(len(pts), _PRESSURE)
+    pressures = np.concatenate(
+        [
+            np.clip(np.round(s.pressures), 0, 255).astype(int)
+            if s.pressures is not None
+            else np.full(len(s), _PRESSURE)
+            for s in strokes
+        ]
     )
 
-    return [
-        si.Point(
-            x=float(x), y=float(y), speed=_SPEED, direction=int(a), width=int(w), pressure=int(p)
+    points = [
+        si.Point(x=x, y=y, speed=_SPEED, direction=a, width=w, pressure=p)
+        for x, y, a, w, p in zip(
+            xs.tolist(),
+            ys.tolist(),
+            directions.tolist(),
+            widths_q.tolist(),
+            pressures.tolist(),
+            strict=True,
         )
-        for x, y, a, w, p in zip(xs, ys, directions, widths_q, pressures, strict=True)
     ]
+    starts = np.concatenate([[0], np.cumsum(lens)]).tolist()
+    return [points[a:b] for a, b in zip(starts, starts[1:], strict=False)]
 
 
 def _layer_ids(count: int, first_free: int) -> list[tuple[CrdtId, CrdtId, CrdtId]]:
@@ -122,12 +140,13 @@ def page_blocks(page: Page, device: DeviceProfile, author_uuid: UUID) -> Iterato
     counter = FIRST_ITEM_COUNTER
     for name, (node, _, _) in zip(layers, ids, strict=True):
         left = NULL_ID
-        for stroke in by_layer[name]:
+        strokes = by_layer[name]
+        for stroke, points in zip(strokes, _line_points(strokes, device), strict=True):
             item_id = CrdtId(1, counter)
             line = si.Line(
                 color=stroke.color,
                 tool=stroke.pen,
-                points=_line_points(stroke, device),
+                points=points,
                 thickness_scale=1.0,
                 starting_length=0.0,
                 color_rgba=stroke.rgba,

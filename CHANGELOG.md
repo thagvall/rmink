@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.15.0 — 2026-11-01
+
+Photo to ink in the web UI is much quicker to adjust, and Send to reMarkable works again for accounts with many notebooks.
+
+- The server keeps the lines it extracted from a photo. Extracting the lines is about 70 % of a conversion, and the shading style, density and contrast do not change them. Changing any of those, picking a style, or downloading or sending what the preview shows now reuses the lines: on the hosted site that takes a second or two instead of 15–25 s.
+- Shading previews are made only for the styles you choose to compare, and only after you press Compare. They are made after the main preview, so they reuse its lines, instead of a second full conversion running beside it on every change.
+- The status line shows the seconds a preview took, and "lines reused" when only the shading was redrawn. While a preview is running it counts the seconds.
+- The main preview draws its picture straight from the strokes instead of writing and re-reading the `.rm` file. Downloads still go through the file writer, and writing a page is faster: the points of all strokes are converted at once (the bytes written are the same).
+- Send to reMarkable: a token connected in the browser now keeps rmapi's notebook list on the server instance between sends, like the owner's token. Before, every send from the browser read the metadata of every notebook (about 2,900 requests for 1,000 notebooks) with 2 requests at a time and a 90 s limit, so large accounts always got "did not answer in time". A send without a kept list gets 270 s and 6 requests at a time. The list is never saved to Blob, and the browser's token is still not kept.
+
 ## 2.14.6 — 2026-10-31
 
 - A revision no longer ends with a copy of the sketch or of the revision it was made from. It has the drawing, the remarks page and the alternatives when there are any. The sketch and earlier revisions are in the drawing's `Tidigare` folder. `rmink draw` and the MCP tool still add the sketch when asked.

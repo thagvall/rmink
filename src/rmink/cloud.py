@@ -2,13 +2,16 @@
 
 The web server keeps no accounts. Connecting turns the one-time code from
 my.remarkable.com into a device token that goes back to the browser, which
-sends it along with each upload. Every rmapi run gets its own temp config and
-cache, so tokens never mix between users or end up on disk after a request.
+sends it along with each upload. Every rmapi run gets its own temp config, so
+tokens never mix between users or end up on disk after a request.
 
-The owner's own token (``RMINK_CLOUD_TOKEN`` on the server, or the saved one for
-the CLI and MCP server) keeps rmapi's document-tree cache between runs instead.
-Without it every run downloads the metadata of every notebook, and a few
-rounds in a row get the account rate limited (HTTP 429).
+rmapi's document-tree cache (the account's notebook list, no token) is kept
+between runs, per token, in a private temp dir named after the token's hash.
+Without it every run downloads the metadata of every notebook: on a
+1,000-notebook account about 2,900 requests, longer than an upload may take,
+and a few runs in a row get the account rate limited (HTTP 429). The owner's
+own token (``RMINK_CLOUD_TOKEN`` on the server, or the saved one for the CLI and
+MCP server) also keeps its rmapi config, and on Vercel its cache in Blob.
 
 The CLI and MCP server run on the user's own machine and keep their token in
 ``~/.config/rmink/cloud.toml`` instead (see :func:`save_token`).
@@ -109,7 +112,7 @@ def _env(home: Path) -> dict[str, str]:
 
 
 def _cold(home: Path) -> bool:
-    """The owner's session has no tree cache yet (see _session)."""
+    """The session's token has no tree cache yet (see _session)."""
     return (home / "cache").exists() and not (home / "cache" / "rmapi" / "tree.cache").exists()
 
 
@@ -162,33 +165,41 @@ def connect(code: str) -> str:
 
 @contextmanager
 def _session(device_token: str) -> Iterator[Path]:
-    """A temp rmapi home holding only this token. For the owner's token the
-    cache dir links to a lasting one, used by one rmapi run at a time."""
+    """A temp rmapi home holding only this token, whose cache dir links to the
+    token's lasting one, used by one rmapi run at a time."""
     if not _TOKEN.match(device_token or ""):
         raise CloudAuthError("Not connected to reMarkable")
     with tempfile.TemporaryDirectory(prefix="rmink-cloud-") as tmp:
         home = Path(tmp)
         (home / "rmapi.conf").write_text(f"devicetoken: {device_token}\n", encoding="utf-8")
-        if device_token != load_token() or os.name == "nt":
+        if os.name == "nt":
             yield home
             return
+        owner = device_token == load_token()
         digest = hashlib.sha256(device_token.encode()).hexdigest()[:16]
         cache = Path(tempfile.gettempdir()) / f"rmink-rmapi-cache-{digest}"
         cache.mkdir(mode=0o700, exist_ok=True)
         with _locked(cache):
-            # rmapi keeps the user token it gets for the device token in its config;
-            # keeping that too saves a call to the strictly limited token endpoint.
-            conf = cache / "rmapi.conf"
-            if not conf.exists() or f"devicetoken: {device_token}\n" not in conf.read_text("utf-8"):
-                conf.write_text(f"devicetoken: {device_token}\n", encoding="utf-8")
-            conf.chmod(0o600)
-            (home / "rmapi.conf").unlink()
-            (home / "rmapi.conf").symlink_to(conf)
+            if owner:
+                # rmapi keeps the user token it gets for the device token in its
+                # config; keeping that too saves a call to the strictly limited
+                # token endpoint.
+                conf = cache / "rmapi.conf"
+                if not conf.exists() or f"devicetoken: {device_token}\n" not in conf.read_text(
+                    "utf-8"
+                ):
+                    conf.write_text(f"devicetoken: {device_token}\n", encoding="utf-8")
+                conf.chmod(0o600)
+                (home / "rmapi.conf").unlink()
+                (home / "rmapi.conf").symlink_to(conf)
             # Linux finds it through XDG_CACHE_HOME (_env), macOS under $HOME. Not on
             # Windows, where links need extra rights.
             (home / "cache").symlink_to(cache, target_is_directory=True)
             (home / "Library").mkdir()
             (home / "Library" / "Caches").symlink_to(cache, target_is_directory=True)
+            if not owner:
+                yield home
+                return
             # A new server instance starts without it: fetch it from Vercel Blob.
             tree = cache / "rmapi" / "tree.cache"
             before = blob_cache.restore(tree, digest)

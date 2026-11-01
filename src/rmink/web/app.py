@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import tempfile
+import time
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -72,6 +73,10 @@ def _data_url(image) -> str:
 def create_app(limits: Limits | None = None) -> FastAPI:
     limits = limits or Limits.from_env()
     limiter = anyio.CapacityLimiter(limits.concurrency)
+    # Extracted lines by image and line settings: changing the shading, its
+    # density or contrast, or downloading what the preview showed, reuses them
+    # instead of redoing most of the work.
+    lines = api.LineCache()
     app = FastAPI(title="rmink", docs_url="/api/docs", redoc_url=None)
 
     async def _save_uploads(files: list[UploadFile], workdir: Path) -> list[Path]:
@@ -227,7 +232,10 @@ def create_app(limits: Limits | None = None) -> FastAPI:
         with tempfile.TemporaryDirectory(prefix="rmink-") as tmp:
             paths = await _save_uploads(files, Path(tmp))
             _check_pages(paths, opts.pages)
-            rendered = await _run(api.render, paths, opts)
+            start = time.perf_counter()
+            hits = lines.hits
+            rendered = await _run(api.render, paths, opts, lines, False)
+            took = time.perf_counter() - start
 
         out_pages = []
         for label, page, img in zip(
@@ -244,7 +252,13 @@ def create_app(limits: Limits | None = None) -> FastAPI:
                     "image": _data_url(thumb),
                 }
             )
-        return {"device": rendered.device.key, "pages": out_pages, "warnings": rendered.warnings}
+        return {
+            "device": rendered.device.key,
+            "pages": out_pages,
+            "warnings": rendered.warnings,
+            "seconds": round(took, 2),
+            "reused_lines": lines.hits > hits,
+        }
 
     @app.post("/api/preview-styles")
     async def preview_styles(
@@ -260,9 +274,15 @@ def create_app(limits: Limits | None = None) -> FastAPI:
         width: Opt = None,
         shade_density: Opt = None,
         shade_contrast: Opt = None,
+        styles: Opt = None,
     ) -> dict:
-        """The first file's first page once per shading style, as small images.
-        Vector files (PDF/SVG) have no shading and give an empty list."""
+        """The first file's first page once per shading style in ``styles``
+        (comma separated, default all), as small images. Vector files (PDF/SVG)
+        have no shading and give an empty list."""
+        try:
+            chosen = [Shading(v) for v in styles.split(",") if v] if styles else list(Shading)
+        except ValueError as e:
+            raise HTTPException(422, f"Unknown shading style in {styles!r}") from e
         opts = _options(
             device=device, mode=mode, colors=colors, fill=fill, fit=fit, threshold=threshold,
             simplify=simplify, pen=pen, width=width, shade_density=shade_density,
@@ -272,12 +292,14 @@ def create_app(limits: Limits | None = None) -> FastAPI:
             paths = await _save_uploads(files[:1], Path(tmp))
             if paths[0].suffix.lower() in (".pdf", ".svg"):
                 return {"styles": []}
-            previews = await _run(api.style_previews, paths[0], opts, list(Shading))
-        styles = []
+            start = time.perf_counter()
+            previews = await _run(api.style_previews, paths[0], opts, chosen, lines)
+            took = time.perf_counter() - start
+        out = []
         for p in previews:
             thumb = p.image.copy()
             thumb.thumbnail((_STYLE_WIDTH, _STYLE_WIDTH * 4))
-            styles.append(
+            out.append(
                 {
                     "style": p.style.value,
                     "strokes": p.strokes,
@@ -285,7 +307,7 @@ def create_app(limits: Limits | None = None) -> FastAPI:
                     "image": _data_url(thumb),
                 }
             )
-        return {"styles": styles}
+        return {"styles": out, "seconds": round(took, 2)}
 
     async def _build(files: list[UploadFile], name: str | None, **kw) -> tuple[Path, ConvertResult]:
         """Convert uploads into one notebook in a new temp dir the caller removes."""
@@ -296,7 +318,7 @@ def create_app(limits: Limits | None = None) -> FastAPI:
             opts = _options(name=notebook, **kw)
             _check_pages(paths, opts.pages)
             out = tmp / f"{notebook}.rmdoc"
-            return tmp, await _run(api.convert, paths, out, opts)
+            return tmp, await _run(api.convert, paths, out, opts, None, lines)
         except BaseException:
             shutil.rmtree(tmp, ignore_errors=True)
             raise

@@ -132,6 +132,13 @@ def test_preview_styles_and_shading(client, tmp_path):
     assert all(s["image"].startswith("data:image/png;base64,") for s in styles)
 
     r = client.post(
+        "/api/preview-styles", files=[_upload(img)], data={"width": "3", "styles": "pencil,hatch"}
+    )
+    assert [s["style"] for s in r.json()["styles"]] == ["pencil", "hatch"]
+    bad = client.post("/api/preview-styles", files=[_upload(img)], data={"styles": "x"})
+    assert bad.status_code == 422
+
+    r = client.post(
         "/api/preview",
         files=[_upload(img)],
         data={"shading": "hatch", "width": "3", "pen": "pencil"},

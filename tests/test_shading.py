@@ -117,3 +117,20 @@ def test_rendering_lines_matches_the_written_file(tmp_path):
     direct = np.asarray(render_lines(page_lines(page, device), device, page.height), float)
     stored = render_rm(write_page(page, device, uuid.uuid4()), device, page.height)
     assert np.abs(direct - np.asarray(stored, float)).mean() < 0.5
+
+
+def test_line_cache_reuses_lines_across_shading(tmp_path):
+    src = tmp_path / "ramp.png"
+    Image.fromarray(_ramp()).save(src)
+    cache = api.LineCache()
+    first = api.render([src], ConvertOptions(shading="hatch"), cache, write=False)
+    contrast = ConvertOptions(shading="hatch", shade_contrast=1.6)
+    again = api.render([src], contrast, cache, write=False)
+    assert (cache.misses, cache.hits) == (1, 1)
+    assert first.rm_pages == [] and len(again.images) == 1
+    # The cached lines are copies: the same request twice gives the same page.
+    a = api.render([src], ConvertOptions(shading="hatch"), cache).document.pages[0]
+    b = api.render([src], ConvertOptions(shading="hatch")).document.pages[0]
+    assert a.point_count == b.point_count
+    api.render([src], ConvertOptions(shading="hatch", threshold="120"), cache, write=False)
+    assert cache.misses == 2

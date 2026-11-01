@@ -211,6 +211,13 @@ details[open] summary { margin-bottom: 10px; }
 .style-card[aria-pressed="true"] { border-color: var(--accent); }
 .style-card.pending img { opacity: .4; }
 #styles .row { max-width: 520px; }
+#style-pick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; }
+#style-pick button[data-style] {
+  border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 13px;
+  background: var(--paper); color: var(--ink); cursor: pointer;
+}
+#style-pick button[data-style][aria-pressed="true"] { background: var(--surface); border-color: var(--accent); font-weight: 600; }
+#style-pick .btn { width: auto; padding: 6px 14px; font-size: 13px; }
 
 dialog { border: 0; padding: 0; background: none; max-width: 96vw; max-height: 96vh; }
 dialog::backdrop { background: rgb(0 0 0 / .7); }
@@ -390,7 +397,10 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
     <div id="styles" hidden>
       <div class="head">
         <h2>Shading</h2>
-        <span>Grey tones for photos. Pick a style to preview it below.</span>
+        <span id="styles-note">Grey tones for photos. Which styles do you want to compare?</span>
+      </div>
+      <div id="style-pick" role="group" aria-label="Styles to compare">
+        <button class="btn" id="style-go" type="button">Compare</button>
       </div>
       <div id="style-cards" role="group" aria-label="Shading style"></div>
       <div class="row">
@@ -439,7 +449,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
 (() => {
   const $ = (s, el = document) => el.querySelector(s);
   const state = { files: [], device: "rm2", devices: [], ctrl: null, timer: null, seq: 0,
-    shading: "none", styleCtrl: null, styleTimer: null, styleSeq: 0 };
+    shading: "none", styleCtrl: null, styleSeq: 0, compare: null, stylesFor: null };
 
   const drop = $("#drop"), picker = $("#picker"), list = $("#files");
   const touch = matchMedia("(pointer: coarse)").matches;
@@ -447,6 +457,11 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
   const status = $("#status"), statusText = $("#status-text"), dl = $("#download"), send = $("#send");
   const thr = $('[name="threshold"]'), thrAuto = $("#thr-auto"), simp = $('[name="simplify"]');
 
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+    remove(k) { try { localStorage.removeItem(k); } catch {} },
+  };
   const fmtSize = (b) => b > 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1e3)) + " kB";
   const fmtNum = (n) => n.toLocaleString();
 
@@ -468,7 +483,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
       li.innerHTML = `<span class="n"></span><span class="s"></span><button class="icon-btn" aria-label="Remove">×</button>`;
       li.querySelector(".n").textContent = f.name;
       li.querySelector(".s").textContent = fmtSize(f.size);
-      li.querySelector("button").onclick = () => { state.files.splice(i, 1); renderFiles(); schedule(0); };
+      li.querySelector("button").onclick = () => { state.files.splice(i, 1); renderFiles(); newImage(); schedule(0); };
       return li;
     }));
     dl.disabled = state.files.length === 0;
@@ -480,6 +495,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
       if (!state.files.some((g) => g.name === f.name && g.size === f.size)) state.files.push(f);
     }
     renderFiles();
+    newImage();
     schedule(0);
   }
 
@@ -590,39 +606,88 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
     return `${res.status} ${res.statusText}`;
   }
 
-  function schedule(delay = 500, styles = true) {
+  // One preview request at a time: the shading previews follow the main
+  // preview, so they reuse the lines the server just extracted for it.
+  function schedule(delay = 500) {
     clearTimeout(state.timer);
     state.timer = setTimeout(preview, delay);
-    if (styles) {
-      clearTimeout(state.styleTimer);
-      state.styleTimer = setTimeout(previewStyles, delay + 300);
-    }
   }
 
-  // One small preview per shading style, for the first file, so styles can
-  // be compared before choosing.
+  // Shading previews for the first file, only for the styles the user asks
+  // to compare and only after they press Compare; then they follow changes.
   const STYLE_NAMES = { none: "None", stipple: "Dots", halftone: "Halftone", hatch: "Hatching", crosshatch: "Cross-hatch", pencil: "Pencil" };
   const isImage = (f) => !/\.(pdf|svg)$/i.test(f.name);
+  const pickKey = "rmink.compareStyles";
+  const picked = new Set((store.get(pickKey) || "hatch,crosshatch,pencil").split(",").filter((v) => v in STYLE_NAMES));
+  const stylesNote = $("#styles-note");
+  const goBtn = $("#style-go");
+  goBtn.before(...Object.entries(STYLE_NAMES).map(([style, label]) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.style = style;
+    b.textContent = label;
+    b.setAttribute("aria-pressed", String(picked.has(style)));
+    b.onclick = () => {
+      picked.has(style) ? picked.delete(style) : picked.add(style);
+      b.setAttribute("aria-pressed", String(picked.has(style)));
+      store.set(pickKey, [...picked].join(","));
+      goBtn.disabled = picked.size === 0;
+      if (state.compare && picked.size) { state.compare = Object.keys(STYLE_NAMES).filter((st) => picked.has(st)); previewStyles(); }
+    };
+    return b;
+  }));
+  goBtn.addEventListener("click", () => {
+    if (!picked.size) return;
+    state.compare = Object.keys(STYLE_NAMES).filter((st) => picked.has(st));
+    state.stylesFor = null;
+    previewStyles();
+  });
+  // A new set of files: show the question again instead of old answers.
+  function newImage() {
+    state.compare = null;
+    state.stylesFor = null;
+    state.styleCtrl?.abort();
+    $("#style-cards").replaceChildren();
+    const box = $("#styles");
+    box.hidden = !state.files.length || !isImage(state.files[0]);
+    stylesNote.textContent = "Grey tones for photos. Which styles do you want to compare?";
+    goBtn.hidden = false;
+    if (box.hidden && state.shading !== "none") state.shading = "none";
+  }
   function markStyles() {
     for (const b of $("#style-cards").children) b.setAttribute("aria-pressed", String(b.dataset.style === state.shading));
   }
+  // What the shading previews depend on: everything but the chosen style.
+  async function stylesKey() {
+    const fd = await formData(false, true);
+    return [state.files[0], ...[...fd].filter(([k]) => k !== "files").map(([k, v]) => `${k}=${v}`), state.compare.join(",")];
+  }
+  const sameKey = (a, b) => !!a && !!b && a.length === b.length && a.every((v, i) => v === b[i]);
+  function ticking(el, text) {
+    const t0 = performance.now();
+    const tick = () => { el.textContent = `${text} ${Math.round((performance.now() - t0) / 1000)} s`; };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }
   async function previewStyles() {
+    if (!state.compare || !state.files.length || !isImage(state.files[0])) return;
+    const key = await stylesKey();
+    if (sameKey(key, state.stylesFor)) return;
     state.styleCtrl?.abort();
-    const box = $("#styles");
-    if (!state.files.length || !isImage(state.files[0])) {
-      box.hidden = true;
-      if (state.shading !== "none") { state.shading = "none"; schedule(0, false); }
-      return;
-    }
     const ctrl = state.styleCtrl = new AbortController();
     const seq = ++state.styleSeq;
+    goBtn.hidden = true;
     for (const c of $("#style-cards").children) c.classList.add("pending");
+    const stop = ticking(stylesNote, `Making ${state.compare.length} shading preview${state.compare.length === 1 ? "" : "s"}…`);
     try {
-      const res = await fetch("/api/preview-styles", { method: "POST", body: await formData(false, true), signal: ctrl.signal });
+      const fd = await formData(false, true);
+      fd.append("styles", state.compare.join(","));
+      const res = await fetch("/api/preview-styles", { method: "POST", body: fd, signal: ctrl.signal });
       if (!res.ok) throw new Error(await errorText(res));
       const data = await res.json();
       if (seq !== state.styleSeq) return;
-      box.hidden = data.styles.length === 0;
+      state.stylesFor = key;
       $("#style-cards").replaceChildren(...data.styles.map((st) => {
         const b = document.createElement("button");
         b.type = "button";
@@ -632,18 +697,25 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
         b.querySelector("img").src = st.image;
         b.querySelector(".cap > span").textContent = STYLE_NAMES[st.style] || st.style;
         b.querySelector("small").textContent = `${fmtNum(st.strokes)} strokes`;
-        b.onclick = () => { state.shading = st.style; markStyles(); schedule(0, false); };
+        // Only the main preview changes; these cards stay as they are.
+        b.onclick = () => { state.shading = st.style; markStyles(); schedule(0); };
         return b;
       }));
       markStyles();
+      stop();
+      stylesNote.textContent = `Pick one to preview it below · made in ${data.seconds} s`;
     } catch (e) {
+      stop();
       if (e.name === "AbortError" || seq !== state.styleSeq) return;
-      // Say why instead of hiding the strip; phones are slow enough to hit timeouts.
-      box.hidden = false;
+      // Say why; phones are slow enough to hit timeouts.
+      stylesNote.textContent = "Grey tones for photos.";
+      goBtn.hidden = false;
       $("#style-cards").replaceChildren(Object.assign(document.createElement("p"), {
         className: "notice err", style: "grid-column: 1 / -1",
         textContent: `Could not make the shading previews: ${e.message}`,
       }));
+    } finally {
+      stop();
     }
   }
 
@@ -658,6 +730,7 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
     const ctrl = state.ctrl = new AbortController();
     const seq = ++state.seq;
     setStatus("Converting…", true);
+    const stop = ticking(statusText, "Converting…");
     try {
       const res = await fetch("/api/preview", { method: "POST", body: await formData(false), signal: ctrl.signal });
       if (!res.ok) throw new Error(await errorText(res));
@@ -678,11 +751,18 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
         return fig;
       }));
       setNotices(data.warnings);
-      setStatus(`${data.pages.length} page${data.pages.length === 1 ? "" : "s"} · ${fmtNum(strokes)} strokes · ${fmtNum(points)} points`);
+      stop();
+      // The time tells a quick shading change (lines reused) from a full run.
+      const took = `${data.seconds} s${data.reused_lines ? ", lines reused" : ""}`;
+      setStatus(`${data.pages.length} page${data.pages.length === 1 ? "" : "s"} · ${fmtNum(strokes)} strokes · ${fmtNum(points)} points · ${took}`);
+      previewStyles();
     } catch (e) {
+      stop();
       if (e.name === "AbortError") return;
       setNotices([], e.message);
       setStatus("Preview failed.");
+    } finally {
+      stop();
     }
   }
 
@@ -819,11 +899,6 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
   fetch("/api/devices").then((r) => r.json()).then((d) => { state.devices = d; renderDevices(); })
     .catch(() => setNotices([], "Could not reach the rmink server."));
   // Support prompt: first download, then every 10th, until dismissed.
-  const store = {
-    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
-    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
-    remove(k) { try { localStorage.removeItem(k); } catch {} },
-  };
   function maybeNudge() {
     if (!state.supportUrl || store.get("rmink.nudge.dismissed") === "1") return;
     const n = Number(store.get("rmink.downloads") || 0) + 1;

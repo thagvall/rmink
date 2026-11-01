@@ -3,7 +3,10 @@ thin wrappers around :func:`convert`."""
 
 from __future__ import annotations
 
+import hashlib
 import logging
+import threading
+from collections import OrderedDict
 from dataclasses import dataclass, replace
 from pathlib import Path
 from uuid import UUID
@@ -26,8 +29,63 @@ from rmink.writer.rm_v6 import page_lines, write_page
 
 log = logging.getLogger(__name__)
 
-# Style thumbnails extract lines at device resolution instead of 2x.
-_STYLE_OVERSAMPLE = 1.0
+
+class LineCache:
+    """Raster line extraction results, the bulk of a conversion's time.
+
+    Shading style, density and contrast are not part of the key, so changing
+    them reuses the lines and only redraws the shading. Thread safe; a second
+    caller asking for lines that are being extracted waits for them instead of
+    extracting them again.
+    """
+
+    def __init__(self, size: int = 12):
+        self._size = size
+        self._items: OrderedDict[str, list[Stroke]] = OrderedDict()
+        self._busy: dict[str, threading.Lock] = {}
+        self._lock = threading.Lock()
+        self.hits = 0
+        self.misses = 0
+
+    @staticmethod
+    def key(src: RasterSource, device: DeviceProfile, opts: ConvertOptions) -> str:
+        h = hashlib.sha1(src.image.tobytes())
+        fields = opts.model_dump(
+            exclude={"shading", "shade_density", "shade_contrast", "max_points", "pages", "name",
+                     "compress", "seed"}
+        )  # fmt: skip
+        h.update(repr((src.image.shape, src.dpi, device.key, fields)).encode())
+        return h.hexdigest()
+
+    def lines(self, key: str, extract) -> list[Stroke]:
+        with self._lock:
+            busy = self._busy.setdefault(key, threading.Lock())
+        with busy:
+            with self._lock:
+                strokes = self._items.get(key)
+                if strokes is not None:
+                    self._items.move_to_end(key)
+                    self.hits += 1
+            if strokes is None:
+                strokes = extract()
+                with self._lock:
+                    self.misses += 1
+                    self._items[key] = strokes
+                    while len(self._items) > self._size:
+                        self._items.popitem(last=False)
+            with self._lock:
+                self._busy.pop(key, None)
+        # Callers reorder and simplify strokes in place.
+        return [_copy(s) for s in strokes]
+
+
+def _copy(s: Stroke) -> Stroke:
+    return replace(
+        s,
+        points=s.points.copy(),
+        widths=None if s.widths is None else s.widths.copy(),
+        pressures=None if s.pressures is None else s.pressures.copy(),
+    )
 
 
 @dataclass
@@ -92,7 +150,7 @@ def _raster_lines(
     placement: Placement,
     device: DeviceProfile,
     opts: ConvertOptions,
-    oversample: float | None = None,
+    cache: LineCache | None = None,
 ) -> list[Stroke]:
     palette, clusters = _palette(device, opts.colors)
     # Photographed black ink reads as grey; gray is only offered when it is
@@ -101,11 +159,18 @@ def _raster_lines(
     if opts.shading != Shading.none and opts.fill == FillMode.hatch:
         # Shading draws the dark areas; even hatching would hide it.
         opts = opts.model_copy(update={"fill": FillMode.outline})
-    extra = {} if oversample is None else {"oversample": oversample}
-    return extract_raster(src, placement, device, raster_palette, clusters, opts, **extra)
+
+    def extract() -> list[Stroke]:
+        return extract_raster(src, placement, device, raster_palette, clusters, opts)
+
+    if cache is None:
+        return extract()
+    return cache.lines(LineCache.key(src, device, opts), extract)
 
 
-def source_to_page(src: Source, device: DeviceProfile, opts: ConvertOptions) -> Page:
+def source_to_page(
+    src: Source, device: DeviceProfile, opts: ConvertOptions, cache: LineCache | None = None
+) -> Page:
     palette, clusters = _palette(device, opts.colors)
     if isinstance(src, VectorSource):
         placement = place(
@@ -119,7 +184,7 @@ def source_to_page(src: Source, device: DeviceProfile, opts: ConvertOptions) -> 
         strokes = extract_vector(src, placement, device, palette, opts)
     else:
         placement = _raster_placement(src, device, opts)
-        strokes = _raster_lines(src, placement, device, opts)
+        strokes = _raster_lines(src, placement, device, opts, cache)
         budget = opts.max_points - sum(len(s) for s in strokes)
         strokes += shade_strokes(src, placement, opts, max(budget, 0))
 
@@ -136,40 +201,25 @@ class StylePreview:
 
 
 def style_previews(
-    path: Path, opts: ConvertOptions, styles: list[Shading] | None = None
+    path: Path,
+    opts: ConvertOptions,
+    styles: list[Shading] | None = None,
+    cache: LineCache | None = None,
 ) -> list[StylePreview]:
     """The first page of ``path`` rendered once per shading style.
 
-    Line extraction and the tone map run once; only the shading differs. Vector
-    sources have no shading, so they give an empty list.
+    The lines are extracted once per fill (``cache``, if given, keeps them for
+    the next call); only the shading differs. Vector sources have no shading,
+    so they give an empty list.
     """
     device = get_device(opts.device)
     src = next(iter(load(Path(path), opts.mode.value, opts.pages)), None)
     if not isinstance(src, RasterSource):
         return []
-    styles = styles or list(Shading)
-    placement = _raster_placement(src, device, opts)
-    # Lines at device resolution instead of 2x: half the time, and the
-    # thumbnails are far too small to show the difference.
-    plain = _raster_lines(
-        src, placement, device, opts.model_copy(update={"shading": Shading.none}), _STYLE_OVERSAMPLE
-    )
-    if opts.fill == FillMode.hatch:
-        shaded = opts.model_copy(update={"shading": Shading.stipple})
-        lines = _raster_lines(src, placement, device, shaded, _STYLE_OVERSAMPLE)
-    else:
-        lines = plain
-    tone = device_tone(src, placement, opts.shade_contrast)
+    cache = cache or LineCache()
     out = []
-    for style in styles:
-        style_opts = opts.model_copy(update={"shading": style})
-        base = plain if style == Shading.none else lines
-        budget = opts.max_points - sum(len(s) for s in base)
-        strokes = [replace(s, points=s.points.copy()) for s in base] + shade_strokes(
-            src, placement, style_opts, max(budget, 0), tone
-        )
-        strokes = enforce_budget(reading_order(strokes), opts.max_points, opts.simplify)
-        page = Page(device.width, placement.page_height, strokes)
+    for style in styles or list(Shading):
+        page = source_to_page(src, device, opts.model_copy(update={"shading": style}), cache)
         # Straight from the lines: writing and re-reading the .rm file took two
         # thirds of the time, and the main preview already round-trips the writer.
         image = render_lines(page_lines(page, device), device, page.height)
@@ -177,7 +227,15 @@ def style_previews(
     return out
 
 
-def render(inputs: list[Path], opts: ConvertOptions) -> Rendered:
+def render(
+    inputs: list[Path],
+    opts: ConvertOptions,
+    cache: LineCache | None = None,
+    write: bool = True,
+) -> Rendered:
+    """Convert ``inputs`` to pages. ``write=False`` skips the .rm files
+    (``rm_pages`` is empty) and draws the images straight from the lines, for
+    previews."""
     device = get_device(opts.device)
     if opts.mode == Mode.vector and any(p.suffix.lower() not in (".pdf", ".svg") for p in inputs):
         raise ValueError("--mode vector only works for PDF and SVG inputs")
@@ -203,13 +261,16 @@ def render(inputs: list[Path], opts: ConvertOptions) -> Rendered:
     rm_pages, images, labels = [], [], []
     for src in sources:
         log.info("Converting %s", src.label)
-        page = source_to_page(src, device, opts)
+        page = source_to_page(src, device, opts, cache)
         if not page.strokes:
             warnings.append(f"{src.label}: no ink found")
-        data = write_page(page, device, author)
         doc.pages.append(page)
-        rm_pages.append(data)
-        images.append(render_rm(data, device, page.height))
+        if write:
+            data = write_page(page, device, author)
+            rm_pages.append(data)
+            images.append(render_rm(data, device, page.height))
+        else:
+            images.append(render_lines(page_lines(page, device), device, page.height))
         labels.append(src.label)
         if isinstance(src, RasterSource) and opts.fit == Fit.none and not src.dpi:
             warnings.append(f"{src.label}: image has no DPI; assumed 1 px = 1 device px")
@@ -221,10 +282,11 @@ def convert(
     output: Path | None = None,
     opts: ConvertOptions | None = None,
     preview: Path | None = None,
+    cache: LineCache | None = None,
 ) -> ConvertResult:
     opts = opts or ConvertOptions()
     inputs = [Path(p) for p in inputs]
-    rendered = render(inputs, opts)
+    rendered = render(inputs, opts, cache)
     name = rendered.document.name
     output = Path(output) if output else inputs[0].with_name(f"{inputs[0].stem}.rmdoc")
     if output.suffix.lower() != ".rmdoc":

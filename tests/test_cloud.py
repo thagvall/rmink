@@ -250,11 +250,14 @@ def test_owner_keeps_the_tree_cache(tmp_path, monkeypatch):
     cloud.ls("owner.tok-1", "/rmink")
     assert seen == [False, False, False, True, True, True]
 
+    # Other tokens keep their own tree cache, but not their rmapi config.
     seen.clear()
     cloud.ls("someone.else-1")
     cloud.ls("someone.else-1")
-    assert seen == [False, False, False] * 2
-    assert len([p for p in tmp_path.iterdir() if p.name.startswith("rmink-rmapi-cache-")]) == 1
+    assert seen == [False, False, False, True, True, False]
+    caches = [p for p in tmp_path.iterdir() if p.name.startswith("rmink-rmapi-cache-")]
+    assert len(caches) == 2
+    assert sorted((p / "rmapi.conf").exists() for p in caches) == [False, True]
 
 
 def test_rate_limit_message():
@@ -314,8 +317,7 @@ def test_a_cold_start_fetches_the_tree_cache_from_blob(tmp_path, monkeypatch):
         tree = Path(env["XDG_CACHE_HOME"]) / "rmapi" / "tree.cache"
         warm.append(tree.exists())
         # A cold sync gets more time and more parallel requests.
-        owner = env["XDG_CACHE_HOME"].endswith("/cache")
-        cold = owner and not tree.exists()
+        cold = not tree.exists()
         assert (timeout, env["RMAPI_CONCURRENT"]) == ((270, "6") if cold else (90, "2"))
         if not tree.exists():  # a cold sync fills the cache
             tree.parent.mkdir(exist_ok=True)
@@ -336,4 +338,4 @@ def test_a_cold_start_fetches_the_tree_cache_from_blob(tmp_path, monkeypatch):
 
     # Someone else's token never touches the owner's Blob cache.
     cloud.ls("someone.else-1")
-    assert len(puts) == 1
+    assert warm[-1] is False and len(puts) == 1
