@@ -137,6 +137,7 @@ CREATE_TOOL = {
             "name": {"type": "string"},
             "title": {"type": "string"},
             "intro": {"type": "string"},
+            "group": {"type": "string"},
             "sections": {
                 "type": "array",
                 "items": {
@@ -283,6 +284,8 @@ def check_workbook(args: dict) -> Workbook:
         raise ValueError(str(e)) from e
     if not wb.sections or not wb.fields():
         raise ValueError("The workbook needs sections with fields.")
+    if wb.group:
+        wb.area, wb.group = catalog.AREA, catalog.group_path(wb.group)
     ids = [f.id for f in wb.fields()]
     if len(ids) != len(set(ids)):
         raise ValueError("Field ids must be unique.")
@@ -388,12 +391,16 @@ def create_workbook(
     group's folder."""
     started = time.monotonic()
     request = topic.strip()
+    known = _groups(store)
     if group:
         try:  # before any call, so a typo costs nothing
             g = catalog.group(group)
             request = catalog.topic_request(g.id, topic_id or "", grade, topic)
         except ValueError as e:
             raise RoundError(str(e)) from e
+    else:
+        # Claude files it in the group it fits, or names a new one.
+        request += "\n\n" + catalog.groups_prompt(known)
     if client is None:
         import anthropic
 
@@ -413,8 +420,25 @@ def create_workbook(
     if group:
         wb.area, wb.group = catalog.AREA, g.path
     result = start_workbook(wb, device_key, store, send, started)
+    if wb.group and wb.group not in known:
+        result.summary += f" Ny grupp: {wb.group}."
     result.usage = _cost(usage)
     return result
+
+
+def _groups(store: Store) -> list[str]:
+    """The group paths there are: the catalogue's and those of saved workbooks."""
+    paths = [g.path for g in catalog.load()]
+    saved = getattr(store, "everything", None)
+    raws = saved().values() if saved else getattr(store, "drawings", {}).values()
+    for raw in raws:
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            continue
+        if data.get("kind") == "workbook" and data.get("group") and data["group"] not in paths:
+            paths.append(data["group"])
+    return paths
 
 
 def find_workbook(document: str, store: Store) -> Workbook | None:

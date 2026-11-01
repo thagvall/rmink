@@ -256,7 +256,8 @@ def router() -> APIRouter:
 
     @r.post("/api/workbook/move")
     async def move(req: MoveRequest, x_rmink_secret: str | None = Header(None)) -> dict:
-        """Move a workbook, with its earlier revisions, into rmink/Skola/<group>/."""
+        """Move a workbook, with its earlier revisions, into rmink/Skola/<group>/:
+        a catalogue group or a group of its own ("Matematik/Geometri")."""
         _check(x_rmink_secret)
         token = _token()
         from rmink.drawing.store import MemoryStore, server_store
@@ -267,7 +268,7 @@ def router() -> APIRouter:
         if wb is None:
             raise HTTPException(404, f'Ingen sparad arbetsbok "{req.name}"')
         try:
-            title = catalog.group(req.group).path
+            title = catalog.group_path(req.group)
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
         try:

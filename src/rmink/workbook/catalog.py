@@ -57,6 +57,39 @@ def group(group_id: str) -> Group:
     )
 
 
+def group_path(value: str) -> str:
+    """The folder path under rmink/Skola/ for ``value``: a catalogue group's
+    id, title or path, or a group of one's own ("Matematik/Geometri",
+    "Engelska"). ``ValueError`` says what is wrong with it."""
+    try:
+        return group(value).path
+    except ValueError:
+        pass
+    parts = [p.strip() for p in value.strip().strip("/").split("/")]
+    if not 1 <= len(parts) <= 2 or not all(parts):
+        raise ValueError(
+            f'"{value}" är ingen grupp: ge en grupp som "Grammatik" eller "Matematik/Geometri".'
+        )
+    if any(len(p) > 40 or any(ch in p for ch in "*?[]\\") for p in parts):
+        raise ValueError(f'"{value}": ett gruppnamn är högst 40 tecken, utan * ? [ ] \\.')
+    return "/".join(parts)
+
+
+def groups_prompt(extra: list[str] = ()) -> str:
+    """The groups there are, for Claude to place a workbook in one of them
+    or name a new one."""
+    lines = [f"- {g.path}: {g.description}" for g in load()]
+    lines += [f"- {p}" for p in extra if p not in {g.path for g in load()}]
+    return (
+        'Give the workbook a "group": the folder under rmink/Skola/ it belongs in. '
+        "The groups there are:\n" + "\n".join(lines) + "\n"
+        "Use one of them, exactly as written, when the workbook fits it. When none "
+        "fits, name a new group: a short Swedish name for the area (1-3 words), "
+        'under "Matematik/" for mathematics ("Matematik/Geometri") and on its own '
+        'for other subjects ("Engelska", "Läsförståelse").'
+    )
+
+
 def topic_request(
     group_id: str, topic_id: str = "", grade: int | None = None, extra: str = ""
 ) -> str:

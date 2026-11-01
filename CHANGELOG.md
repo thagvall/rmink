@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.18.0 — 2026-11-01
+
+- A new maths group, **Procent** (`rmink/Skola/Matematik/Procent/`), with seven topics: what a percentage is, percent of a number, what percentage, discounts and increases, change factor, percent and percentage points, and interest.
+- A workbook written from free text, without a group, is now filed by Claude. It goes in the group it fits (the catalogue's groups and those saved workbooks are in), or in a new group when none fits: maths under `Matematik/` ("Matematik/Geometri"), other subjects on their own ("Engelska"). The summary says *Ny grupp: …* when it made one. Before, such a workbook landed in `rmink/<name>/` outside Skola.
+- *Flytta till grupp…* is on every workbook's card on `/rounds`, so a workbook can move between groups (a percentage test from Bråk och division to Procent). It lists the catalogue's groups and those other workbooks are in. `rmink workbook move --group` takes a group of one's own too, such as `Matematik/Geometri`.
+
 ## 2.17.0 — 2026-11-01
 
 - The maths groups have a folder of their own: workbooks in *Plus och minus* and *Bråk och division* go in `rmink/Skola/Matematik/<group>/<name>/`. *Grammatik* stays in `rmink/Skola/Grammatik/`. A group in `skola.toml` can name such a `folder`.

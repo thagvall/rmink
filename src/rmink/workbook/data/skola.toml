@@ -206,6 +206,76 @@ brief = """Samma tal på tre sätt: 1/4 = 0,25 = 25 %. Kända par (1/2, 1/4, 3/4
 Rea och ränta som vardagsexempel. Typiskt fel: 0,5 % tolkas som 50 %."""
 
 [[group]]
+id = "procent"
+title = "Procent"
+area = "Matte"
+folder = "Matematik"
+description = "Procent, andelar och förändringar, från hundradelar till ränta."
+
+[[group.topic]]
+id = "procent-begrepp"
+title = "Vad procent är"
+grades = [5, 6, 7]
+brief = """Procent betyder hundradelar: 25 % = 25/100 = 0,25. Färglägg rutor i \
+ett hundrarutnät, skriv samma andel som bråk, decimaltal och procent, och lär \
+in kända par (50 % är hälften, 25 % en fjärdedel, 10 % en tiondel). Typiskt \
+fel: att tro att 5 % är 0,5."""
+
+[[group.topic]]
+id = "procent-av"
+title = "Procent av ett tal"
+grades = [6, 7, 8]
+brief = """Räkna ut procent av ett tal: först 10 % och 1 % i huvudet, sedan \
+till exempel 30 % av 450 kr via 10 %, och med decimalform (0,3 * 450). \
+Vardagsexempel med priser och klassens elever. Typiskt fel: att dela med \
+procenttalet, 450 / 30."""
+
+[[group.topic]]
+id = "andel"
+title = "Hur många procent?"
+grades = [6, 7, 8, 9]
+brief = """Andelen i procent: delen delad med det hela, 12 av 40 är 12/40 = \
+0,3 = 30 %. Börja med lätta tal, sedan avrundning. Låt eleven skriva vad som \
+är delen och vad som är det hela. Typiskt fel: att dela det hela med delen, \
+eller att ta fel helhet."""
+
+[[group.topic]]
+id = "rabatt-okning"
+title = "Rabatt, ökning och minskning"
+grades = [7, 8, 9]
+brief = """Ett pris som sänks eller höjs med en procentsats: 20 % rabatt på \
+350 kr, en lön som höjs med 3 %. Räkna både förändringen och det nya värdet, \
+och hur många procent något har ökat (från 80 till 100 är 25 %). Typiskt fel: \
+att räkna procenten på det nya värdet i stället för det gamla."""
+
+[[group.topic]]
+id = "forandringsfaktor"
+title = "Förändringsfaktor"
+grades = [8, 9]
+brief = """Förändringsfaktor: en ökning med 15 % är gånger 1,15, en minskning \
+med 15 % gånger 0,85. Upprepade förändringar (två höjningar med 10 % är \
+1,1 * 1,1 = 1,21, alltså 21 %). Typiskt fel: att tro att +10 % och sedan \
+-10 % tar ut varandra."""
+
+[[group.topic]]
+id = "procentenheter"
+title = "Procent och procentenheter"
+grades = [8, 9]
+brief = """Skillnaden mellan procent och procentenheter: räntan går från 2 % \
+till 3 %, en ökning med 1 procentenhet men med 50 %. Exempel med räntor, \
+opinionsmätningar och rabatter. Typiskt fel: att säga att räntan ökade med \
+1 %."""
+
+[[group.topic]]
+id = "ranta"
+title = "Ränta och lån"
+grades = [8, 9]
+brief = """Ränta på sparande och lån: årsränta på ett belopp, ränta för en del \
+av ett år, och ränta på ränta över några år med förändringsfaktor. Jämför två \
+lån eller sparkonton. Typiskt fel: att lägga ihop räntan varje år utan att \
+räkna med räntan på räntan."""
+
+[[group]]
 id = "grammatik"
 title = "Grammatik"
 area = "Svenska"

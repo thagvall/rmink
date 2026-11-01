@@ -101,7 +101,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
     <h2>Ny arbetsbok</h2>
     <p class="muted">Claude skriver en arbetsbok med innehållsförteckning, avsnitt och svarsrutor och lägger den i rmink/&lt;namn&gt;, eller i rmink/Skola/&lt;grupp&gt;/&lt;namn&gt; när du väljer en grupp. Skriv svaren för hand, låt plattan synka och kör nästa varv, så blir handstilen text.</p>
     <label for="wbgroup">Skola</label>
-    <select id="wbgroup"><option value="">Ingen grupp: skriv själv vad den ska handla om</option></select>
+    <select id="wbgroup"><option value="">Ingen grupp: skriv själv, Claude väljer grupp eller gör en ny</option></select>
     <div id="wbschool" hidden>
       <label for="wbtopic">Moment</label>
       <select id="wbtopic"></select>
@@ -313,12 +313,13 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
         try { localStorage.setItem("rmink.roundsMemory", JSON.stringify(m)); } catch {}
         drawings();
       };
-      if (wb && sent && catalog.length && !catalog.some((g) => g.path === d.group)) {
-        // Older workbooks, made before rmink skola or before their group got a
-        // folder of its own (Matematik): move one into the group's folder.
+      if (wb && sent && catalog.length) {
+        // Move a workbook into another group's folder: a catalogue group, or
+        // one another saved workbook is in (a group Claude made for it).
+        const paths = [...new Set([...catalog.map((g) => g.path), ...all.filter((x) => x.kind === "workbook" && x.group).map((x) => x.group)])];
         const to = el("select"); to.style.width = "auto"; to.setAttribute("aria-label", "Flytta till grupp");
-        const none = el("option", null, "Flytta till grupp…"); none.value = ""; to.appendChild(none);
-        for (const g of catalog) { const o = el("option", null, `${g.area}: ${g.title}`); o.value = g.id; to.appendChild(o); }
+        const none = el("option", null, d.group ? "Flytta till annan grupp…" : "Flytta till grupp…"); none.value = ""; to.appendChild(none);
+        for (const p of paths.filter((p) => p !== d.group)) { const o = el("option", null, p.split("/").join(" · ")); o.value = p; to.appendChild(o); }
         to.onchange = async () => {
           if (!to.value || running) return;
           status.textContent = "Flyttar…";

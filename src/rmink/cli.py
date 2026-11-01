@@ -488,7 +488,9 @@ def workbook_catalog() -> None:
 @workbook_app.command("move")
 def workbook_move(
     name: Annotated[str, typer.Argument(help="The workbook, e.g. Bråktest")],
-    group: Annotated[str, typer.Option(help="rmink skola group, e.g. brak-division")],
+    group: Annotated[
+        str, typer.Option(help="rmink skola group, e.g. procent or Matematik/Geometri")
+    ],
 ) -> None:
     """Move a workbook, with its earlier revisions, into rmink/Skola/<group>/."""
     from rmink import cloud
@@ -500,7 +502,7 @@ def workbook_move(
     if wb is None:
         raise typer.BadParameter(f'No saved workbook "{name}"')
     try:
-        title = catalog.group(group).path
+        title = catalog.group_path(group)
     except ValueError as e:
         raise typer.BadParameter(str(e)) from e
     token = cloud.load_token()

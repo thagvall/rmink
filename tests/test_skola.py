@@ -200,7 +200,7 @@ def test_web_move_into_a_group(tmp_path, monkeypatch):
 
     missing = app.post("/api/workbook/move", json=body | {"name": "Nej"}, headers=auth)
     assert missing.status_code == 404
-    bad = app.post("/api/workbook/move", json=body | {"group": "geometri"}, headers=auth)
+    bad = app.post("/api/workbook/move", json=body | {"group": "a/b/c"}, headers=auth)
     assert bad.status_code == 422
 
 
@@ -272,3 +272,45 @@ def test_move_a_group_into_its_folder(tmp_path, monkeypatch):
     workflow._remove_if_empty("tok", "/rmink/Skola/Matematik", "/rmink/Skola")
     workflow._remove_if_empty("tok", "/rmink/Skola/Grammatik", "/rmink/Skola/Grammatik")
     assert fake.folders["/rmink/Skola"] == {"Matematik", "Grammatik"}
+
+
+def test_group_path():
+    assert catalog.group_path("procent") == "Matematik/Procent"
+    assert catalog.group_path("Bråk och division") == "Matematik/Bråk och division"
+    assert catalog.group_path(" Matematik / Geometri ") == "Matematik/Geometri"
+    assert catalog.group_path("Engelska") == "Engelska"
+    for bad in ("", "a/b/c", "Matematik//x", "x" * 41, "Bråk?"):
+        with pytest.raises(ValueError):
+            catalog.group_path(bad)
+
+
+def test_claude_files_a_free_workbook_in_a_group(tmp_path, monkeypatch):
+    fake = FakeCloud(monkeypatch, {"/": {"rmink"}, "/rmink": set()})
+    store = FileStore(tmp_path / "d")
+    store.save_workbook(Workbook(name="Ytor", area="Skola", group="Matematik/Geometri"))
+    client = FakeClient(
+        [([_tool("c1", "write_workbook", WORKBOOK | {"group": "Matematik/Procent"})], "tool_use")]
+    )
+    created = create_workbook("Procentprov för åk 8", "rm2", store, client=client)
+    request = client.requests[0]["messages"][0]["content"][0]["text"]
+    assert "- Matematik/Procent:" in request and "- Matematik/Geometri" in request
+    assert created.sent_as == "/rmink/Skola/Matematik/Procent/Bråk/Bråk r01"
+    assert "Ny grupp" not in created.summary
+    assert (store.load_workbook("Bråk").area, store.load_workbook("Bråk").group) == (
+        "Skola",
+        "Matematik/Procent",
+    )
+
+    # No group fits: Claude names a new one, and the summary says so.
+    client = FakeClient(
+        [
+            (
+                [_tool("c1", "write_workbook", WORKBOOK | {"name": "Glosor", "group": "Engelska"})],
+                "tool_use",
+            )
+        ]
+    )
+    created = create_workbook("Engelska glosor", "rm2", store, client=client)
+    assert created.sent_as == "/rmink/Skola/Engelska/Glosor/Glosor r01"
+    assert created.summary.endswith("Ny grupp: Engelska.")
+    assert "Engelska" in fake.folders["/rmink/Skola"]

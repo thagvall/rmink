@@ -110,6 +110,8 @@ Arbetsböcker för skolan samlas i grupper efter område. Katalogen finns i
 - **Bråk och division:** division som delning, division med rest, kort division, bråk som del av en
   helhet, bråk av ett antal, bråk som division, förlänga och förkorta, jämföra bråk, blandad form,
   addera och subtrahera bråk, multiplicera och dividera bråk, bråk–decimaltal–procent.
+- **Procent:** vad procent är, procent av ett tal, hur många procent, rabatt/ökning/minskning,
+  förändringsfaktor, procent och procentenheter, ränta och lån.
 - **Grammatik** (svenska): meningar och skiljetecken, substantiv (en/ett, singular/plural), verb och
   tempus, adjektiv och komparation, fler ordklasser, satsdelar, huvudsats och bisats.
 
@@ -136,9 +138,16 @@ Mappen flyttas med alla revisioner och *Tidigare*, och nästa varv fortsätter d
 flytten också för arbetsböcker som ligger i en grupps gamla mapp (från före *Matematik*). En
 gruppmapp som blir tom tas bort.
 
-Nya grupper (gånger, geometri, läsförståelse …) läggs till i TOML-filen utan kodändring. Arbetsböcker
-utan grupp fungerar som förut i `rmink/<namn>/`, utanför *Skola*: välj en grupp för att den ska
-hamna där.
+Nya grupper (gånger, geometri, läsförståelse …) läggs till i TOML-filen utan kodändring.
+
+En arbetsbok som skrivs i fritext, utan vald grupp, placeras av Claude: i den grupp den passar
+(katalogens grupper och de grupper sparade arbetsböcker redan ligger i), eller i en ny grupp när
+ingen passar, med matte under `Matematik/` ("Matematik/Geometri") och andra ämnen för sig
+("Engelska"). Varvets sammanfattning säger *Ny grupp: …* när en grupp skapades. Svarar Claude utan
+grupp hamnar den som förut i `rmink/<namn>/`.
+
+*Flytta till grupp…* finns på varje arbetsboks kort och flyttar den till en annan grupp, till exempel
+ett prov från Bråk och division till Procent.
 
 ## Använda
 
