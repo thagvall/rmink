@@ -2,11 +2,13 @@
 #
 # En grupp samlar arbetsböcker som hör ihop och blir en mapp på plattan:
 # rmink/Skola/<grupp>/<arbetsbok>/, eller rmink/Skola/<folder>/<grupp>/<arbetsbok>/
-# när gruppen har en "folder" (mattegrupperna ligger i Matematik). Ett moment är det en arbetsbok övar.
+# när gruppen har en "folder", ämnets mapp (Matematik, Svenska, Engelska). Ett
+# moment är det en arbetsbok övar.
 # "brief" går till Claude när arbetsboken skrivs: vad som ska övas, i vilken
 # ordning, typiska fel att fånga och vilka bilder eller modeller som hjälper.
 # "grades" är de årskurser momentet passar (1-9). Texterna är egna; de följer
-# Lgr22:s centrala innehåll i matematik och svenska men citerar det inte.
+# Lgr22:s centrala innehåll i matematik, svenska och engelska men citerar det
+# inte. En arbetsbok har inga bilder: figurer beskrivs i ord med sina mått.
 
 [[group]]
 id = "plus-minus"
@@ -276,9 +278,178 @@ lån eller sparkonton. Typiskt fel: att lägga ihop räntan varje år utan att \
 räkna med räntan på räntan."""
 
 [[group]]
+id = "multiplikation"
+title = "Multiplikation"
+area = "Matte"
+folder = "Matematik"
+description = "Multiplikation, från upprepad addition och tabellerna till decimaltal och räkneordning."
+
+[[group.topic]]
+id = "upprepad-addition"
+title = "Multiplikation som upprepad addition"
+grades = [2, 3]
+brief = """Gånger är lika stora grupper: 3 påsar med 4 äpplen är 4 + 4 + 4 = \
+3 · 4. Beskriv grupper och rader i ord (4 rader med 5 stolar), låt eleven \
+skriva både additionen och multiplikationen, och visa att 3 · 4 och 4 · 3 \
+blir lika mycket. Skriv gånger med punkt (·) som i skolan. Typiskt fel: att \
+lägga ihop antalet grupper och antalet i varje grupp, 3 + 4."""
+
+[[group.topic]]
+id = "tabellerna"
+title = "Multiplikationstabellerna"
+grades = [2, 3, 4, 5]
+brief = """Tabellerna 1 till 10, i en ordning som bygger på varandra: 2, 5 och \
+10 först, sedan 4 (dubbla tvåan), 3 och 6, sist 7, 8 och 9. Strategier: \
+dubbla, tänk tiotabellen minus en grupp för nian, byt plats på faktorerna. \
+Blanda raka frågor med luckor (6 · _ = 42). Typiskt fel: att blanda ihop \
+grannar i tabellen, 7 · 8 = 54 eller 6 · 7 = 48."""
+
+[[group.topic]]
+id = "tio-hundra-tusen"
+title = "Gånger 10, 100 och 1000"
+grades = [3, 4, 5, 6]
+brief = """Gånger 10, 100 och 1000 flyttar siffrorna ett, två eller tre steg i \
+positionssystemet: 34 · 10 = 340, 3,4 · 100 = 340. Sedan tiotal gånger ental i \
+huvudet (30 · 6 = 180, 40 · 50 = 2000). Typiskt fel: att "lägga till en nolla" \
+även på decimaltal, 3,4 · 10 = 3,40."""
+
+[[group.topic]]
+id = "uppstallning-multiplikation"
+title = "Multiplikation med uppställning"
+grades = [4, 5, 6]
+brief = """Uppställning med en ensiffrig faktor först (346 · 7) med minnessiffror, \
+sedan tvåsiffrig (346 · 27) med två delprodukter. Låt eleven göra ett överslag \
+först och jämföra svaret med det. Typiskt fel: att glömma minnessiffran, eller \
+att inte flytta den andra delprodukten ett steg till vänster."""
+
+[[group.topic]]
+id = "multiplikation-decimaltal"
+title = "Multiplikation med decimaltal"
+grades = [5, 6, 7]
+brief = """Decimaltal gånger heltal (2,35 · 4) och decimaltal gånger decimaltal \
+(1,5 · 0,4): räkna som med heltal, och sätt sedan kommat så att svaret har lika \
+många decimaler som faktorerna tillsammans. Kontrollera med överslag. Vardag: \
+priser per kilo och liter. Typiskt fel: att tro att gånger alltid gör talet \
+större, 8 · 0,5 = 16."""
+
+[[group.topic]]
+id = "rakneordning"
+title = "Räkneordning och parenteser"
+grades = [5, 6, 7, 8]
+brief = """Prioriteringsregler: parenteser först, sedan gånger och delat, sist \
+plus och minus. 2 + 3 · 4 = 14, (2 + 3) · 4 = 20. Låt eleven räkna steg för \
+steg och sätta ut parenteser så att ett givet svar blir rätt. För de äldre: \
+potenser. Typiskt fel: att räkna från vänster till höger, 2 + 3 · 4 = 20."""
+
+[[group.topic]]
+id = "textuppgifter-multiplikation"
+title = "Textuppgifter med gånger och delat"
+grades = [3, 4, 5, 6]
+brief = """Vardagsproblem där eleven själv väljer räknesätt: lika stora grupper, \
+pris gånger antal, hur många gånger något ryms. Låt eleven skriva uträkningen \
+och svaret med enhet, och blanda in en uppgift med plus eller minus. Typiskt \
+fel: att välja räknesätt efter orden ("fler" betyder plus) i stället för \
+efter vad som händer."""
+
+[[group]]
+id = "geometri"
+title = "Geometri"
+area = "Matte"
+folder = "Matematik"
+description = "Former, mätning, omkrets, area, vinklar, skala och volym."
+
+[[group.topic]]
+id = "former"
+title = "Former och figurer"
+grades = [1, 2, 3]
+brief = """De vanliga formerna: kvadrat, rektangel, triangel och cirkel, sedan \
+kub, rätblock, klot och cylinder. Arbetsboken har inga bilder, så beskriv \
+formerna i ord och fråga efter namn, antal hörn och sidor, och var formen finns \
+i vardagen. Typiskt fel: att inte räkna en kvadrat som en rektangel, eller att \
+kalla ett klot för en cirkel."""
+
+[[group.topic]]
+id = "langd-matt"
+title = "Längd och längdenheter"
+grades = [2, 3, 4, 5]
+brief = """Längd i mm, cm, dm, m och km: hur långa saker ungefär är (en tumme är \
+2 cm), och byten mellan enheterna (1 m = 100 cm, 35 mm = 3,5 cm). Låt eleven \
+uppskatta först och sedan räkna. Svaret skrivs alltid med enhet. Typiskt fel: \
+att flytta kommat åt fel håll, 2,5 m = 25 cm."""
+
+[[group.topic]]
+id = "omkrets"
+title = "Omkrets"
+grades = [3, 4, 5, 6]
+brief = """Omkrets är längden runt en figur: lägg ihop alla sidor. Beskriv \
+figurerna med mått i ord (en rektangel som är 7 cm lång och 3 cm bred), och \
+låt eleven räkna åt andra hållet, vilken sida som saknas när omkretsen är känd. \
+Vardag: staket runt en trädgård. Typiskt fel: att bara lägga ihop två sidor av \
+rektangeln, eller att blanda ihop omkrets och area."""
+
+[[group.topic]]
+id = "area"
+title = "Area av rektangel och triangel"
+grades = [4, 5, 6, 7]
+brief = """Area är hur stor en yta är, i kvadratcentimeter och kvadratmeter. \
+Rektangel: basen gånger höjden. Triangel: basen gånger höjden delat med två, \
+och varför (en halv rektangel). Sedan sammansatta figurer, som ett L-format rum \
+beskrivet med mått. Typiskt fel: cm i stället för cm², och att ta en sned sida \
+som höjd i triangeln."""
+
+[[group.topic]]
+id = "vinklar"
+title = "Vinklar"
+grades = [4, 5, 6, 7]
+brief = """Räta, spetsiga och trubbiga vinklar, och vinklar i grader. Klockans \
+visare som exempel (klockan tre är 90°). Vinkelsumman i en triangel är 180° och \
+i en fyrhörning 360°: räkna ut den vinkel som saknas. Typiskt fel: att tro att \
+en vinkel blir större när vinkelbenen ritas längre, och att subtrahera från \
+360° i en triangel."""
+
+[[group.topic]]
+id = "skala"
+title = "Skala"
+grades = [5, 6, 7, 8]
+brief = """Förminskning och förstoring: skala 1:100 betyder att 1 cm på ritningen \
+är 100 cm i verkligheten. Räkna från karta eller ritning till verklighet och \
+tillbaka, och byt enhet i svaret (4 cm i 1:50 000 är 2 km). För de äldre: \
+förstoring som 5:1. Typiskt fel: att multiplicera när man ska dividera, och att \
+glömma att byta enhet."""
+
+[[group.topic]]
+id = "volym"
+title = "Volym"
+grades = [6, 7, 8, 9]
+brief = """Volymen av ett rätblock: längd gånger bredd gånger höjd, i cm³ och m³. \
+Liter och kubikdecimeter (1 dm³ = 1 liter, 1 cm³ = 1 ml). Vardag: ett akvarium \
+eller ett mjölkpaket beskrivna med mått. För de äldre: cylinder (basytan gånger \
+höjden). Typiskt fel: att tro att 1 m³ är 100 liter."""
+
+[[group.topic]]
+id = "cirkeln"
+title = "Cirkelns omkrets och area"
+grades = [7, 8, 9]
+brief = """Radie och diameter, omkretsen pi gånger diametern och arean pi gånger \
+radien i kvadrat, med pi ungefär 3,14. Börja med att skilja radie från \
+diameter, sedan beräkningar med avrundning, och sist en halv eller en kvarts \
+cirkel. Typiskt fel: diametern i areaformeln, och att kvadrera pi i stället \
+för radien."""
+
+[[group.topic]]
+id = "pythagoras"
+title = "Pythagoras sats"
+grades = [8, 9]
+brief = """I en rätvinklig triangel är kateternas kvadrater tillsammans lika med \
+hypotenusans kvadrat: a² + b² = c². Börja med att peka ut hypotenusan, räkna \
+sedan den långa sidan och därefter en katet. Vardag: en stege mot en vägg, \
+diagonalen i en rektangel. Typiskt fel: a + b = c, och att glömma roten ur."""
+
+[[group]]
 id = "grammatik"
 title = "Grammatik"
 area = "Svenska"
+folder = "Svenska"
 description = "Svensk grammatik: ordklasser, böjningar, meningar och satsdelar."
 
 [[group.topic]]
@@ -345,3 +516,146 @@ ofta med en subjunktion (att, eftersom, när, som, om). Ordföljd: "inte" står 
 före verbet i bisatsen (Hon säger att hon inte kommer). Kommatecken mellan \
 huvudsats och bisats. Typiskt fel: "eftersom han kom inte" och meningar som \
 bara är en bisats."""
+
+[[group]]
+id = "stavning"
+title = "Stavning"
+area = "Svenska"
+folder = "Svenska"
+description = "Stavning och ljud: dubbelteckning, sj- och tj-ljud, j-ljud, ng och vanliga svåra ord."
+
+[[group.topic]]
+id = "ljud-bokstav"
+title = "Ljud och bokstäver"
+grades = [1, 2]
+brief = """Ljuda ord och skriv dem: korta ord med en bokstav för varje ljud (sol, \
+mus, katt). Vokaler och konsonanter, och att varje stavelse har en vokal. \
+Arbetsboken har inget ljud, så ge ordet i en mening med en lucka eller en \
+beskrivning (det lyser på dagen: s _ l). Typiskt fel: att hoppa över en vokal, \
+"mrk" för mörk."""
+
+[[group.topic]]
+id = "dubbelteckning"
+title = "Dubbelteckning"
+grades = [2, 3, 4, 5]
+brief = """Kort vokal följs ofta av två konsonanter, lång vokal av en: tak och \
+tack, glas och glass, vila och villa. Låt eleven välja rätt ord till en mening \
+och fylla i luckor. För de äldre: m dubbeltecknas inte i slutet (rum, hem) och \
+böjningar som "glass - glasset". Typiskt fel: dubbel konsonant efter lång vokal, \
+"maat"."""
+
+[[group.topic]]
+id = "sj-tj-ljud"
+title = "Sj-ljud och tj-ljud"
+grades = [3, 4, 5, 6]
+brief = """De många stavningarna av sj-ljudet (sj, skj, stj, sk, sch, ch, -tion: \
+sjö, skjorta, stjärna, sked, schampo, choklad, station) och tj-ljudet (tj, k, \
+kj: tjock, kind, kjol). Låt eleven sortera ord efter stavning och fylla i luckor \
+i meningar. Typiskt fel: "sjorta", "tjind", och att skriva sj framför e, i, y, \
+ä, ö där det ska vara sk."""
+
+[[group.topic]]
+id = "j-ljud"
+title = "J-ljudet"
+grades = [3, 4, 5]
+brief = """J-ljudet stavas j, g, gj, hj, dj och lj: jul, ge, gjorde, hjul, djur, \
+ljus. Mönster att lära: g framför e, i, y, ä, ö (ge, gilla), hj och dj i några \
+vanliga ord. Fyll i luckor och rätta en kort text med fel. Typiskt fel: "jöra", \
+"jul" för hjul och "jur" för djur."""
+
+[[group.topic]]
+id = "ng-ljud"
+title = "Ng-ljudet"
+grades = [2, 3, 4]
+brief = """Ng-ljudet skrivs ng (sång, ring), n framför k (bank, tänka) och gn i \
+några ord (vagn, regn, lugn). Låt eleven fylla i ng eller nk i luckor och böja \
+ord (sjunga, sjöng). Typiskt fel: "bangk", "rengn" och "lungn"."""
+
+[[group.topic]]
+id = "svara-ord"
+title = "Vanliga svåra ord"
+grades = [3, 4, 5, 6, 7]
+brief = """Ord som ofta stavas fel: och, också, jag, det, de, dem, någon, några, \
+något, sedan, ju, gjorde, varför, alltid, mycket. Ge orden i meningar med \
+luckor, låt eleven rätta en kort text med fel och skriva egna meningar med \
+orden. Typiskt fel: "å" för och, "nån" i skrift, "de" och "dem" om vartannat."""
+
+[[group.topic]]
+id = "sammansatta-ord"
+title = "Sammansatta ord och särskrivning"
+grades = [4, 5, 6, 7, 8, 9]
+brief = """Sammansatta ord skrivs ihop: fotbollsmatch, glasskiosk. Visa hur \
+särskrivning ändrar betydelsen (en brun hårig hund, en brunhårig hund) och \
+fogeljudet -s- (fotbollsplan). Låt eleven sätta ihop ord, välja rätt variant \
+och förklara skillnaden. Typiskt fel: "fotbolls match", "kyckling lever"."""
+
+[[group]]
+id = "engelska-glosor"
+title = "Glosor"
+area = "Engelska"
+folder = "Engelska"
+description = "Engelska ord och fraser efter tema, från färger och djur till resor och känslor."
+
+[[group.topic]]
+id = "farger-siffror"
+title = "Colours and numbers"
+grades = [1, 2, 3]
+brief = """Färger och talen 1 till 20 på engelska, sedan tiotalen till 100. \
+Instruktionerna skrivs på svenska för de yngre. Översätt åt båda hållen, skriv \
+talet med bokstäver (14 = fourteen) och fyll i en mening (The sky is ...). \
+Både "grey" och "gray" är rätt. Typiskt fel: "fourty", och "thirteen" och \
+"thirty" om vartannat."""
+
+[[group.topic]]
+id = "djur-mat"
+title = "Animals and food"
+grades = [1, 2, 3, 4]
+brief = """Vanliga djur och maträtter, med a och an (a dog, an apple) och plural \
+med -s. Översätt ord, para ihop ord och svenska ord, och svara på enkla frågor \
+(What do you like to eat?). Instruktionerna på svenska för de yngre. Typiskt \
+fel: "a apple", och oregelbundna plural som "mouses" och "sheeps"."""
+
+[[group.topic]]
+id = "familj-kropp"
+title = "Family and body"
+grades = [2, 3, 4, 5]
+brief = """Familjen (mother, brother, aunt, cousin) och kroppen (head, arm, knee). \
+Låt eleven skriva om sin familj i korta meningar (I have one sister) och \
+översätta. För de äldre: possessiv med 's (my sister's room). Typiskt fel: \
+"my sister room", och stavningen av "daughter" och "knee"."""
+
+[[group.topic]]
+id = "skola-fritid"
+title = "School and free time"
+grades = [3, 4, 5, 6]
+brief = """Skolämnen, saker i klassrummet, veckodagar och fritidsaktiviteter. \
+Meningar med "I like / I don't like" och "On Mondays I ...". Veckodagar och \
+månader skrivs med stor bokstav på engelska. Typiskt fel: "monday" med liten \
+bokstav, och "I like play" i stället för "I like playing"."""
+
+[[group.topic]]
+id = "tid-vader"
+title = "Time and weather"
+grades = [4, 5, 6, 7]
+brief = """Klockan (half past three, quarter to five), datum och årstider, och \
+vädret (It is sunny, It is raining). Låt eleven skriva tider med ord och \
+beskriva vädret i en mening. Typiskt fel: "half three" tolkat som halv tre, \
+fast det är halv fyra på svenska, och "It is rain"."""
+
+[[group.topic]]
+id = "resor-stad"
+title = "Travelling and the town"
+grades = [5, 6, 7, 8]
+brief = """Ord för resor och staden: transport, byggnader, vägbeskrivningar (turn \
+left, go straight on, next to). Låt eleven fråga om och beskriva vägen i \
+meningar och översätta fraser. Typiskt fel: falska vänner som "station" för \
+busshållplats (bus stop), och "in the bus" i stället för "on the bus"."""
+
+[[group.topic]]
+id = "kanslor-adjektiv"
+title = "Feelings and describing words"
+grades = [6, 7, 8, 9]
+brief = """Känslor och beskrivande adjektiv (excited, worried, embarrassed, \
+reliable), med komparation (bigger, more interesting, the best). Låt eleven \
+beskriva en person eller en händelse och välja rätt ord i en kort text. \
+Typiskt fel: "more big", "gooder", och "bored" och "boring" om vartannat."""

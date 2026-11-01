@@ -26,7 +26,16 @@ def config_home(tmp_path, monkeypatch):
 
 def test_catalogue_is_valid():
     groups = catalog.load()
-    assert {g.title for g in groups} >= {"Plus och minus", "Bråk och division", "Grammatik"}
+    titles = {g.title for g in groups}
+    assert titles >= {
+        "Plus och minus",
+        "Multiplikation",
+        "Geometri",
+        "Grammatik",
+        "Stavning",
+        "Glosor",
+    }
+    assert {g.folder for g in groups} == {"Matematik", "Svenska", "Engelska"}
     assert len({g.id for g in groups}) == len(groups)
     for g in groups:
         assert g.topic, g.id
@@ -49,8 +58,10 @@ def test_topic_request():
     assert swedish.startswith("En arbetsbok i svenska: Verb och tempus (Grammatik).")
     mixed = catalog.topic_request("Plus och minus")
     assert "Negativa tal" in mixed and "årskurs" not in mixed
+    english = catalog.topic_request("engelska-glosor", "tid-vader", 5)
+    assert english.startswith("En arbetsbok i engelska: Time and weather (Glosor).")
     with pytest.raises(ValueError, match="plus-minus"):
-        catalog.group("geometri")
+        catalog.group("algebra")
     with pytest.raises(ValueError, match="forkorta"):
         catalog.topic_request("brak-division", "pizza")
 
@@ -63,7 +74,8 @@ def test_workbook_folder():
     assert workflow.workbook_folder(maths) == "/rmink/Skola/Matematik/Bråk och division/Bråk åk 5"
     assert catalog.group("brak-division").path == "Matematik/Bråk och division"
     assert catalog.group("Matematik/Bråk och division").id == "brak-division"
-    assert catalog.group("grammatik").path == "Grammatik"
+    assert catalog.group("grammatik").path == "Svenska/Grammatik"
+    assert catalog.group("engelska-glosor").path == "Engelska/Glosor"
 
 
 def test_create_in_a_group_and_answer(tmp_path, monkeypatch):
@@ -104,7 +116,7 @@ def test_create_in_a_group_and_answer(tmp_path, monkeypatch):
 def test_unknown_group_costs_no_call(tmp_path):
     client = FakeClient([])
     with pytest.raises(RoundError, match="ingen grupp"):
-        create_workbook("", "rm2", FileStore(tmp_path / "d"), client=client, group="geometri")
+        create_workbook("", "rm2", FileStore(tmp_path / "d"), client=client, group="algebra")
     assert client.requests == []
 
 
@@ -279,6 +291,7 @@ def test_group_path():
     assert catalog.group_path("Bråk och division") == "Matematik/Bråk och division"
     assert catalog.group_path(" Matematik / Geometri ") == "Matematik/Geometri"
     assert catalog.group_path("Engelska") == "Engelska"
+    assert catalog.group_path("Grammatik") == "Svenska/Grammatik"
     for bad in ("", "a/b/c", "Matematik//x", "x" * 41, "Bråk?"):
         with pytest.raises(ValueError):
             catalog.group_path(bad)
@@ -287,13 +300,14 @@ def test_group_path():
 def test_claude_files_a_free_workbook_in_a_group(tmp_path, monkeypatch):
     fake = FakeCloud(monkeypatch, {"/": {"rmink"}, "/rmink": set()})
     store = FileStore(tmp_path / "d")
-    store.save_workbook(Workbook(name="Ytor", area="Skola", group="Matematik/Geometri"))
+    store.save_workbook(Workbook(name="Ytor", area="Skola", group="Matematik/Ytor"))
     client = FakeClient(
         [([_tool("c1", "write_workbook", WORKBOOK | {"group": "Matematik/Procent"})], "tool_use")]
     )
     created = create_workbook("Procentprov för åk 8", "rm2", store, client=client)
     request = client.requests[0]["messages"][0]["content"][0]["text"]
-    assert "- Matematik/Procent:" in request and "- Matematik/Geometri" in request
+    assert "- Matematik/Procent:" in request and "- Matematik/Ytor" in request
+    assert '"Matematik/", "Svenska/", "Engelska/"' in request
     assert created.sent_as == "/rmink/Skola/Matematik/Procent/Bråk/Bråk r01"
     assert "Ny grupp" not in created.summary
     assert (store.load_workbook("Bråk").area, store.load_workbook("Bråk").group) == (

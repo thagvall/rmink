@@ -2,7 +2,7 @@
 ``data/skola.toml``.
 
 A group ("Bråk och division") collects workbooks that belong together and is
-a folder on the tablet, ``rmink/Skola/<group>/<workbook>/``. A topic is what
+a folder on the tablet, ``rmink/Skola/<subject>/<group>/<workbook>/``. A topic is what
 one workbook practises; its brief goes to Claude with the grade.
 """
 
@@ -68,7 +68,7 @@ def group_path(value: str) -> str:
     parts = [p.strip() for p in value.strip().strip("/").split("/")]
     if not 1 <= len(parts) <= 2 or not all(parts):
         raise ValueError(
-            f'"{value}" är ingen grupp: ge en grupp som "Grammatik" eller "Matematik/Geometri".'
+            f'"{value}" är ingen grupp: ge en grupp som "Grammatik" eller "Matematik/Algebra".'
         )
     if any(len(p) > 40 or any(ch in p for ch in "*?[]\\") for p in parts):
         raise ValueError(f'"{value}": ett gruppnamn är högst 40 tecken, utan * ? [ ] \\.')
@@ -80,13 +80,16 @@ def groups_prompt(extra: list[str] = ()) -> str:
     or name a new one."""
     lines = [f"- {g.path}: {g.description}" for g in load()]
     lines += [f"- {p}" for p in extra if p not in {g.path for g in load()}]
+    folders = list(dict.fromkeys(g.folder for g in load() if g.folder))
     return (
         'Give the workbook a "group": the folder under rmink/Skola/ it belongs in. '
         "The groups there are:\n" + "\n".join(lines) + "\n"
         "Use one of them, exactly as written, when the workbook fits it. When none "
         "fits, name a new group: a short Swedish name for the area (1-3 words), "
-        'under "Matematik/" for mathematics ("Matematik/Geometri") and on its own '
-        'for other subjects ("Engelska", "Läsförståelse").'
+        "under the subject's folder ("
+        + ", ".join(f'"{f}/"' for f in folders)
+        + ': "Svenska/Läsförståelse"), or for another subject under a folder named '
+        'after it ("NO/Kemi").'
     )
 
 

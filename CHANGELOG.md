@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.19.0 — 2026-11-01
+
+- Four new groups in rmink skola, seven to nine topics each with grades 1–9:
+  - **Multiplikation** (`rmink/Skola/Matematik/Multiplikation/`): repeated addition, the tables, times 10/100/1000, long multiplication, decimals, order of operations, word problems with times and division.
+  - **Geometri** (`rmink/Skola/Matematik/Geometri/`): shapes, length and units, perimeter, area of rectangles and triangles, angles, scale, volume, the circle, Pythagoras' theorem. A workbook has no pictures, so the figures are described in words with their measures.
+  - **Stavning** (`rmink/Skola/Svenska/Stavning/`): sounds and letters, double consonants, the sj- and tj-sounds, the j-sound, the ng-sound, common hard words, compound words.
+  - **Glosor** (`rmink/Skola/Engelska/Glosor/`): English words by theme, from colours and numbers to feelings and describing words.
+- *Grammatik* moves into a Svenska folder: its workbooks go in `rmink/Skola/Svenska/Grammatik/`. A workbook already in `rmink/Skola/Grammatik/` gets *Flytta till grupp…* on its card on `/rounds` (or `rmink workbook move <name> --group grammatik`).
+- A free-text workbook that fits no group gets a new group in its subject's folder ("Svenska/Läsförståelse"), or a new subject folder ("NO/Kemi"), instead of a folder of its own directly in Skola.
+
 ## 2.18.0 — 2026-11-01
 
 - A new maths group, **Procent** (`rmink/Skola/Matematik/Procent/`), with seven topics: what a percentage is, percent of a number, what percentage, discounts and increases, change factor, percent and percentage points, and interest.

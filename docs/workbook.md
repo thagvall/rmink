@@ -1,6 +1,6 @@
 # Arbetsbok: länkad PDF där handstil blir text
 
-Status: släppt i 2.9.0, facit och resultat i 2.10.0, flerval i 2.11.0, grupper (rmink skola) i 2.12.0 (modulen `rmink.workbook`, CLI, MCP och webbsidan `/rounds`). Länkar,
+Status: släppt i 2.9.0, facit och resultat i 2.10.0, flerval i 2.11.0, grupper (rmink skola) i 2.12.0, ämnesmappar i 2.19.0 (modulen `rmink.workbook`, CLI, MCP och webbsidan `/rounds`). Länkar,
 koordinater, dolt lager och ett helt varv med Claude är verifierade på en rm2 (2026-10-30).
 
 ## Idé
@@ -112,38 +112,51 @@ Arbetsböcker för skolan samlas i grupper efter område. Katalogen finns i
   addera och subtrahera bråk, multiplicera och dividera bråk, bråk–decimaltal–procent.
 - **Procent:** vad procent är, procent av ett tal, hur många procent, rabatt/ökning/minskning,
   förändringsfaktor, procent och procentenheter, ränta och lån.
+- **Multiplikation:** upprepad addition, tabellerna, gånger 10/100/1000, uppställning, decimaltal,
+  räkneordning och parenteser, textuppgifter med gånger och delat.
+- **Geometri:** former och figurer, längd och längdenheter, omkrets, area av rektangel och triangel,
+  vinklar, skala, volym, cirkelns omkrets och area, Pythagoras sats. Arbetsboken har inga bilder, så
+  figurerna beskrivs i ord med sina mått.
 - **Grammatik** (svenska): meningar och skiljetecken, substantiv (en/ett, singular/plural), verb och
   tempus, adjektiv och komparation, fler ordklasser, satsdelar, huvudsats och bisats.
+- **Stavning** (svenska): ljud och bokstäver, dubbelteckning, sj- och tj-ljud, j-ljudet, ng-ljudet,
+  vanliga svåra ord, sammansatta ord och särskrivning.
+- **Glosor** (engelska): colours and numbers, animals and food, family and body, school and free
+  time, time and weather, travelling and the town, feelings and describing words.
 
 Varje moment har en beskrivning för Claude (vad som ska övas, i vilken ordning och vilka typiska fel
 uppgifterna ska fånga) och de årskurser det passar. Man väljer grupp, moment (eller *blanda alla*)
 och årskurs. Önskemål i fritext läggs till. En arbetsbok i en grupp hamnar i
-`rmink/Skola/<grupp>/<namn>/`. Mattegrupperna har en egen mapp, *Matematik*, i Skola (`folder` i
-TOML-filen):
+`rmink/Skola/<ämne>/<grupp>/<namn>/`: varje grupp ligger i sitt ämnes mapp, *Matematik*, *Svenska*
+eller *Engelska* (`folder` i TOML-filen):
 
     rmink/
       Skola/
-        Grammatik/
-          Verb åk 4/
+        Engelska/
+          Glosor/
         Matematik/
           Bråk och division/
             Förkorta åk 5/
               Förkorta åk 5 r02 · 4 av 5 p
               Tidigare/
           Plus och minus/
+        Svenska/
+          Grammatik/
+            Verb åk 4/
 
 En befintlig arbetsbok flyttas in i en grupp med `rmink workbook move <namn> --group <grupp>`, eller
 med *Flytta till grupp…* på arbetsbokens kort på `/rounds` om den är sparad i webbläsaren.
 Mappen flyttas med alla revisioner och *Tidigare*, och nästa varv fortsätter där. Kortet erbjuder
-flytten också för arbetsböcker som ligger i en grupps gamla mapp (från före *Matematik*). En
+flytten också för arbetsböcker som ligger i en grupps gamla mapp (från före *Matematik* och
+*Svenska*). En
 gruppmapp som blir tom tas bort.
 
-Nya grupper (gånger, geometri, läsförståelse …) läggs till i TOML-filen utan kodändring.
+Nya grupper (algebra, läsförståelse, NO …) läggs till i TOML-filen utan kodändring.
 
 En arbetsbok som skrivs i fritext, utan vald grupp, placeras av Claude: i den grupp den passar
 (katalogens grupper och de grupper sparade arbetsböcker redan ligger i), eller i en ny grupp när
-ingen passar, med matte under `Matematik/` ("Matematik/Geometri") och andra ämnen för sig
-("Engelska"). Varvets sammanfattning säger *Ny grupp: …* när en grupp skapades. Svarar Claude utan
+ingen passar, under ämnets mapp ("Svenska/Läsförståelse") eller en ny mapp för ett nytt ämne
+("NO/Kemi"). Varvets sammanfattning säger *Ny grupp: …* när en grupp skapades. Svarar Claude utan
 grupp hamnar den som förut i `rmink/<namn>/`.
 
 *Flytta till grupp…* finns på varje arbetsboks kort och flyttar den till en annan grupp, till exempel
