@@ -1,7 +1,8 @@
 # rmink skola: områden, grupper och moment för arbetsböcker.
 #
 # En grupp samlar arbetsböcker som hör ihop och blir en mapp på plattan:
-# rmink/Skola/<grupp>/<arbetsbok>/. Ett moment är det en arbetsbok övar.
+# rmink/Skola/<grupp>/<arbetsbok>/, eller rmink/Skola/<folder>/<grupp>/<arbetsbok>/
+# när gruppen har en "folder" (mattegrupperna ligger i Matematik). Ett moment är det en arbetsbok övar.
 # "brief" går till Claude när arbetsboken skrivs: vad som ska övas, i vilken
 # ordning, typiska fel att fånga och vilka bilder eller modeller som hjälper.
 # "grades" är de årskurser momentet passar (1-9). Texterna är egna; de följer
@@ -11,6 +12,7 @@
 id = "plus-minus"
 title = "Plus och minus"
 area = "Matte"
+folder = "Matematik"
 description = "Addition och subtraktion, från talkamrater till negativa tal."
 
 [[group.topic]]
@@ -99,6 +101,7 @@ subtrahera ett negativt tal (4 - (-2)). Typiskt fel: att tro att -8 är större 
 id = "brak-division"
 title = "Bråk och division"
 area = "Matte"
+folder = "Matematik"
 description = "Division, bråk och hur de hänger ihop med decimaltal och procent."
 
 [[group.topic]]

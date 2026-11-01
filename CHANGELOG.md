@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.17.0 — 2026-11-01
+
+- The maths groups have a folder of their own: workbooks in *Plus och minus* and *Bråk och division* go in `rmink/Skola/Matematik/<group>/<name>/`. *Grammatik* stays in `rmink/Skola/Grammatik/`. A group in `skola.toml` can name such a `folder`.
+- Workbooks already in a maths group's old folder get *Flytta till grupp…* on their card on `/rounds` again, to move them into Matematik (or `rmink workbook move <name> --group <group>`). A group folder that the last workbook moves out of is removed.
+
 ## 2.16.0 — 2026-11-01
 
 - rmink skola has a Swedish group, **Grammatik** (Svenska), with seven topics: sentences and punctuation, nouns, verbs and tense, adjectives and comparison, more word classes, parts of a sentence, and main and subordinate clauses. Its workbooks go in `rmink/Skola/Grammatik/<name>/`. Before, a grammar workbook could only be made from free text, without a group, so it landed in `rmink/<name>/` outside Skola. Move such a workbook with *Flytta till grupp…* on its card on `/rounds`, or `rmink workbook move <name> --group grammatik`.

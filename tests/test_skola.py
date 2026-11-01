@@ -59,6 +59,11 @@ def test_workbook_folder():
     wb = Workbook(name="Bråk åk 5", area="Skola", group="Bråk och division")
     assert workflow.workbook_folder(wb) == "/rmink/Skola/Bråk och division/Bråk åk 5"
     assert workflow.workbook_folder(Workbook(name="Bråk")) == "/rmink/Bråk"
+    maths = Workbook(name="Bråk åk 5", area="Skola", group="Matematik/Bråk och division")
+    assert workflow.workbook_folder(maths) == "/rmink/Skola/Matematik/Bråk och division/Bråk åk 5"
+    assert catalog.group("brak-division").path == "Matematik/Bråk och division"
+    assert catalog.group("Matematik/Bråk och division").id == "brak-division"
+    assert catalog.group("grammatik").path == "Grammatik"
 
 
 def test_create_in_a_group_and_answer(tmp_path, monkeypatch):
@@ -76,10 +81,10 @@ def test_create_in_a_group_and_answer(tmp_path, monkeypatch):
     )
     request = client.requests[0]["messages"][0]["content"][0]["text"]
     assert "Bråk av ett antal" in request and "årskurs 4" in request
-    folder = "/rmink/Skola/Bråk och division/Bråk"
+    folder = "/rmink/Skola/Matematik/Bråk och division/Bråk"
     assert created.sent_as == f"{folder}/Bråk r01"
     wb = store.load_workbook("Bråk")
-    assert (wb.area, wb.group) == ("Skola", "Bråk och division")
+    assert (wb.area, wb.group) == ("Skola", "Matematik/Bråk och division")
 
     fake.documents[created.sent_as] = _synced(
         wb, tmp_path, {1: [_writing_in(wb, "s1f1")]}
@@ -185,13 +190,13 @@ def test_web_move_into_a_group(tmp_path, monkeypatch):
     body = {"name": "Bråk", "group": "plus-minus", **memory}
     r = app.post("/api/workbook/move", json=body, headers=auth)
     assert r.status_code == 200, r.text
-    folder = "/rmink/Skola/Plus och minus/Bråk"
+    folder = "/rmink/Skola/Matematik/Plus och minus/Bråk"
     assert r.json()["folder"] == folder
     assert fake.folders[folder] == {"Bråk r01"}
     back = r.json()["store"]
-    assert back["links"]["rmink/Skola/Plus och minus/Bråk/Bråk r01"] == "workbook:Bråk"
+    assert back["links"]["rmink/Skola/Matematik/Plus och minus/Bråk/Bråk r01"] == "workbook:Bråk"
     moved = Workbook.model_validate_json(back["drawings"]["workbook:bråk"])
-    assert (moved.group, moved.sent_as) == ("Plus och minus", f"{folder}/Bråk r01")
+    assert (moved.group, moved.sent_as) == ("Matematik/Plus och minus", f"{folder}/Bråk r01")
 
     missing = app.post("/api/workbook/move", json=body | {"name": "Nej"}, headers=auth)
     assert missing.status_code == 404
@@ -227,3 +232,43 @@ def test_web_relayout(tmp_path, monkeypatch):
     assert Workbook.model_validate_json(back["drawings"]["workbook:bråk"]).layout == 2
     again = app.post("/api/workbook/relayout", json={"name": "Bråk", **back}, headers=auth)
     assert again.status_code == 409
+
+
+def test_move_a_group_into_its_folder(tmp_path, monkeypatch):
+    # A workbook made before the maths groups got rmink/Skola/Matematik/.
+    fake = FakeCloud(
+        monkeypatch,
+        {
+            "/": {"rmink"},
+            "/rmink": {"Skola"},
+            "/rmink/Skola": {"Bråk och division", "Grammatik"},
+            "/rmink/Skola/Bråk och division": {"Bråktest"},
+            "/rmink/Skola/Bråk och division/Bråktest": {"Bråktest r02", "Tidigare"},
+            "/rmink/Skola/Bråk och division/Bråktest/Tidigare": {"Bråktest r01"},
+            "/rmink/Skola/Grammatik": set(),
+        },
+    )
+    store = FileStore(tmp_path / "d")
+    old = "/rmink/Skola/Bråk och division/Bråktest"
+    wb = Workbook(
+        name="Bråktest",
+        area="Skola",
+        group="Bråk och division",
+        revision=2,
+        sent_as=f"{old}/Bråktest r02",
+        document=f"{old}/Tidigare/Bråktest r01",
+    )
+    store.save_workbook(wb)
+    path = catalog.group("brak-division").path
+    folder = workflow.move_to_group(wb, catalog.AREA, path, "tok", store)
+    assert folder == "/rmink/Skola/Matematik/Bråk och division/Bråktest"
+    assert fake.folders["/rmink/Skola"] == {"Matematik", "Grammatik"}  # the empty group went
+    assert fake.folders[f"{folder}/Tidigare"] == {"Bråktest r01"}
+    moved = store.load_workbook("Bråktest")
+    assert moved.group == "Matematik/Bråk och division"
+    assert moved.sent_as == f"{folder}/Bråktest r02"
+    assert moved.document == f"{folder}/Tidigare/Bråktest r01"
+    # A group folder with other workbooks in it, or the area itself, stays.
+    workflow._remove_if_empty("tok", "/rmink/Skola/Matematik", "/rmink/Skola")
+    workflow._remove_if_empty("tok", "/rmink/Skola/Grammatik", "/rmink/Skola/Grammatik")
+    assert fake.folders["/rmink/Skola"] == {"Matematik", "Grammatik"}

@@ -411,7 +411,7 @@ def create_workbook(
         wb.name = name
     wb.mode = "test" if mode == "test" else "practice"
     if group:
-        wb.area, wb.group = catalog.AREA, g.title
+        wb.area, wb.group = catalog.AREA, g.path
     result = start_workbook(wb, device_key, store, send, started)
     result.usage = _cost(usage)
     return result

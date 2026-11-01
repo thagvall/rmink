@@ -349,6 +349,16 @@ def mv(device_token: str, src: str, dst: str) -> None:
         raise CloudError(f'Could not move "{src}": ' + _message(proc))
 
 
+def rmdir(device_token: str, path: str) -> None:
+    """Remove the empty folder ``path``. rmapi refuses a folder with
+    anything in it, so only an empty one goes."""
+    with _session(device_token) as home:
+        proc = _run(["-ni", "rm", path], home)
+    _check_auth(proc)
+    if _failed(proc):
+        raise CloudError(f'Could not remove "{path}": ' + _message(proc))
+
+
 def _read_token(conf: Path) -> str | None:
     for line in conf.read_text(encoding="utf-8").splitlines():
         key, _, value = line.partition(":")

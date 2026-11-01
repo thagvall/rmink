@@ -116,18 +116,25 @@ Arbetsböcker för skolan samlas i grupper efter område. Katalogen finns i
 Varje moment har en beskrivning för Claude (vad som ska övas, i vilken ordning och vilka typiska fel
 uppgifterna ska fånga) och de årskurser det passar. Man väljer grupp, moment (eller *blanda alla*)
 och årskurs. Önskemål i fritext läggs till. En arbetsbok i en grupp hamnar i
-`rmink/Skola/<grupp>/<namn>/`:
+`rmink/Skola/<grupp>/<namn>/`. Mattegrupperna har en egen mapp, *Matematik*, i Skola (`folder` i
+TOML-filen):
 
     rmink/
       Skola/
-        Bråk och division/
-          Förkorta åk 5/
-            Förkorta åk 5 r02 · 4 av 5 p
-            Tidigare/
+        Grammatik/
+          Verb åk 4/
+        Matematik/
+          Bråk och division/
+            Förkorta åk 5/
+              Förkorta åk 5 r02 · 4 av 5 p
+              Tidigare/
+          Plus och minus/
 
 En befintlig arbetsbok flyttas in i en grupp med `rmink workbook move <namn> --group <grupp>`, eller
 med *Flytta till grupp…* på arbetsbokens kort på `/rounds` om den är sparad i webbläsaren.
-Mappen flyttas med alla revisioner och *Tidigare*, och nästa varv fortsätter där.
+Mappen flyttas med alla revisioner och *Tidigare*, och nästa varv fortsätter där. Kortet erbjuder
+flytten också för arbetsböcker som ligger i en grupps gamla mapp (från före *Matematik*). En
+gruppmapp som blir tom tas bort.
 
 Nya grupper (gånger, geometri, läsförståelse …) läggs till i TOML-filen utan kodändring. Arbetsböcker
 utan grupp fungerar som förut i `rmink/<namn>/`, utanför *Skola*: välj en grupp för att den ska

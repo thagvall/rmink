@@ -351,7 +351,7 @@ class FakeCloud:
         self.documents = documents or {}
         self.calls = []
         self.fail_moves_to = None  # moves to paths containing this fail
-        for name in ("ls", "mkdir", "put", "mv", "get"):
+        for name in ("ls", "mkdir", "put", "mv", "get", "rmdir"):
             monkeypatch.setattr(cloud, name, getattr(self, name))
         monkeypatch.setenv("RMINK_CLOUD_TOKEN", "tok.en-1")
 
@@ -386,6 +386,13 @@ class FakeCloud:
         self.folders[folder].add(used)
         self.documents[f"{folder}/{used}"] = path.read_bytes()
         return used
+
+    def rmdir(self, token, path):
+        self.calls.append(("rmdir", path))
+        assert not self.folders[path], f"{path} is not empty"
+        parent, name = self._split(path)
+        self.folders[parent].remove(name)
+        del self.folders[path]
 
     def mv(self, token, src, dst):
         self.calls.append(("mv", src, dst))

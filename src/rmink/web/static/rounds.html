@@ -246,7 +246,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
     for (const d of all) {
       if (grouped && groupOf(d) !== heading) {
         heading = groupOf(d);
-        list.appendChild(el("h3", "group-head", !heading ? "Övrigt" : d.group ? `${d.area || "Skola"} · ${heading}` : heading));
+        list.appendChild(el("h3", "group-head", !heading ? "Övrigt" : d.group ? [d.area || "Skola", ...heading.split("/")].join(" · ") : heading));
       }
       const card = el("div", "drawing");
       const head = el("div", "row between");
@@ -313,8 +313,9 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
         try { localStorage.setItem("rmink.roundsMemory", JSON.stringify(m)); } catch {}
         drawings();
       };
-      if (wb && !d.group && sent && catalog.length) {
-        // Older workbooks, made before rmink skola: move one into a group's folder.
+      if (wb && sent && catalog.length && !catalog.some((g) => g.path === d.group)) {
+        // Older workbooks, made before rmink skola or before their group got a
+        // folder of its own (Matematik): move one into the group's folder.
         const to = el("select"); to.style.width = "auto"; to.setAttribute("aria-label", "Flytta till grupp");
         const none = el("option", null, "Flytta till grupp…"); none.value = ""; to.appendChild(none);
         for (const g of catalog) { const o = el("option", null, `${g.area}: ${g.title}`); o.value = g.id; to.appendChild(o); }

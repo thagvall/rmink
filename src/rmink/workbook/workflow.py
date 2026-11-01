@@ -67,11 +67,12 @@ def revision_title(workbook: Workbook) -> str:
 
 
 def workbook_folder(workbook: Workbook) -> str:
-    """'/rmink/Skola/Bråk och division/Bråk åk 5' for a workbook in a group,
-    '/rmink/Bråk' for one without."""
+    """'/rmink/Skola/Matematik/Bråk och division/Bråk åk 5' for a workbook in
+    a group (its ``group`` is the path under the area), '/rmink/Bråk' for one
+    without."""
     if not workbook.group:
         return drawing_folder(workbook.name)
-    parts = [workbook.area, workbook.group, workbook.name]
+    parts = [workbook.area, *workbook.group.split("/"), workbook.name]
     return "/".join([RMINK_FOLDER, *(safe_name(p) for p in parts if p)])
 
 
@@ -171,6 +172,18 @@ def send_revision(workbook: Workbook, path: Path, token: str, store: Store) -> s
     return sent_as
 
 
+def _remove_if_empty(token: str, folder: str, area_folder: str) -> None:
+    """Remove a group folder the last workbook was moved out of. Only folders
+    inside the area's folder go, and never the area's folder itself."""
+    if not folder.startswith(area_folder + "/"):
+        return
+    try:
+        if not cloud.ls(token, folder):
+            cloud.rmdir(token, folder)
+    except cloud.CloudError as e:
+        log.warning("Could not remove the empty folder %s: %s", folder, e)
+
+
 def move_to_group(workbook: Workbook, area: str, group: str, token: str, store: Store) -> str:
     """Move a workbook's folder, with its revisions and Tidigare, into
     rmink/<area>/<group>/ and save it with its new paths. Returns the new
@@ -182,6 +195,7 @@ def move_to_group(workbook: Workbook, area: str, group: str, token: str, store: 
         return new
     _make_folders(token, new.rpartition("/")[0])
     cloud.mv(token, old, new)
+    _remove_if_empty(token, old.rpartition("/")[0], f"{RMINK_FOLDER}/{area}")
 
     def renamed(path: str) -> str:
         return new + path[len(old) :] if path.startswith(old + "/") else path

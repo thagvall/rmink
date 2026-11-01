@@ -500,7 +500,7 @@ def workbook_move(
     if wb is None:
         raise typer.BadParameter(f'No saved workbook "{name}"')
     try:
-        title = catalog.group(group).title
+        title = catalog.group(group).path
     except ValueError as e:
         raise typer.BadParameter(str(e)) from e
     token = cloud.load_token()

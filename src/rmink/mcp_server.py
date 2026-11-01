@@ -485,7 +485,7 @@ def create_workbook(
 
     wb = check_workbook(workbook)
     if group:
-        wb.area, wb.group = catalog.AREA, catalog.group(group).title
+        wb.area, wb.group = catalog.AREA, catalog.group(group).path
     output = _workbook_output(output_path, send, wb.name)
     return _workbook_result(
         start_workbook(wb, device, default_store(), send, output=output), output

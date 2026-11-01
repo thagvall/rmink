@@ -28,8 +28,14 @@ class Group(BaseModel):
     id: str
     title: str
     area: str = ""  # the subject, "Matte"
+    folder: str = ""  # a folder in rmink/Skola/ the group's folder goes in, "Matematik"
     description: str = ""
     topic: list[Topic] = Field(default_factory=list)
+
+    @property
+    def path(self) -> str:
+        """Where the group is under rmink/Skola/: "Matematik/Bråk och division"."""
+        return f"{self.folder}/{self.title}" if self.folder else self.title
 
     def find(self, topic_id: str) -> Topic | None:
         return next((t for t in self.topic if t.id == topic_id), None)
@@ -44,7 +50,7 @@ def load() -> list[Group]:
 def group(group_id: str) -> Group:
     """The group with id (or title) ``group_id``; ``ValueError`` names the ones there are."""
     for g in load():
-        if group_id in (g.id, g.title):
+        if group_id in (g.id, g.title, g.path):
             return g
     raise ValueError(
         f'Det finns ingen grupp "{group_id}". Välj en av: ' + ", ".join(g.id for g in load())
@@ -87,6 +93,7 @@ def to_json() -> list[dict]:
         {
             "id": g.id,
             "title": g.title,
+            "path": g.path,
             "area": g.area,
             "description": g.description,
             "topics": [{"id": t.id, "title": t.title, "grades": t.grades} for t in g.topic],

@@ -267,7 +267,7 @@ def router() -> APIRouter:
         if wb is None:
             raise HTTPException(404, f'Ingen sparad arbetsbok "{req.name}"')
         try:
-            title = catalog.group(req.group).title
+            title = catalog.group(req.group).path
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
         try:
