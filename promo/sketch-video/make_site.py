@@ -117,8 +117,11 @@ img { max-width: 100%; }
 
 NAV = """
     <div class="sitebar">
-      <a class="home" href="/">rmink<span>{app} →</span></a>
+      <a class="home" href="{home}">rmink</a>
       <nav>
+        <a href="/app">{app}</a>
+        <a href="/skola">rmink skola</a>
+        <a href="/bygg">rmink bygg</a>
         <a href="{other_href}" lang="{other_lang}">{other}</a>
         <button class="btn primary" type="button" id="watch">▶ {watch}</button>
       </nav>
@@ -237,7 +240,7 @@ def page(lang: str) -> Path:
     style_end = rest.index("</style>") + len("</style>")
     out += rest[:style_end] + SITE_CSS + "</head>\n<body>\n"
     body = rest[style_end:]
-    nav = NAV.format(app=e["app"], other_href=c["other_href"], other_lang="sv" if lang == "en" else "en",
+    nav = NAV.format(home="/" if lang == "en" else "/sv", app=e["app"], other_href=c["other_href"], other_lang="sv" if lang == "en" else "en",
                      other=e["other"], watch=e["watch"])  # fmt: skip
     marker = "<header>\n"
     assert marker in body

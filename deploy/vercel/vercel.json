@@ -2,6 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["arn1"],
   "rewrites": [
+    { "source": "/", "destination": "/home.html" },
+    { "source": "/sv", "destination": "/home-sv.html" },
+    { "source": "/skola", "destination": "/skola.html" },
+    { "source": "/bygg", "destination": "/bygg.html" },
     { "source": "/video", "destination": "/video.html" },
     { "source": "/video/sv", "destination": "/video-sv.html" },
     { "source": "/sketch", "destination": "/sketch.html" },

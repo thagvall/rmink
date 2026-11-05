@@ -15,7 +15,7 @@ HERE = Path(__file__).parent
 
 PAIRS = [
     # Header and section intros
-    ("rmink · fas 1 · förslag", "rmink · phase 1 · proposal"),
+    ("rmink · skiss till ritning", "rmink · sketch to drawing"),
     (
         'Från handskiss <span class="arrow">→</span> ren ritning, i omgångar',
         'From hand sketch <span class="arrow">→</span> clean drawing, in rounds',
@@ -35,8 +35,8 @@ PAIRS = [
         "The same deck, two ways to carry the joists. Claude makes both from the same drawing model, and they land as two pages in one notebook. You choose by drawing on the tablet.",
     ),
     (
-        "<b>Inte byggt än.</b> Varianterna är gjorda för hand i ritningsmodellen. Sidorna, spannen och vilka streck som räknas som nya kommer ändå från rminks riktiga renderare och gruppering.",
-        "<b>Not built yet.</b> The variants are made by hand in the drawing model. The pages, the spans and which strokes count as new still come from rmink's real renderer and grouping.",
+        "<b>Så här går det till.</b> Varianterna i demon är gjorda för hand i ritningsmodellen; i dag ger rmink samma val som en alternativsida. Sidorna, spannen och vilka streck som räknas som nya kommer ändå från rminks riktiga renderare och gruppering.",
+        "<b>How it works.</b> The variants in this demo are made by hand in the drawing model; today rmink offers the same choice as an alternatives page. The pages, the spans and which strokes count as new still come from rmink's real renderer and grouping.",
     ),
     ("Scenario 4 · koncept", "Scenario 4 · concept"),
     (
@@ -131,8 +131,8 @@ PAIRS = [
         "<li>How well are real handwritten measurements such as <code>45°</code> and <code>Ø110</code> read?</li>",
     ),
     (
-        "rmink är gratis och öppen källkod. Skissen, markeringarna, varianterna, detaljen och fotot i demon är syntetiska, liksom PDF-arket och DXF-filen i exportdemon. Grupperna, måttkontrollen, renritningarna och vilka streck som räknas som nya kommer från rmink 2.2.1 med fas 1-koden.",
-        "rmink is free and open source. The sketch, the marks, the variants, the detail and the photo in the demo are synthetic, as are the PDF sheet and the DXF file in the export demo. The groups, the measurement check, the clean drawings and which strokes count as new come from rmink 2.2.1 with the phase 1 code.",
+        "rmink är gratis och öppen källkod. Skissen, markeringarna, varianterna, detaljen och fotot i demon är syntetiska, liksom PDF-arket och DXF-filen i exportdemon. Grupperna, måttkontrollen, renritningarna och vilka streck som räknas som nya kommer från rmink.",
+        "rmink is free and open source. The sketch, the marks, the variants, the detail and the photo in the demo are synthetic, as are the PDF sheet and the DXF file in the export demo. The groups, the measurement check, the clean drawings and which strokes count as new come from rmink.",
     ),
     # Attributes
     ('aria-label="På sidan"', 'aria-label="On this page"'),
@@ -232,8 +232,8 @@ PAIRS = [
     ('"Altan r1 · sida 1"', '"Altan r1 · page 1"'),
     ('"Ritning r1 · Kommentarer"', '"Ritning r1 · Kommentarer layers"'),
     (
-        "rmink rätar upp linjerna, sätter ihop hörnen och ritar med riktiga pennstreck. Ritningen får måttlinjer med pilar, symboler, en förklaringsruta och ett revisionsblock. Den nya anteckningsboken landar på plattan, med originalskissen kvar som sida 2.",
-        "rmink straightens the lines, joins the corners and draws with real pen strokes. The drawing gets dimension lines with arrows, symbols, a legend and a title block. The new notebook lands on the tablet, with the original sketch kept as page 2.",
+        "rmink rätar upp linjerna, sätter ihop hörnen och ritar med riktiga pennstreck. Ritningen får måttlinjer med pilar, symboler, en förklaringsruta och ett revisionsblock. Den nya anteckningsboken landar på plattan, och skissen ligger kvar i Tidigare.",
+        "rmink straightens the lines, joins the corners and draws with real pen strokes. The drawing gets dimension lines with arrows, symbols, a legend and a title block. The new notebook lands on the tablet, and the sketch stays in the Tidigare folder.",
     ),
     ("<b>${r.drawn_px} px ritat</b>", "<b>${r.drawn_px} px drawn</b>"),
     (
@@ -585,8 +585,8 @@ PAIRS = [
         'doc: [["rmink.vercel.app", "Sent"], ["Förråd r1 · page 1", "Ritning r1 · Kommentarer layers"]]',
     ),
     (
-        "Ritningen landar på plattan med fotots bläck som sida 2. Därifrån går det som skisserna från plattan: markera, få nästa revision, prova varianter eller gör ett nedslag.",
-        "The drawing lands on the tablet with the photo's ink as page 2. From there it works like a tablet sketch: mark it up, get the next revision, try variants or zoom into a detail.",
+        "Ritningen landar på plattan. Därifrån går det som skisserna från plattan: markera, få nästa revision, prova varianter eller gör ett nedslag.",
+        "The drawing lands on the tablet. From there it works like a tablet sketch: mark it up, get the next revision, try variants or zoom into a detail.",
     ),
     ('phone(this, "Skickad till reMarkable ✓")', 'phone(this, "Sent to reMarkable ✓")'),
     (
@@ -709,8 +709,8 @@ PAIRS = [
     ),
     # Scenario cards
     (
-        '{ t: "Renritning", st: "built", link: "#flode", d: "Handskiss med mått blir en ren ritning: raka linjer, måttkedjor, versaltext och revisionsblock. Skissen finns kvar som sida 2."',
-        '{ t: "Clean drawing", st: "built", link: "#flode", d: "A hand sketch with measurements becomes a clean drawing: straight lines, dimension chains, capital lettering and a title block. The sketch stays as page 2."',
+        '{ t: "Renritning", st: "built", link: "#flode", d: "Handskiss med mått blir en ren ritning: raka linjer, måttkedjor, versaltext och revisionsblock. Skissen ligger kvar i Tidigare."',
+        '{ t: "Clean drawing", st: "built", link: "#flode", d: "A hand sketch with measurements becomes a clean drawing: straight lines, dimension chains, capital lettering and a title block. The sketch stays in the Tidigare folder."',
     ),
     (
         '{ t: "Legend styr symbolerna", st: "built", link: "#flode", d: "Skissens egen legend säger vad symbolerna och pilarna betyder. Ritningen får standardsymboler och en ren förklaringsruta."',
@@ -741,8 +741,8 @@ PAIRS = [
         '{ t: "With and without colour", st: "built", link: "#flode", d: "The same drawing on every tablet. Paper Pro and Move show the categories in colour, rm2 and Paper Pure by line type and width. Switch tablets in the demo."',
     ),
     (
-        '{ built: "fas 1", partial: "delvis", later: "senare" }',
-        '{ built: "phase 1", partial: "partly", later: "later" }',
+        '{ built: "klart", partial: "delvis", later: "senare" }',
+        '{ built: "done", partial: "partly", later: "later" }',
     ),
     (
         '"Se i demon" : "Se konceptanimeringen"',

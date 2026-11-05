@@ -60,12 +60,12 @@ TEMPLATE = """<!doctype html>
 <meta property="og:image:alt" content="{h1}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="{site}/promo/{image}">
-<script>location.replace("/?demo={lang}");</script>
+<script>location.replace("{target}");</script>
 <style>body {{ margin: 0; background: #f4f2ec; color: #1d1d1b; font: 17px/1.5 system-ui, sans-serif; padding: 32px 16px; }}</style>
 </head>
 <body>
-<!-- Link previews read the tags above; people go on to the app with the video open. -->
-<p><a href="/?demo={lang}">{h1}</a></p>
+<!-- Link previews read the tags above; people go on to the home page with the video open. -->
+<p><a href="{target}">{h1}</a></p>
 </body>
 </html>
 """
@@ -77,7 +77,8 @@ def page(lang: str) -> Path:
     # fetches it instead of a cached one.
     shots = sorted(DEST.glob(f"og-{lang}-*.jpg"), key=lambda f: f.stat().st_mtime)
     image = shots[-1].name if shots else f"og-{lang}.jpg"
-    out = TEMPLATE.format(lang=lang, site=SITE, path=t["path"], title=t["title"], desc=t["desc"],
+    target = "/?demo=en" if lang == "en" else "/sv?demo=sv"
+    out = TEMPLATE.format(target=target, lang=lang, site=SITE, path=t["path"], title=t["title"], desc=t["desc"],
                           h1=t["h1"], image=image)  # fmt: skip
     path = PUBLIC / t["file"]
     path.write_text(out)
@@ -108,14 +109,14 @@ PLAY_OVERLAY = """
 
 
 def site_shot(lang: str, dest: Path) -> Path:
-    """The live app with the demo dialog open, as a 1200 × 627 share image."""
+    """The live site with the video dialog open, as a 1200 × 627 share image."""
     from playwright.sync_api import sync_playwright
 
     with sync_playwright() as p:
         browser = p.chromium.launch(channel="chrome", headless=True)
         page = browser.new_page(viewport={"width": 1600, "height": 836}, device_scale_factor=0.75)
         page.goto(f"{SITE}/?demo={lang}")
-        page.wait_for_selector("#demo[open]")
+        page.wait_for_selector("#video-dialog[open]")
         page.evaluate("async () => {" + PLAY_OVERLAY % (SHOT_AT, [*PLAY_AT, PLAY_SIZE]) + "}")
         page.wait_for_timeout(800)
         png = page.screenshot()

@@ -24,3 +24,10 @@ python promo/make_share.py    # → deploy/vercel/public: /video and /video/sv p
 `promo/out/assets/Caveat.ttf` (OFL, from github.com/google/fonts). Text lives
 in `i18n.json`. The QR codes in the end card are generated with `segno`.
 Facebook copy is in `post-texts.md`.
+
+## The public site
+
+`promo/site/build.py` generates the home page, `/skola` and `/bygg` into
+`deploy/vercel/public/`; add `--images` to rescale the pictures from `out/`.
+`promo/site/og.py <address>` takes their share images from a running copy of
+the site. A new audience is a post in `audience` in `build.py` plus a page.

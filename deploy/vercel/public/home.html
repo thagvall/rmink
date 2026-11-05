@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>rmink: write by hand, rmink does the rest</title>
+<meta name="description" content="Free and open source. Photos become real reMarkable pen strokes, sketches become clean drawings and workbooks get marked, right on your tablet.">
+<link rel="canonical" href="https://rmink.vercel.app/">
+<link rel="alternate" hreflang="en" href="https://rmink.vercel.app/">
+<link rel="alternate" hreflang="sv" href="https://rmink.vercel.app/sv">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="rmink">
+<meta property="og:title" content="rmink: write by hand, rmink does the rest">
+<meta property="og:description" content="Free and open source. Photos become real reMarkable pen strokes, sketches become clean drawings and workbooks get marked, right on your tablet.">
+<meta property="og:url" content="https://rmink.vercel.app/">
+<meta property="og:image" content="https://rmink.vercel.app/og.jpg">
+<meta property="og:image:secure_url" content="https://rmink.vercel.app/og.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="rmink on a reMarkable">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://rmink.vercel.app/og.jpg">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23222'/%3E%3Cpath d='M7 22c4-9 7-12 9-6s5 3 9-6' stroke='%23fff' stroke-width='2.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/site.css">
+<script>
+(function () {
+  var q = new URLSearchParams(location.search), lang = q.get("lang"), demo = q.get("demo"), saved = null;
+  try {
+    if (lang) localStorage.setItem("rmink.lang", lang);
+    saved = localStorage.getItem("rmink.lang");
+  } catch (e) {}
+  if (true && (demo === "sv" || (demo !== "en" && lang !== "en" && saved !== "en"
+      && (saved === "sv" || navigator.language.indexOf("sv") === 0)))) {
+    q.delete("lang");
+    var s = q.toString();
+    location.replace("/sv" + (s ? "?" + s : "") + location.hash);
+  } else if (lang) {
+    q.delete("lang");
+    var t = q.toString();
+    history.replaceState(null, "", location.pathname + (t ? "?" + t : "") + location.hash);
+  }
+})();
+</script>
+</head>
+<body data-video="/promo/rmink-promo-en.mp4" data-poster="/promo/poster-en.jpg">
+<header class="bar"><div class="wrap">
+  <a class="brand" href="/">rmink</a>
+  <nav>
+    <a href="/#abilities">What it does</a>
+    <a href="/#for">rmink for</a>
+    <button type="button" data-video="default">Video</button>
+    <a class="lang" href="/sv?lang=sv" lang="sv">Svenska</a>
+  </nav>
+  <a class="btn primary small" href="/app">Open the tool</a>
+</div></header>
+
+<main>
+<section class="hero"><div class="wrap">
+  <div class="text">
+    <h1><span>Write by hand.</span><span class="stroke">rmink does the rest.</span></h1>
+    <p class="lede">Photos become real pen strokes, sketches become clean drawings and workbooks get marked, right on your reMarkable. Not a picture behind your notes.</p>
+    <div class="actions">
+      <a class="btn primary" href="/app">Try it free</a>
+      <button type="button" class="btn" data-video="default"><span class="play" aria-hidden="true">▶</span> Watch the video</button>
+    </div>
+    <p class="note">Free and open source. No account needed.</p>
+  </div>
+  <figure class="stack">
+    <img class="photo" src="/home/note-photo-en.jpg" alt="a photo" width="480" height="600">
+    <div class="tablet"><img src="/home/note-ink-en.png" alt="real, editable ink on the tablet" width="800" height="1067"></div>
+  </figure>
+</div></section>
+
+<section id="abilities"><div class="wrap">
+  <div class="head">
+    <span class="eyebrow">What it does</span>
+    <h2>Three things your pen can do with rmink</h2>
+    <p class="lede">The first works in your browser right now. The other two run in your own Claude.</p>
+  </div>
+  <div class="grid">
+    <article class="card">
+      <div class="sheet"><img src="/home/note-ink-en.png" alt="" loading="lazy" width="800" height="1067"></div>
+      <span class="tag open">Open in your browser</span>
+      <h3>Image to ink</h3>
+      <p>Notes, sketches, logos and PDFs become strokes you can erase, lasso, move and recolour, like your own handwriting.</p>
+      <a class="more" href="/app">Open the tool →</a>
+    </article>
+    <article class="card">
+      <div class="sheet"><img src="/home/bygg-r08.png" alt="" loading="lazy" width="800" height="1067"></div>
+      <span class="tag">With your Claude</span>
+      <h3>Sketch to drawing</h3>
+      <p>Sketch on the tablet and get a clean drawing with dimensions, symbols and a title block. Mark it up with the pen and the next revision comes back.</p>
+      <a class="more" href="/sketch">See the interactive demo →</a>
+    </article>
+    <article class="card">
+      <div class="sheet"><img src="/home/skola-marked.png" alt="" loading="lazy" width="800" height="1067"></div>
+      <span class="tag">With your Claude</span>
+      <h3>Workbooks</h3>
+      <p>Claude writes a linked workbook. You answer by hand, your handwriting becomes text and the answers are marked, with the solutions on a hidden layer.</p>
+      <a class="more" href="/skola">Read more (in Swedish) →</a>
+    </article>
+  </div>
+  <ul class="also"><li>Five grey-tone styles</li><li>PDF and SVG as vectors</li><li>Send straight to your reMarkable</li><li>Take a photo with your phone</li><li>Several files in one notebook</li></ul>
+</div></section>
+
+<section id="for"><div class="wrap">
+  <div class="head">
+    <span class="eyebrow">rmink for</span>
+    <h2>Made for a particular job</h2>
+    <p class="lede">The same pen, aimed at one audience and one need. These are in Swedish for now, because their content follows Swedish school years and building rules.</p>
+  </div>
+  <div class="grid two">
+    <article class="card audience">
+      <div class="body">
+        <p class="who">Teachers, parents and pupils</p>
+        <h3>rmink skola</h3>
+        <p class="need">Practise by hand, with no screens to tap.</p>
+        <p class="facts">8 groups · 65 topics · years 1–9</p>
+        <a class="more" href="/skola">Read more (in Swedish) →</a>
+      </div>
+      <div class="sheet"><img src="/home/skola-answers.png" alt="" loading="lazy" width="800" height="1067"></div>
+    </article>
+    <article class="card audience">
+      <div class="body">
+        <p class="who">Anyone who builds, draws or reviews small buildings</p>
+        <h3>rmink bygg</h3>
+        <p class="need">From hand sketch to drawing, in revision rounds.</p>
+        <p class="facts">33 drawing symbols · 53 review rules · 43 materials</p>
+        <a class="more" href="/bygg">Read more (in Swedish) →</a>
+      </div>
+      <div class="sheet"><img src="/home/bygg-r00.png" alt="" loading="lazy" width="800" height="1067"></div>
+    </article>
+  </div>
+</div></section>
+
+<section id="how"><div class="wrap">
+  <div class="head">
+    <span class="eyebrow">Image to ink</span>
+    <h2>From photo to tablet</h2>
+  </div>
+  <ol class="steps">
+    <li><h3>Drop in a photo</h3><p>A photo of your notes, a sketch, a logo or a PDF. On a phone you can take the photo right there.</p></li>
+    <li><h3>See the ink</h3><p>Pick your tablet and a style. The preview shows exactly what you will get.</p></li>
+    <li><h3>Put it on the tablet</h3><p>Send it straight to reMarkable, or download the notebook and copy it over.</p></li>
+  </ol>
+</div></section>
+
+<section id="claude"><div class="wrap split">
+  <div class="prose">
+    <h2>rmink in your own Claude</h2>
+    <p>Sketches, drawings and workbooks run in your own Claude, on your own Claude account. Add rmink as an MCP server in Claude Code or Claude Desktop and ask.</p>
+    <div class="cmd"><code>claude mcp add rmink -- uvx --from &#x27;rmink[mcp]&#x27; rmink mcp</code><button type="button" data-copy="claude mcp add rmink -- uvx --from &#x27;rmink[mcp]&#x27; rmink mcp" data-done="Copied">Copy</button></div>
+    <p class="note">You also need rmapi to reach your tablet, and you run a few commands in a terminal.</p>
+  </div>
+  <div class="prose">
+    <h2>Free, and it stays that way</h2>
+    <p>rmink is open source under AGPL-3.0. If it saves you time, you are welcome to support it with 100 kr.</p>
+    <div class="actions">
+      <a class="btn small" href="https://github.com/thagvall/rmink" rel="noopener">Source code</a>
+      <a class="btn small" href="https://buy.stripe.com/7sY4gy4b1aQo0iI0SB1sQ00" rel="noopener">Support rmink · 100 kr</a>
+    </div>
+  </div>
+</div></section>
+</main>
+<footer><div class="wrap">
+  <div class="cols">
+    <div><b>Tools</b><ul>
+      <li><a href="/app">Image to ink</a></li>
+      <li><a href="/sketch">Sketch to drawing</a></li>
+      <li><a href="/#claude">rmink in your own Claude</a></li>
+    </ul></div>
+    <div><b>rmink for</b><ul>
+      <li><a href="/skola">rmink skola</a></li>
+      <li><a href="/bygg">rmink bygg</a></li>
+    </ul></div>
+    <div><b>About</b><ul>
+      <li><a href="https://github.com/thagvall/rmink" rel="noopener">Source code</a></li>
+      <li><a href="https://buy.stripe.com/7sY4gy4b1aQo0iI0SB1sQ00" rel="noopener">Support rmink · 100 kr</a></li>
+    </ul></div>
+  </div>
+  <p>Tested on reMarkable 2. Paper Pro, Paper Pure and Move are in beta.</p>
+  <p>rmink is free software (AGPL-3.0). Not affiliated with or endorsed by reMarkable AS.</p>
+</div></footer>
+<dialog id="video-dialog" aria-label="Video">
+  <button type="button" class="close" aria-label="Close">×</button>
+  <video controls playsinline preload="none"></video>
+</dialog>
+<script src="/site.js" defer></script>
+</body>
+</html>

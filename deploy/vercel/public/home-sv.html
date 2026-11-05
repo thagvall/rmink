@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>rmink: skriv för hand, rmink gör resten</title>
+<meta name="description" content="Gratis och öppen källkod. Foton blir riktiga reMarkable-pennstreck, skisser blir rena ritningar och arbetsböcker rättas, direkt på din platta.">
+<link rel="canonical" href="https://rmink.vercel.app/sv">
+<link rel="alternate" hreflang="en" href="https://rmink.vercel.app/">
+<link rel="alternate" hreflang="sv" href="https://rmink.vercel.app/sv">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="rmink">
+<meta property="og:title" content="rmink: skriv för hand, rmink gör resten">
+<meta property="og:description" content="Gratis och öppen källkod. Foton blir riktiga reMarkable-pennstreck, skisser blir rena ritningar och arbetsböcker rättas, direkt på din platta.">
+<meta property="og:url" content="https://rmink.vercel.app/sv">
+<meta property="og:image" content="https://rmink.vercel.app/og.jpg">
+<meta property="og:image:secure_url" content="https://rmink.vercel.app/og.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:image:alt" content="rmink på en reMarkable">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://rmink.vercel.app/og.jpg">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23222'/%3E%3Cpath d='M7 22c4-9 7-12 9-6s5 3 9-6' stroke='%23fff' stroke-width='2.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/site.css">
+<script>
+(function () {
+  var q = new URLSearchParams(location.search), lang = q.get("lang"), demo = q.get("demo"), saved = null;
+  try {
+    if (lang) localStorage.setItem("rmink.lang", lang);
+    saved = localStorage.getItem("rmink.lang");
+  } catch (e) {}
+  if (false && (demo === "sv" || (demo !== "en" && lang !== "en" && saved !== "en"
+      && (saved === "sv" || navigator.language.indexOf("sv") === 0)))) {
+    q.delete("lang");
+    var s = q.toString();
+    location.replace("/sv" + (s ? "?" + s : "") + location.hash);
+  } else if (lang) {
+    q.delete("lang");
+    var t = q.toString();
+    history.replaceState(null, "", location.pathname + (t ? "?" + t : "") + location.hash);
+  }
+})();
+</script>
+</head>
+<body data-video="/promo/rmink-promo-sv.mp4" data-poster="/promo/poster-sv.jpg">
+<header class="bar"><div class="wrap">
+  <a class="brand" href="/sv">rmink</a>
+  <nav>
+    <a href="/sv#abilities">Förmågor</a>
+    <a href="/sv#for">rmink för</a>
+    <button type="button" data-video="default">Film</button>
+    <a class="lang" href="/?lang=en" lang="en">English</a>
+  </nav>
+  <a class="btn primary small" href="/app">Öppna verktyget</a>
+</div></header>
+
+<main>
+<section class="hero"><div class="wrap">
+  <div class="text">
+    <h1><span>Skriv för hand.</span><span class="stroke">rmink gör resten.</span></h1>
+    <p class="lede">Foton blir riktiga pennstreck, skisser blir rena ritningar och arbetsböcker rättas, direkt på din reMarkable. Inte en bild bakom anteckningarna.</p>
+    <div class="actions">
+      <a class="btn primary" href="/app">Prova gratis</a>
+      <button type="button" class="btn" data-video="default"><span class="play" aria-hidden="true">▶</span> Se filmen</button>
+    </div>
+    <p class="note">Gratis och öppen källkod. Inget konto behövs.</p>
+  </div>
+  <figure class="stack">
+    <img class="photo" src="/home/note-photo-sv.jpg" alt="ett foto" width="480" height="600">
+    <div class="tablet"><img src="/home/note-ink-sv.png" alt="riktigt, redigerbart bläck på plattan" width="800" height="1067"></div>
+  </figure>
+</div></section>
+
+<section id="abilities"><div class="wrap">
+  <div class="head">
+    <span class="eyebrow">Förmågor</span>
+    <h2>Tre saker pennan kan göra med rmink</h2>
+    <p class="lede">Den första fungerar i webbläsaren direkt. De andra två körs i din egen Claude.</p>
+  </div>
+  <div class="grid">
+    <article class="card">
+      <div class="sheet"><img src="/home/note-ink-sv.png" alt="" loading="lazy" width="800" height="1067"></div>
+      <span class="tag open">Öppet i webbläsaren</span>
+      <h3>Bild till bläck</h3>
+      <p>Anteckningar, skisser, logotyper och PDF:er blir streck du kan sudda, lassa, flytta och färga om, precis som din egen handstil.</p>
+      <a class="more" href="/app">Öppna verktyget →</a>
+    </article>
+    <article class="card">
+      <div class="sheet"><img src="/home/bygg-r08.png" alt="" loading="lazy" width="800" height="1067"></div>
+      <span class="tag">Med din Claude</span>
+      <h3>Skiss till ritning</h3>
+      <p>Skissa på plattan och få tillbaka en ren ritning med mått, symboler och ritningshuvud. Markera med pennan så kommer nästa revision.</p>
+      <a class="more" href="/bygg">Läs om rmink bygg →</a>
+    </article>
+    <article class="card">
+      <div class="sheet"><img src="/home/skola-marked.png" alt="" loading="lazy" width="800" height="1067"></div>
+      <span class="tag">Med din Claude</span>
+      <h3>Arbetsböcker</h3>
+      <p>Claude skriver en länkad arbetsbok. Du svarar för hand, handstilen blir text och svaren rättas, med facit i ett dolt lager.</p>
+      <a class="more" href="/skola">Läs om rmink skola →</a>
+    </article>
+  </div>
+  <ul class="also"><li>Fem gråtonsstilar</li><li>PDF och SVG som vektorer</li><li>Skicka direkt till din reMarkable</li><li>Ta fotot med mobilen</li><li>Flera filer i en anteckningsbok</li></ul>
+</div></section>
+
+<section id="for"><div class="wrap">
+  <div class="head">
+    <span class="eyebrow">rmink för</span>
+    <h2>Gjort för ett visst jobb</h2>
+    <p class="lede">Samma penna, riktad mot en publik och ett behov.</p>
+  </div>
+  <div class="grid two">
+    <article class="card audience">
+      <div class="body">
+        <p class="who">För lärare, föräldrar och elever</p>
+        <h3>rmink skola</h3>
+        <p class="need">Öva för hand, utan skärmar att klicka i.</p>
+        <p class="facts">8 grupper · 65 moment · åk 1–9</p>
+        <a class="more" href="/skola">Läs om rmink skola →</a>
+      </div>
+      <div class="sheet"><img src="/home/skola-answers.png" alt="" loading="lazy" width="800" height="1067"></div>
+    </article>
+    <article class="card audience">
+      <div class="body">
+        <p class="who">För dig som bygger, ritar eller granskar småhus</p>
+        <h3>rmink bygg</h3>
+        <p class="need">Från handskiss till ritning, i revisionsvarv.</p>
+        <p class="facts">33 ritsymboler · 53 granskningsregler · 43 varuslag</p>
+        <a class="more" href="/bygg">Läs om rmink bygg →</a>
+      </div>
+      <div class="sheet"><img src="/home/bygg-r00.png" alt="" loading="lazy" width="800" height="1067"></div>
+    </article>
+  </div>
+</div></section>
+
+<section id="how"><div class="wrap">
+  <div class="head">
+    <span class="eyebrow">Bild till bläck</span>
+    <h2>Från foto till platta</h2>
+  </div>
+  <ol class="steps">
+    <li><h3>Släpp in ett foto</h3><p>Ett foto av anteckningar, en skiss, en logotyp eller en PDF. I mobilen tar du fotot direkt.</p></li>
+    <li><h3>Se bläcket</h3><p>Välj platta och stil. Förhandsvisningen visar precis vad du får.</p></li>
+    <li><h3>Lägg det på plattan</h3><p>Skicka direkt till reMarkable, eller ladda ner anteckningsboken och lägg över den.</p></li>
+  </ol>
+</div></section>
+
+<section id="claude"><div class="wrap split">
+  <div class="prose">
+    <h2>rmink i din egen Claude</h2>
+    <p>Skisser, ritningar och arbetsböcker körs i din egen Claude, på ditt eget Claude-konto. Lägg till rmink som MCP-server i Claude Code eller Claude Desktop och fråga på.</p>
+    <div class="cmd"><code>claude mcp add rmink -- uvx --from &#x27;rmink[mcp]&#x27; rmink mcp</code><button type="button" data-copy="claude mcp add rmink -- uvx --from &#x27;rmink[mcp]&#x27; rmink mcp" data-done="Kopierat">Kopiera</button></div>
+    <p class="note">Du behöver också rmapi för att nå plattan, och du kör några kommandon i en terminal.</p>
+  </div>
+  <div class="prose">
+    <h2>Gratis, och det förblir så</h2>
+    <p>rmink är öppen källkod under AGPL-3.0. Om det sparar dig tid får du gärna stötta med 100 kr.</p>
+    <div class="actions">
+      <a class="btn small" href="https://github.com/thagvall/rmink" rel="noopener">Källkod</a>
+      <a class="btn small" href="https://buy.stripe.com/7sY4gy4b1aQo0iI0SB1sQ00" rel="noopener">Stöd rmink · 100 kr</a>
+    </div>
+  </div>
+</div></section>
+</main>
+<footer><div class="wrap">
+  <div class="cols">
+    <div><b>Verktyg</b><ul>
+      <li><a href="/app">Bild till bläck</a></li>
+      <li><a href="/sketch/sv">Skiss till ritning</a></li>
+      <li><a href="/sv#claude">rmink i din egen Claude</a></li>
+    </ul></div>
+    <div><b>rmink för</b><ul>
+      <li><a href="/skola">rmink skola</a></li>
+      <li><a href="/bygg">rmink bygg</a></li>
+    </ul></div>
+    <div><b>Om</b><ul>
+      <li><a href="https://github.com/thagvall/rmink" rel="noopener">Källkod</a></li>
+      <li><a href="https://buy.stripe.com/7sY4gy4b1aQo0iI0SB1sQ00" rel="noopener">Stöd rmink · 100 kr</a></li>
+    </ul></div>
+  </div>
+  <p>Testat på reMarkable 2. Paper Pro, Paper Pure och Move är i beta.</p>
+  <p>rmink är fri programvara (AGPL-3.0). Fristående från reMarkable AS.</p>
+</div></footer>
+<dialog id="video-dialog" aria-label="Film">
+  <button type="button" class="close" aria-label="Stäng">×</button>
+  <video controls playsinline preload="none"></video>
+</dialog>
+<script src="/site.js" defer></script>
+</body>
+</html>

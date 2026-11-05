@@ -222,7 +222,7 @@ footer { color: var(--muted); font-size: 0.86rem; border-top: 1px solid var(--ru
 
 <div class="wrap">
   <header>
-    <span class="eyebrow">rmink · fas 1 · förslag</span>
+    <span class="eyebrow">rmink · skiss till ritning</span>
     <h1>Från handskiss <span class="arrow">→</span> ren ritning, i omgångar</h1>
     <p class="lede">Skissa en 2D-ritning på reMarkable med mått, symboler och en liten legend. rmink och Claude ritar rent den, du markerar på plattan, och nästa revision tar hand om markeringarna. Alla streck nedan är riktig utdata från rmink.</p>
     <nav class="toc" aria-label="På sidan">
@@ -275,7 +275,7 @@ footer { color: var(--muted); font-size: 0.86rem; border-top: 1px solid var(--ru
       <span class="eyebrow">Scenario 5 · koncept</span>
       <h2>Varianter A och B</h2>
       <p>Samma altan, två sätt att bära bjälklaget. Claude tar fram båda från samma ritningsmodell, och de hamnar som två sidor i samma anteckningsbok. Du väljer genom att rita på plattan.</p>
-      <p class="concept"><b>Inte byggt än.</b> Varianterna är gjorda för hand i ritningsmodellen. Sidorna, spannen och vilka streck som räknas som nya kommer ändå från rminks riktiga renderare och gruppering.</p>
+      <p class="concept"><b>Så här går det till.</b> Varianterna i demon är gjorda för hand i ritningsmodellen; i dag ger rmink samma val som en alternativsida. Sidorna, spannen och vilka streck som räknas som nya kommer ändå från rminks riktiga renderare och gruppering.</p>
     </div>
     <div class="duo">
       <div>
@@ -517,7 +517,7 @@ footer { color: var(--muted); font-size: 0.86rem; border-top: 1px solid var(--ru
     </div>
   </section>
 
-  <footer>rmink är gratis och öppen källkod. Skissen, markeringarna, varianterna, detaljen och fotot i demon är syntetiska, liksom PDF-arket och DXF-filen i exportdemon. Grupperna, måttkontrollen, renritningarna och vilka streck som räknas som nya kommer från rmink 2.2.1 med fas 1-koden.</footer>
+  <footer>rmink är gratis och öppen källkod. Skissen, markeringarna, varianterna, detaljen och fotot i demon är syntetiska, liksom PDF-arket och DXF-filen i exportdemon. Grupperna, måttkontrollen, renritningarna och vilka streck som räknas som nya kommer från rmink.</footer>
 </div>
 
 <script>
@@ -720,7 +720,7 @@ const STEPS1 = [
   },
   {
     title: "Ren ritning, revision 1", chip: "Ren ritning", actors: ["rmink", "cloud", "tablet"], doc: [["Altan r1 · sida 1", "Ritning r1 · Kommentarer"]],
-    text: "rmink rätar upp linjerna, sätter ihop hörnen och ritar med riktiga pennstreck. Ritningen får måttlinjer med pilar, symboler, en förklaringsruta och ett revisionsblock. Den nya anteckningsboken landar på plattan, med originalskissen kvar som sida 2.",
+    text: "rmink rätar upp linjerna, sätter ihop hörnen och ritar med riktiga pennstreck. Ritningen får måttlinjer med pilar, symboler, en förklaringsruta och ett revisionsblock. Den nya anteckningsboken landar på plattan, och skissen ligger kvar i Tidigare.",
     run(a) {
       this.set(this.L.sketch, a ? 0.12 : 0, "show");
       if (a) this.later(() => this.set(this.L.sketch, 0, "show"), 2400);
@@ -1013,7 +1013,7 @@ const STEPS4 = [
   {
     title: "På plattan", chip: "Plattan", actors: ["tablet"],
     doc: [["rmink.vercel.app", "Skickad"], ["Förråd r1 · sida 1", "Ritning r1 · Kommentarer"]],
-    text: "Ritningen landar på plattan med fotots bläck som sida 2. Därifrån går det som skisserna från plattan: markera, få nästa revision, prova varianter eller gör ett nedslag.",
+    text: "Ritningen landar på plattan. Därifrån går det som skisserna från plattan: markera, få nästa revision, prova varianter eller gör ett nedslag.",
     run() { phone(this, "Skickad till reMarkable ✓"); this.set(this.L.clean.cur, 1, "show"); },
     detail: () => row("finns", "<b>Send to reMarkable</b> <span>· i webbappen sedan 2.2.0</span>", "plain")
       + row("nästa", '<b>Granskningsrunda</b> <span>· <a href="#flode">som i demon överst</a></span>', "plain"),
@@ -1211,7 +1211,7 @@ players.push(new Player(document.getElementById("export"), STEPS5, 0, ([svg]) =>
 
 /* ---------- Scenario cards ---------- */
 const SCEN = [
-  { t: "Renritning", st: "built", link: "#flode", d: "Handskiss med mått blir en ren ritning: raka linjer, måttkedjor, versaltext och revisionsblock. Skissen finns kvar som sida 2.",
+  { t: "Renritning", st: "built", link: "#flode", d: "Handskiss med mått blir en ren ritning: raka linjer, måttkedjor, versaltext och revisionsblock. Skissen ligger kvar i Tidigare.",
     g: `<path class="s" d="M14 70 Q40 66 70 71 T112 68"/><path class="s" d="M14 70 L16 20 Q60 23 112 19 L112 68"/><path class="a" d="M150 70 H260 V20 H150 Z"/><path class="g" d="M150 10 H260"/><text x="194" y="8">4800</text><path class="a" d="M122 45 h16 m-5 -5 l5 5 l-5 5"/>` },
   { t: "Legend styr symbolerna", st: "built", link: "#flode", d: "Skissens egen legend säger vad symbolerna och pilarna betyder. Ritningen får standardsymboler och en ren förklaringsruta.",
     g: `<rect class="s" x="20" y="22" width="18" height="18"/><path class="s" d="M20 22 l18 18 m0 -18 l-18 18"/><text x="46" y="35">= PELARE</text><circle class="a" cx="29" cy="62" r="9"/><text x="46" y="66">= BRUNN</text><rect class="a" x="170" y="18" width="80" height="56"/><rect class="s" x="163" y="11" width="14" height="14"/><circle class="a" cx="200" cy="45" r="10"/>` },
@@ -1230,7 +1230,7 @@ const SCEN = [
 ];
 document.getElementById("scenarios").innerHTML = SCEN.map((s, i) => `
   <article class="card">
-    <div class="top"><h3>${i + 1}. ${s.t}</h3><span class="pill ${s.st}">${{ built: "fas 1", partial: "delvis", later: "senare" }[s.st]}</span></div>
+    <div class="top"><h3>${i + 1}. ${s.t}</h3><span class="pill ${s.st}">${{ built: "klart", partial: "delvis", later: "senare" }[s.st]}</span></div>
     <svg viewBox="0 0 272 92" aria-hidden="true">${s.g}</svg>
     <p>${s.d}</p>
     ${s.link ? `<a href="${s.link}">${s.link === "#flode" ? "Se i demon" : "Se konceptanimeringen"}</a>` : ""}

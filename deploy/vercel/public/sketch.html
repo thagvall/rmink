@@ -269,13 +269,16 @@ img { max-width: 100%; }
   <header>
 
     <div class="sitebar">
-      <a class="home" href="/">rmink<span>Image to ink →</span></a>
+      <a class="home" href="/">rmink</a>
       <nav>
+        <a href="/app">Image to ink</a>
+        <a href="/skola">rmink skola</a>
+        <a href="/bygg">rmink bygg</a>
         <a href="/sketch/sv" lang="sv">Svenska</a>
         <button class="btn primary" type="button" id="watch">▶ Watch the video</button>
       </nav>
     </div>
-    <span class="eyebrow">rmink · phase 1 · proposal</span>
+    <span class="eyebrow">rmink · sketch to drawing</span>
     <h1>From hand sketch <span class="arrow">→</span> clean drawing, in rounds</h1>
     <p class="lede">Sketch a 2D drawing on a reMarkable with measurements, symbols and a small legend. rmink and Claude draw it clean, you mark it up on the tablet, and the next revision deals with your marks. Every stroke below is real output from rmink.</p>
     <nav class="toc" aria-label="On this page">
@@ -328,7 +331,7 @@ img { max-width: 100%; }
       <span class="eyebrow">Scenario 5 · concept</span>
       <h2>Variants A and B</h2>
       <p>The same deck, two ways to carry the joists. Claude makes both from the same drawing model, and they land as two pages in one notebook. You choose by drawing on the tablet.</p>
-      <p class="concept"><b>Not built yet.</b> The variants are made by hand in the drawing model. The pages, the spans and which strokes count as new still come from rmink's real renderer and grouping.</p>
+      <p class="concept"><b>How it works.</b> The variants in this demo are made by hand in the drawing model; today rmink offers the same choice as an alternatives page. The pages, the spans and which strokes count as new still come from rmink's real renderer and grouping.</p>
     </div>
     <div class="duo">
       <div>
@@ -585,7 +588,7 @@ img { max-width: 100%; }
     </div>
   </section>
 
-  <footer>rmink is free and open source. The sketch, the marks, the variants, the detail and the photo in the demo are synthetic, as are the PDF sheet and the DXF file in the export demo. The groups, the measurement check, the clean drawings and which strokes count as new come from rmink 2.2.1 with the phase 1 code.</footer>
+  <footer>rmink is free and open source. The sketch, the marks, the variants, the detail and the photo in the demo are synthetic, as are the PDF sheet and the DXF file in the export demo. The groups, the measurement check, the clean drawings and which strokes count as new come from rmink.</footer>
 </div>
 
 <script>
@@ -788,7 +791,7 @@ const STEPS1 = [
   },
   {
     title: "Clean drawing, revision 1", chip: "Clean drawing", actors: ["rmink", "cloud", "tablet"], doc: [["Altan r1 · page 1", "Ritning r1 · Kommentarer layers"]],
-    text: "rmink straightens the lines, joins the corners and draws with real pen strokes. The drawing gets dimension lines with arrows, symbols, a legend and a title block. The new notebook lands on the tablet, with the original sketch kept as page 2.",
+    text: "rmink straightens the lines, joins the corners and draws with real pen strokes. The drawing gets dimension lines with arrows, symbols, a legend and a title block. The new notebook lands on the tablet, and the sketch stays in the Tidigare folder.",
     run(a) {
       this.set(this.L.sketch, a ? 0.12 : 0, "show");
       if (a) this.later(() => this.set(this.L.sketch, 0, "show"), 2400);
@@ -1081,7 +1084,7 @@ const STEPS4 = [
   {
     title: "On the tablet", chip: "Tablet", actors: ["tablet"],
     doc: [["rmink.vercel.app", "Sent"], ["Förråd r1 · page 1", "Ritning r1 · Kommentarer layers"]],
-    text: "The drawing lands on the tablet with the photo's ink as page 2. From there it works like a tablet sketch: mark it up, get the next revision, try variants or zoom into a detail.",
+    text: "The drawing lands on the tablet. From there it works like a tablet sketch: mark it up, get the next revision, try variants or zoom into a detail.",
     run() { phone(this, "Sent to reMarkable ✓"); this.set(this.L.clean.cur, 1, "show"); },
     detail: () => row("built", "<b>Send to reMarkable</b> <span>· in the web app since 2.2.0</span>", "plain")
       + row("next", '<b>Review round</b> <span>· <a href="#flode">as in the demo at the top</a></span>', "plain"),
@@ -1279,7 +1282,7 @@ players.push(new Player(document.getElementById("export"), STEPS5, 0, ([svg]) =>
 
 /* ---------- Scenario cards ---------- */
 const SCEN = [
-  { t: "Clean drawing", st: "built", link: "#flode", d: "A hand sketch with measurements becomes a clean drawing: straight lines, dimension chains, capital lettering and a title block. The sketch stays as page 2.",
+  { t: "Clean drawing", st: "built", link: "#flode", d: "A hand sketch with measurements becomes a clean drawing: straight lines, dimension chains, capital lettering and a title block. The sketch stays in the Tidigare folder.",
     g: `<path class="s" d="M14 70 Q40 66 70 71 T112 68"/><path class="s" d="M14 70 L16 20 Q60 23 112 19 L112 68"/><path class="a" d="M150 70 H260 V20 H150 Z"/><path class="g" d="M150 10 H260"/><text x="194" y="8">4800</text><path class="a" d="M122 45 h16 m-5 -5 l5 5 l-5 5"/>` },
   { t: "The legend sets the symbols", st: "built", link: "#flode", d: "The sketch's own legend says what the symbols and arrows mean. The drawing gets standard symbols and a clean legend box.",
     g: `<rect class="s" x="20" y="22" width="18" height="18"/><path class="s" d="M20 22 l18 18 m0 -18 l-18 18"/><text x="46" y="35">= POST</text><circle class="a" cx="29" cy="62" r="9"/><text x="46" y="66">= DRAIN</text><rect class="a" x="170" y="18" width="80" height="56"/><rect class="s" x="163" y="11" width="14" height="14"/><circle class="a" cx="200" cy="45" r="10"/>` },
@@ -1298,7 +1301,7 @@ const SCEN = [
 ];
 document.getElementById("scenarios").innerHTML = SCEN.map((s, i) => `
   <article class="card">
-    <div class="top"><h3>${i + 1}. ${s.t}</h3><span class="pill ${s.st}">${{ built: "phase 1", partial: "partly", later: "later" }[s.st]}</span></div>
+    <div class="top"><h3>${i + 1}. ${s.t}</h3><span class="pill ${s.st}">${{ built: "done", partial: "partly", later: "later" }[s.st]}</span></div>
     <svg viewBox="0 0 272 92" aria-hidden="true">${s.g}</svg>
     <p>${s.d}</p>
     ${s.link ? `<a href="${s.link}">${s.link === "#flode" ? "See it in the demo" : "See the concept animation"}</a>` : ""}
