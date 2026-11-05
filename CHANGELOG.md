@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.20.0 — 2026-11-05
+
+- The tool is also served at `/app`, because the hosted site now has a home page at `/`. `rmink web` and Docker still show the tool at `/` as before.
+- The tool's header links to the home page and to what else rmink does.
+- The demo video no longer keeps playing behind the page when the dialog is closed right after it opens.
+
 ## 2.19.0 — 2026-11-01
 
 - Four new groups in rmink skola, seven to nine topics each with grades 1–9:

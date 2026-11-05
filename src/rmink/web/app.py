@@ -138,7 +138,10 @@ def create_app(limits: Limits | None = None) -> FastAPI:
         except (ValueError, FileNotFoundError, RuntimeError) as e:
             raise HTTPException(422, str(e)) from e
 
+    # The hosted site has its home page at / and the tool at /app; everywhere
+    # else (`rmink web`, Docker) the tool is both.
     @app.get("/", response_class=HTMLResponse)
+    @app.get("/app", response_class=HTMLResponse)
     def index(request: Request) -> str:
         # Link previews (LinkedIn and others) need absolute URLs; behind a proxy
         # such as Vercel the original scheme and host are in the forwarded headers.

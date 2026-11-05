@@ -60,6 +60,7 @@ header {
   max-width: 1280px; margin: 0 auto; padding: 24px 20px 8px;
 }
 header h1 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+header h1 a { color: inherit; text-decoration: none; }
 header p { margin: 0; color: var(--muted); }
 .header-links { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
 .support-btn {
@@ -246,9 +247,10 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
 </head>
 <body>
 <header>
-  <h1>rmink</h1>
+  <h1><a href="/">rmink</a></h1>
   <p>Photos, sketches, logos and PDFs → editable reMarkable ink</p>
   <div class="header-links">
+    <a class="support-btn" href="https://rmink.vercel.app/#abilities">What else rmink does</a>
     <button type="button" class="support-btn" id="demo-btn" hidden>
       <span class="play" aria-hidden="true">▶</span> Watch the demo
     </button>
@@ -915,7 +917,12 @@ dialog img { display: block; max-width: 96vw; max-height: 92vh; background: #fff
         video.src = src;
         if (poster !== src) video.poster = poster;
       }
-      if (autoplay) video.play().catch(() => { video.muted = true; video.play().catch(() => {}); });
+      if (autoplay) video.play().catch((err) => {
+        // Closing the dialog rejects this too, and a retry would play on behind the page.
+        if (err.name !== "NotAllowedError" || !dlg.open) return;
+        video.muted = true;
+        video.play().catch(() => {});
+      });
     };
     const open = (lang) => {
       if (!dlg.open) dlg.showModal();

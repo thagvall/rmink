@@ -26,6 +26,13 @@ def test_index_and_metadata(client):
     assert client.get("/api/limits").json()["max_files"] == 3
 
 
+def test_tool_is_at_app_too(client):
+    """The hosted site has its home page at /, so the tool needs its own URL."""
+    r = client.get("/app")
+    assert r.status_code == 200 and 'id="drop"' in r.text and "{{base}}" not in r.text
+    assert 'id="drop"' in client.get("/").text
+
+
 def test_preview_returns_page_images(client, examples):
     r = client.post(
         "/api/preview",
