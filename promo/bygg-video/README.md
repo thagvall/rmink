@@ -23,3 +23,10 @@ python promo/bygg-video/render.py sv tall    # → promo/out/rmink-bygg-real-sv-
 ```
 
 Ring positions in `video.html` are in rm2 screen pixels (1404 × 1872).
+
+## The device
+
+The tablet is the reMarkable 2 from `promo/laxa-video/`: light frame, dark metal
+spine on the left, grey e-paper and the collapsed toolbar button. The document
+name stands below the device, and the rings that point things out are black,
+because nothing on the screen has colour.

@@ -19,19 +19,25 @@ body { position: relative; background: var(--paper); color: var(--ink);
   border: 2px solid #d6d3ca; border-radius: 999px; padding: .3em .9em; background: #fff; }
 .stage { position: absolute; }
 .dev { position: absolute; }
-.tablet { background: #262624; border-radius: 26px; padding: 16px 15px 22px; box-shadow: 0 30px 60px rgb(0 0 0 / .25), inset 0 0 0 2px #3a3a37; }
-.screen { background: #fff; border-radius: 6px; overflow: hidden; position: relative; }
-.bar { display: flex; justify-content: space-between; gap: 10px; padding: 0 12px; height: 32px; align-items: center;
-  font: 500 15px "SF Mono", Menlo, monospace; color: #55544f; background: #fff; border-bottom: 1px solid #e6e3da; white-space: nowrap; overflow: hidden; }
-.vp { position: relative; overflow: hidden; background: #fff; }
-.sheet { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+/* reMarkable 2, as in promo/laxa-video: light grey frame, thin bezels, a darker
+   metal spine down the left. The screen is grey e-paper. --u is one unit of a
+   600 unit wide screen. */
+.tablet { position: relative; background: #d6d4ce; border-radius: calc(16 * var(--u)); padding: calc(24 * var(--u)) calc(24 * var(--u)) calc(24 * var(--u)) calc(70 * var(--u)); box-shadow: 0 30px 60px rgb(0 0 0 / .3), 0 6px 14px rgb(0 0 0 / .18); }
+.tablet::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: calc(30 * var(--u)); border-radius: calc(16 * var(--u)) 0 0 calc(16 * var(--u)); background: linear-gradient(90deg, #3e4044, #6a6c70 45%, #4a4c50); }
+.screen { background: #ecebe6; overflow: hidden; position: relative; outline: calc(2 * var(--u)) solid #bdbbb5; }
+.mini { position: absolute; left: calc(11 * var(--u)); top: calc(18 * var(--u)); width: calc(24 * var(--u)); height: calc(24 * var(--u)); z-index: 2; overflow: visible; }
+.name { position: absolute; left: 0; right: 0; top: 100%; margin-top: 10px; text-align: center; font: 500 16px "SF Mono", Menlo, monospace; color: #55544f; white-space: nowrap; }
+.vp { position: relative; overflow: hidden; background: #ecebe6; }
+.sheet { position: absolute; left: 0; top: 0; transform-origin: 0 0; background: #fff; }
 .sheet img, .sheet svg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+/* Multiplied over everything on the page, so white paper turns e-paper grey and
+   pages can still fade over each other. */
+.sheet::after { content: ""; position: absolute; inset: 0; background: #ecebe6; mix-blend-mode: multiply; pointer-events: none; }
 .sheet path { fill: none; stroke: #1a1a1a; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; }
 .win { background: #f8f5ef; border-radius: 12px; overflow: hidden; box-shadow: 0 30px 60px rgb(0 0 0 / .22), 0 0 0 1px rgb(0 0 0 / .1); }
 .win .tb { height: 34px; background: #ebe7df; display: flex; align-items: center; gap: 8px; padding: 0 14px; font: 600 14px -apple-system, sans-serif; color: #6b6a65; }
 .win .tb i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
-.ring { position: absolute; border: 5px solid var(--accent); border-radius: 14px; opacity: 0; pointer-events: none; }
-.ring.ok { border-color: var(--ok); }
+.ring { position: absolute; border: 5px solid #1d1d1b; border-radius: 14px; opacity: 0; pointer-events: none; }
 .flow { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 26px; }
 .doc { background: #fff; border-radius: 10px; box-shadow: 0 10px 30px rgb(0 0 0 / .14), 0 0 0 1px #e1ded5; padding: 14px 18px; display: flex; gap: 14px; align-items: center; font-size: var(--fs-chip); font-weight: 650; }
 .doc img { width: 70px; border: 1px solid #ddd; }
@@ -114,16 +120,18 @@ const bgAt = t => [...bg.children].forEach(c => { const i = c._i; c.setAttribute
 
 /* A tablet showing real page images (1404 x 1872 px, the rm2 screen), with a camera. */
 const PW = 1404, PH = 1872;
+const FRAME_W = 694 / 600, FRAME_H = 848 / 600;  // the whole device per screen width
 function tablet(parent, screenW, bar, pages) {
   const s = screenW / PW, vh = PH * s;
-  const d = h(`<div class="dev"><div class="tablet"><div class="screen"><div class="bar"><span class="name"></span><span></span></div><div class="vp"><div class="sheet"></div></div></div></div></div>`);
+  const d = h(`<div class="dev"><div class="tablet"><div class="screen"><div class="vp"><div class="sheet"></div></div><svg class="mini" viewBox="-13 -13 26 26" fill="#ecebe6" stroke="#1d1d1b" stroke-width="2" stroke-linecap="round"><circle r="12"/><path d="M-5 -4 H5 M-5 0 H5 M-5 4 H5" fill="none"/></svg></div></div><div class="name"></div></div>`);
+  d.style.setProperty("--u", screenW / 600 + "px");
   d.querySelector(".screen").style.width = screenW + "px";
   const vp = d.querySelector(".vp"); vp.style.height = vh + "px";
   const sheet = d.querySelector(".sheet"); Object.assign(sheet.style, { width: PW + "px", height: PH + "px" });
   d.querySelector(".name").textContent = bar;
   const imgs = pages.map(src => { const im = h(`<img src="../out/bygg/${src}">`); sheet.appendChild(im); return im; });
   parent.appendChild(d);
-  return { d, vp, sheet, imgs, s, name: d.querySelector(".name"), w: screenW + 30, h: vh + 32 + 38 };
+  return { d, vp, sheet, imgs, s, name: d.querySelector(".name"), w: screenW * FRAME_W, h: vh + screenW * 48 / 600 };
 }
 // Zoom z on page point (fx, fy) in page px, kept inside the page. ZOOM off keeps
 // every page whole; the rings still point things out.
@@ -136,7 +144,7 @@ function cam(tb, z, fx, fy) {
 }
 const at = (dev, x, y) => Object.assign(dev.d.style, { left: x + "px", top: y + "px" });
 const [SX, SY, SW, SH] = L.stage;
-const fitW = () => Math.min((SH - 70) * PW / PH, SW - 30);
+const fitW = () => Math.min((SH - 70) / FRAME_H, (SW - 30) / FRAME_W);
 
 /* scenes */
 const scenes = [];

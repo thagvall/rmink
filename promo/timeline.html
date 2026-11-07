@@ -32,13 +32,21 @@ body {
 }
 #photo img, #fphoto img { width: 100%; height: 100%; display: block; object-fit: cover; }
 
+/* reMarkable 2, as in promo/laxa-video: light grey frame, thin bezels, a darker
+   metal spine down the left. The screen is grey e-paper. --u is one unit of a
+   600 unit wide screen. */
 .tablet {
-  background: #262624; border-radius: 34px; padding: 30px;
-  box-shadow: 0 30px 60px rgb(0 0 0 / .28), inset 0 0 0 2px #3a3a37;
+  background: #d6d4ce; border-radius: calc(16 * var(--u));
+  padding: calc(24 * var(--u)) calc(24 * var(--u)) calc(24 * var(--u)) calc(70 * var(--u));
+  box-shadow: 0 30px 60px rgb(0 0 0 / .3), 0 6px 14px rgb(0 0 0 / .18);
   transform-origin: 50% 50%;
 }
-.tablet .screen { background: #fbfaf6; border-radius: 8px; overflow: hidden; position: relative; }
-.tablet svg { display: block; width: 100%; height: 100%; }
+.tablet::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: calc(30 * var(--u));
+  border-radius: calc(16 * var(--u)) 0 0 calc(16 * var(--u)); background: linear-gradient(90deg, #3e4044, #6a6c70 45%, #4a4c50); }
+.tablet .screen { background: #ecebe6; overflow: hidden; position: relative; outline: calc(2 * var(--u)) solid #bdbbb5; }
+.tablet .mini { position: absolute; left: calc(11 * var(--u)); top: calc(18 * var(--u)); width: calc(24 * var(--u)); height: calc(24 * var(--u)); z-index: 2; overflow: visible; }
+/* The rm2 screen has no colour: the note's coloured pens show as grey. */
+.tablet svg:not(.mini) { display: block; width: 100%; height: 100%; filter: grayscale(1); }
 
 #arrow { width: 160px; height: 80px; }
 
@@ -102,7 +110,7 @@ body {
   box-shadow: 0 14px 30px rgb(0 0 0 / .25); font-size: 22px; font-weight: 700; white-space: nowrap; }
 #fchip svg { width: 28px; height: 34px; }
 #clickring { width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; border: 5px solid rgb(43 95 217 / .8); z-index: 18; }
-#utab { padding: 18px; border-radius: 24px; }
+#utab { --u: .4333px; }
 #utab .screen { width: 260px; height: 347px; padding: 18px 16px; }
 #utab .grid { position: static; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 12px; }
 #utab .tile .nm { font-size: 10px; margin-top: 3px; }
@@ -174,12 +182,12 @@ body {
 <svg id="arrow" class="abs" viewBox="0 0 160 80" fill="none" stroke="#1d1d1b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
   <path id="arrow-path" d="M10 44 C 50 30, 95 52, 140 38 M118 18 L142 38 L116 58"/>
 </svg>
-<div id="tablet" class="abs tablet"><div class="screen"><svg id="ink" viewBox="0 0 1620 2160"></svg></div></div>
+<div id="tablet" class="abs tablet"><div class="screen"><svg id="ink" viewBox="0 0 1620 2160"></svg><svg class="mini" viewBox="-13 -13 26 26" fill="#ecebe6" stroke="#1d1d1b" stroke-width="2" stroke-linecap="round"><circle r="12"/><path d="M-5 -4 H5 M-5 0 H5 M-5 4 H5" fill="none"/></svg></div></div>
 <div id="eraser" class="abs"></div>
 
 <!-- Face scene -->
 <div id="fphoto" class="abs"><img src="out/face.jpg" alt=""></div>
-<div id="ftablet" class="abs tablet"><div class="screen"><svg id="fink"></svg></div></div>
+<div id="ftablet" class="abs tablet"><div class="screen"><svg id="fink"></svg><svg class="mini" viewBox="-13 -13 26 26" fill="#ecebe6" stroke="#1d1d1b" stroke-width="2" stroke-linecap="round"><circle r="12"/><path d="M-5 -4 H5 M-5 0 H5 M-5 4 H5" fill="none"/></svg></div></div>
 <div id="stylus" class="abs"><svg viewBox="0 0 150 150">
   <path d="M10 140 L126 24" stroke="#2a2a28" stroke-width="24" stroke-linecap="round"/>
   <path d="M10 140 L126 24" stroke="#4a4a46" stroke-width="10" stroke-linecap="round" opacity=".6"/>
@@ -429,11 +437,14 @@ function buildEnd() {
   $("#disclaimer").textContent = T.disclaimer;
 }
 
-function sizeTablet(width) {
-  const el = $("#tablet"), inner = width - 60;
+// A tablet ``width`` px wide overall: 694 units, of which 600 are the screen.
+function frameTablet(el, width) {
+  const u = width / 694;
+  el.style.setProperty("--u", u + "px");
   el.style.width = width + "px";
-  el.querySelector(".screen").style.height = inner * Number(el.dataset.ratio) + "px";
+  el.querySelector(".screen").style.height = 600 * u * Number(el.dataset.ratio) + "px";
 }
+function sizeTablet(width) { frameTablet($("#tablet"), width); }
 
 function caption(n, text, o, t0, t) {
   const cap = $("#cap");
@@ -564,9 +575,7 @@ function faceScene(u) {
   place($("#arrow"), { x: 540 - 80, y: 690 - 40, o: win(u, 0.8, 5.2, 0.3), cx: false });
 
   const tab = $("#ftablet"), mv = ease(prog(u, 4.9, 5.8));
-  const width = lerp(450, 780, mv), inner = width - 60;
-  tab.style.width = width + "px";
-  tab.querySelector(".screen").style.height = inner * Number(tab.dataset.ratio) + "px";
+  frameTablet(tab, lerp(450, 780, mv));
   const tabO = Math.min(prog(u, 0.5, 1.1), 1 - prog(u, 13.5, 14));
   place(tab, { x: lerp(800 + (1 - easeOut(prog(u, 0.5, 1.3))) * 200, 540, mv), y: lerp(690, 770, mv), r: lerp(2, 0, mv), o: tabO });
 
@@ -787,8 +796,8 @@ function deskScene(u) {
   const tabO = Math.min(prog(u, 11.2, 11.8), 1 - prog(u, 15.9, 16.3));
   place($("#utab"), { x: 860 + (1 - easeOut(prog(u, 11.2, 11.9))) * 120, y: 1120, r: -3, o: tabO });
   const tr = $("#utab").getBoundingClientRect(), dr = $("#desk").getBoundingClientRect();
-  const c0 = [dr.left + dr.width * 0.3, dr.bottom - 2], c1 = [tr.left + 4, tr.top + tr.height * 0.55];
-  const cp = $("#cable-path"), cd = `M${c0[0]},${c0[1]} C${c0[0]},${c0[1] + 230} ${c1[0] - 260},${c1[1]} ${c1[0]},${c1[1]}`;
+  const c0 = [dr.left + dr.width * 0.3, dr.bottom - 2], c1 = [tr.left + tr.width * 0.5, tr.bottom - 3];  // the rm2's USB-C port is in the bottom edge
+  const cp = $("#cable-path"), cd = `M${c0[0]},${c0[1]} C${c0[0]},${c0[1] + 300} ${c1[0]},${c1[1] + 90} ${c1[0]},${c1[1]}`;
   cp.setAttribute("d", cd);
   const cl = cp.getTotalLength();
   cp.style.strokeDasharray = `${cl} ${cl}`;
@@ -970,7 +979,7 @@ function seekMain(t) {
   $("#sun").setAttribute("transform", `translate(${(tgtX - sunCx) * mv}, ${(tgtY - sunCy) * mv})`);
 
   const rc = prog(t, 37.4, 38.2);
-  for (const p of titleEls) p.setAttribute("stroke", rc > 0 ? mixColor("#1d1d1b", "#2850c8", rc) : "#1d1d1b");
+  for (const p of titleEls) p.setAttribute("stroke", rc > 0 ? mixColor("#1d1d1b", "#8a8a86", rc) : "#1d1d1b");
   if (t < 29) { for (const p of titleEls) p.setAttribute("stroke", strokes.find((s) => s.el === p).color); }
 
   // Captions (scene 4).
