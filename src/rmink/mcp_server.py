@@ -743,6 +743,42 @@ def read_status_list(notebook: str, points: dict, sheet_path: str, output_path: 
     }
 
 
+@server.tool()
+def save_drawing_pdf(
+    drawing: dict,
+    output_path: str,
+    paper: str = "a3",
+    scale: int | None = None,
+    rectify: bool = True,
+) -> dict:
+    """Put a Drawing on a PDF sheet at a true scale, for measuring and CAD in a PDF editor.
+
+    Categories become PDF layers and the scale is stored the standard way. The scale comes
+    from the written dimensions: without any this fails, and a dimension that disagrees is
+    reported in `warnings` and on the sheet. Tell the user about warnings.
+
+    Args:
+        drawing: The Drawing JSON, as from `get_drawing`.
+        output_path: Where to write the PDF.
+        paper: a4, a3, a2 or a1.
+        scale: N in 1:N; the largest standard scale that fits by default.
+        rectify: Square up near-straight walls first, as `save_revision` does.
+    """
+    from rmink.bridge.drawing_pdf import drawing_pdf
+
+    d = workflow.drawing_from_json(drawing)
+    if rectify:
+        d = workflow.rectify(d)
+    sheet = drawing_pdf(d, paper, scale)
+    Path(output_path).write_bytes(sheet.pdf)
+    return {
+        "path": output_path,
+        "scale": f"1:{sheet.scale}",
+        "paper": sheet.paper,
+        "warnings": sheet.warnings,
+    }
+
+
 def main() -> None:
     server.run()
 

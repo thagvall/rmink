@@ -22,6 +22,7 @@ from rmink.bridge.points import STATUSES, Points, point_image
 from rmink.devices import DeviceProfile, get_device
 from rmink.model import Stroke
 from rmink.package.rmdoc import RmdocPage, UuidFactory, write_rmdoc
+from rmink.workbook.build import plain
 from rmink.workbook.model import AnswerField, Choice
 from rmink.workbook.read import _bounds_pt, read_choices, read_ink
 
@@ -69,7 +70,7 @@ def _boxes(
         by = y + (i // columns) * PITCH
         box = pymupdf.Rect(bx, by, bx + BOX, by + BOX)
         page.draw_rect(box, color=(0, 0, 0), width=0.8)
-        page.insert_text((box.x1 + 5, box.y1 - 4), label, fontsize=10)
+        page.insert_text((box.x1 + 5, box.y1 - 4), plain(label), fontsize=10)
         choices.append(Choice(text=label, rect=tuple(box)))
     rows = (len(labels) + columns - 1) // columns
     rect = (x, y, x + columns * width, y + (rows - 1) * PITCH + BOX)
@@ -93,7 +94,7 @@ def build_status_pdf(
         at = n % per_page
         if at == 0:
             page = out.new_page(width=width, height=height)
-            page.insert_text((MARGIN, 28), f"Status · {points.name}", fontsize=15)
+            page.insert_text((MARGIN, 28), plain(f"Status · {points.name}"), fontsize=15)
             page.insert_text((MARGIN, 40), "Kryssa en ruta per rad", fontsize=9)
         top = HEADER + at * row_h
         page.draw_line((MARGIN, top), (width - MARGIN, top), color=(0.6, 0.6, 0.6), width=0.5)
@@ -108,7 +109,7 @@ def build_status_pdf(
         if p.unsure:
             text = f"[osäker] {text}"
         page.insert_textbox(
-            pymupdf.Rect(right, top + 5, width - MARGIN, top + 38), text, fontsize=10
+            pymupdf.Rect(right, top + 5, width - MARGIN, top + 38), plain(text), fontsize=10
         )
         status = _boxes(
             page,

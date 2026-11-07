@@ -755,6 +755,33 @@ def sheet_status_pull(
         typer.secho(f"warning: {msg}", fg="yellow", err=True)
 
 
+@sheet_app.command("drawing")
+def sheet_drawing(
+    drawing: Annotated[Path, typer.Argument(exists=True, help="Drawing JSON")],
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Output PDF")] = None,
+    paper: Annotated[str, typer.Option(help="a4 | a3 | a2 | a1")] = "a3",
+    scale: Annotated[int | None, typer.Option(help="N in 1:N; by default the largest fit")] = None,
+    rectify: Annotated[bool, typer.Option("--rectify/--no-rectify")] = True,
+) -> None:
+    """Put a clean drawing on a sheet at a true scale, with its categories as PDF layers."""
+    from rmink.bridge.drawing_pdf import drawing_pdf
+    from rmink.drawing import workflow
+
+    d = workflow.drawing_from_json(drawing.read_text(encoding="utf-8"))
+    if rectify:
+        d = workflow.rectify(d)
+    out = output or drawing.with_suffix(".pdf")
+    try:
+        sheet = drawing_pdf(d, paper, scale)
+    except ValueError as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+    out.write_bytes(sheet.pdf)
+    typer.echo(f"{out}: 1:{sheet.scale} on {sheet.paper.upper()}")
+    for w in sheet.warnings:
+        typer.secho(f"warning: {w}", fg="yellow", err=True)
+
+
 @app.command()
 def mcp() -> None:
     """Run the MCP server on stdio (for Claude and other MCP clients)."""
