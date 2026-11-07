@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.23.0 — 2026-11-07
+
+- `rmink sheet measure` measures with the pen on a sheet with a scale. A straight stroke becomes a length and a small cross or ring a count; writing and underlines are left alone. No model is involved.
+- The results are ordinary PDF measurements and count markers in a layer of their own, with a CSV list of every length and count and the sums per group. Open PDF Studio 2026.45.0 lists the lengths as measurements and the counts as numbered groups, and running it again adds nothing.
+- The scale is read from the sheet, so CAD sheets with one work too; `--scale` gives one to a sheet without.
+- On a drawing from `rmink sheet drawing` a length along a wall takes the wall's category and a cross on a symbol counts as that symbol. Such sheets now record where the drawing lies on them.
+- Lengths are as drawn by hand. On rm2 a 6000 mm wall drawn on the Garage overview at 1:25 measured 6043 mm. A cross whose stroke hooks where the pen lifts still counts.
+- The MCP server has `measure_sheet`.
+
 ## 2.22.1 — 2026-11-07
 
 - Pulling a second time onto a sheet that has files of its own attached, such as a DWG, no longer risks deleting one of them. The PDF library removed the wrong attachment when rmink replaced its record of the rounds; the attachments are now written anew, all of them kept.

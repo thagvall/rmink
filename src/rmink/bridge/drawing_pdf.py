@@ -13,6 +13,7 @@ The geometry is a sketch cleaned up, not a survey, and the sheet says that too.
 
 from __future__ import annotations
 
+import json
 import unicodedata
 from dataclasses import dataclass, field
 
@@ -357,4 +358,7 @@ def drawing_pdf(d: Drawing, paper: str = "a3", scale: int | None = None) -> Shee
 
     doc.set_metadata({"title": f"{d.name} r{d.revision:02d}", "creator": "rmink"})
     doc.embfile_add("rmink.drawing.json", d.model_dump_json().encode())
+    # Where the drawing lies on the first page, so that marks on it can be tied to it.
+    place = {"page": 0, "pt_per_px": k, "origin": [ox, oy]}
+    doc.embfile_add("rmink.placement.json", json.dumps(place).encode())
     return SheetPdf(doc.tobytes(garbage=3, deflate=True), n, paper, mm_per_px, warnings)

@@ -755,6 +755,43 @@ def sheet_status_pull(
         typer.secho(f"warning: {msg}", fg="yellow", err=True)
 
 
+@sheet_app.command("measure")
+def sheet_measure(
+    notebook: Annotated[str, typer.Argument(help="A .rmdoc, or the notebook's path in your cloud")],
+    sheet: Annotated[Path, typer.Argument(exists=True, help="The sheet, or the PDF from pull")],
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Output PDF")] = None,
+    scale: Annotated[
+        int | None, typer.Option(help="N in 1:N, for a sheet that does not say its scale")
+    ] = None,
+) -> None:
+    """Lengths and counts: a straight stroke is a length, a small cross or ring one of something."""
+    from rmink.bridge.takeoff import find_quantities, quantities_csv, write_quantities
+
+    data = sheet.read_bytes()
+    takeoff = find_quantities(_notebook(notebook), data, scale)
+    if takeoff.unscaled and not takeoff.quantities:
+        typer.secho("error: the sheet has no scale; give one with --scale", fg="red", err=True)
+        raise typer.Exit(1)
+    out = output or sheet.with_name(f"{sheet.stem} med mängder.pdf")
+    pdf, added, skipped = write_quantities(data, takeoff, scale)
+    out.write_bytes(pdf)
+    table = out.with_suffix(".csv")
+    table.write_bytes(quantities_csv(takeoff).encode("utf-8"))
+    for kind, group, n, total in takeoff.totals():
+        if kind == "length":
+            typer.echo(f"{group}: {n} lengths, {total / 1000:.2f} m")
+        else:
+            typer.echo(f"{group}: {n}")
+    typer.echo(f"{out}: {added} added, {skipped} already there; list in {table}")
+    typer.echo("Lengths are as drawn by hand, not taken from the drawing.")
+    if takeoff.underlines:
+        msg = f"{takeoff.underlines} straight strokes beside writing were taken for underlines"
+        typer.secho(f"note: {msg}", fg="yellow", err=True)
+    if takeoff.unscaled:
+        msg = f"{takeoff.unscaled} marks on pages without a scale were left out; use --scale"
+        typer.secho(f"warning: {msg}", fg="yellow", err=True)
+
+
 @sheet_app.command("drawing")
 def sheet_drawing(
     drawing: Annotated[Path, typer.Argument(exists=True, help="Drawing JSON")],

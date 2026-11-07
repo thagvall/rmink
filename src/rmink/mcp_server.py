@@ -744,6 +744,56 @@ def read_status_list(notebook: str, points: dict, sheet_path: str, output_path: 
 
 
 @server.tool()
+def measure_sheet(
+    notebook: str, sheet_path: str, output_path: str, scale: int | None = None
+) -> dict:
+    """Lengths and counts from ink on a sheet with a scale, as measurements in the PDF.
+
+    A straight stroke is a length, a small cross or ring is one of something; writing is
+    left alone. On a sheet from `save_drawing_pdf` a length along a wall takes the wall's
+    category and a mark on a symbol counts as that symbol. Lengths are as drawn by hand,
+    not taken from the drawing: say so when you report them.
+
+    Args:
+        notebook: A .rmdoc path, or the notebook's path in the user's cloud.
+        sheet_path: The sheet the notebook was made from, or the PDF from `pull_sheet`.
+        output_path: Where to write the PDF; the CSV goes beside it.
+        scale: N in 1:N, only for a sheet that does not store its scale.
+    """
+    from rmink.bridge.takeoff import find_quantities, quantities_csv, write_quantities
+
+    local = Path(notebook)
+    if local.is_file():
+        data = local.read_bytes()
+    else:
+        token = cloud.load_token()
+        if not token:
+            raise cloud.CloudAuthError("Not connected; call cloud_connect with a one-time code")
+        data = cloud.get(token, notebook)
+    sheet = Path(sheet_path).read_bytes()
+    takeoff = find_quantities(data, sheet, scale)
+    pdf, added, skipped = write_quantities(sheet, takeoff, scale)
+    out = Path(output_path)
+    out.write_bytes(pdf)
+    table = out.with_suffix(".csv")
+    table.write_bytes(quantities_csv(takeoff).encode("utf-8"))
+    return {
+        "path": str(out),
+        "csv": str(table),
+        "added": added,
+        "already_there": skipped,
+        "scales": takeoff.scales,
+        "totals": [
+            {"kind": k, "group": g, "count": n, "sum": round(t, 1)}
+            for k, g, n, t in takeoff.totals()
+        ],
+        "quantities": takeoff.model_dump()["quantities"],
+        "underlines_left_out": takeoff.underlines,
+        "marks_without_scale": takeoff.unscaled,
+    }
+
+
+@server.tool()
 def save_drawing_pdf(
     drawing: dict,
     output_path: str,
