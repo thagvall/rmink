@@ -565,6 +565,66 @@ def save_workbook_answers(
     return _workbook_result(result, output)
 
 
+@server.tool()
+def send_sheet(
+    path: str,
+    output_path: str,
+    device: str = "rm2",
+    zoom: float = 1.0,
+    pages: str | None = None,
+) -> dict:
+    """Cut a PDF sheet of any size into a notebook of tablet pages.
+
+    The notebook has an overview, then tiles that know their exact place on the sheet, so
+    ink written on them can go back with `pull_sheet`.
+
+    Args:
+        path: The PDF sheet.
+        output_path: Where to write the .rmdoc.
+        device: rm2, pure, pro or move.
+        zoom: 1 shows the sheet at its printed size; higher means fewer sheet points per page.
+        pages: Sheet pages, e.g. "1-3,7"; all by default.
+    """
+    from rmink.bridge.sheet import write_pack
+
+    manifest = write_pack(Path(path), Path(output_path), get_device(device), zoom, pages)
+    return {"path": output_path, "tablet_pages": len(manifest.tiles)}
+
+
+@server.tool()
+def pull_sheet(notebook: str, sheet_path: str, output_path: str) -> dict:
+    """Add the ink of a notebook from `send_sheet` to its PDF sheet as annotations.
+
+    Each stroke becomes one /Ink annotation in a layer named after the notebook, with its pen
+    pressure and tablet id. Pulling the same notebook again adds nothing new; nothing is removed.
+
+    Args:
+        notebook: A .rmdoc path, or the notebook's path in the user's cloud.
+        sheet_path: The PDF the notebook was made from, or an earlier result of this tool.
+        output_path: Where to write the PDF.
+    """
+    from rmink.bridge.ink_pdf import pull
+
+    local = Path(notebook)
+    if local.is_file():
+        data = local.read_bytes()
+    else:
+        token = cloud.load_token()
+        if not token:
+            raise cloud.CloudAuthError("Not connected; call cloud_connect with a one-time code")
+        data = cloud.get(token, notebook)
+    result = pull(data, Path(sheet_path).read_bytes())
+    Path(output_path).write_bytes(result.pdf)
+    return {
+        "path": output_path,
+        "strokes_added": result.added,
+        "already_there": result.skipped,
+        "layers": result.layers,
+        "pages_added_on_tablet": result.added_pages,
+        "blocks_not_read": result.unread,
+    }
+
+
 def main() -> None:
     server.run()
 

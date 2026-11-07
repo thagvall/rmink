@@ -579,6 +579,71 @@ def workbook_round(
     _print_round(r)
 
 
+sheet_app = typer.Typer(
+    help="PDF sheets on the tablet: send one, write on it, and pull the ink back onto the PDF."
+)
+app.add_typer(sheet_app, name="sheet")
+
+SHEET_FOLDER = "rmink/Ark"
+
+
+@sheet_app.command("send")
+def sheet_send(
+    source: Annotated[Path, typer.Argument(exists=True, help="PDF sheet")],
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Output .rmdoc")] = None,
+    device: Device = "rm2",
+    zoom: Annotated[float, typer.Option(help="1 shows the sheet at its printed size")] = 1.0,
+    pages: Pages = None,
+    send: Annotated[bool, typer.Option(help=f"Upload to {SHEET_FOLDER}/ in your cloud")] = False,
+) -> None:
+    """Cut a PDF into tablet pages: an overview, then tiles that know their place on the sheet."""
+    from rmink import cloud
+    from rmink.bridge.sheet import write_pack
+    from rmink.devices import get_device
+
+    out = output or source.with_suffix(".rmdoc")
+    try:
+        manifest = write_pack(source, out, get_device(device), zoom, pages)
+    except ValueError as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+    typer.echo(f"{out} ({len(manifest.tiles)} tablet pages)")
+    if send:
+        token = _token()
+        cloud.mkdir(token, "/rmink")
+        cloud.mkdir(token, f"/{SHEET_FOLDER}")
+        name = cloud.put(out, token, folder=f"/{SHEET_FOLDER}", name=manifest.name)
+        typer.echo(f"Sent as {f'/{SHEET_FOLDER}/{name}'!r}")
+
+
+@sheet_app.command("pull")
+def sheet_pull(
+    notebook: Annotated[str, typer.Argument(help="A .rmdoc, or the notebook's path in your cloud")],
+    sheet: Annotated[Path, typer.Argument(exists=True, help="The PDF the notebook was made from")],
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Output PDF")] = None,
+) -> None:
+    """Add a notebook's ink to the sheet as PDF annotations, each stroke one annotation."""
+    from rmink import cloud
+    from rmink.bridge.ink_pdf import pull
+
+    local = Path(notebook)
+    data = local.read_bytes() if local.is_file() else cloud.get(_token(), notebook)
+    out = output or sheet.with_name(f"{sheet.stem} med bläck.pdf")
+    try:
+        result = pull(data, sheet.read_bytes())
+    except ValueError as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+    out.write_bytes(result.pdf)
+    typer.echo(f"{out}: {result.added} strokes added, {result.skipped} already there")
+    if result.added_pages:
+        msg = f"{result.added_pages} pages added on the tablet have no place on the sheet"
+        typer.secho(f"warning: {msg}", fg="yellow", err=True)
+    if result.unread:
+        msg = f"{result.unread} blocks could not be read; some ink may be missing"
+        typer.secho(f"warning: {msg}", fg="yellow", err=True)
+
+
 @app.command()
 def mcp() -> None:
     """Run the MCP server on stdio (for Claude and other MCP clients)."""
