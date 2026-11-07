@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.22.0 — 2026-11-07
+
+- `rmink sheet drawing` puts a clean drawing on a PDF sheet at a true scale: the largest standard scale that fits, on A4 to A1, or the one you ask for. Categories become PDF layers, text stays text, and the scale is stored the standard way, so a PDF editor can measure the drawing. In Open PDF Studio 2026.45.0 Garage's walls measure 6000 and 4500 mm, and it exports to DXF in millimetres with the layers kept.
+- The scale comes from the written dimensions. A drawing without any is refused, one that disagrees says so in its title block and as a warning, and every sheet says the scale is derived.
+- Alternatives get a page each, with each option in a layer of its own. Only one shows at a time, starting with the chosen one, and you switch in the PDF editor's layer panel.
+- The MCP server has `save_drawing_pdf`.
+- Characters the PDF font lacks, such as the dash in 16–32, are replaced by their plain form on status lists too, instead of by a wrong character.
+
 ## 2.21.0 — 2026-11-07
 
 - `rmink sheet send` puts a PDF of any size on the tablet: an overview whose numbers open the tiles, and tiles that show the sheet at its printed size and lead back. `rmink sheet pull` adds what was written to the original PDF as ordinary annotations, each stroke with its pressure, layer and an id, so pulling again adds nothing. It works on rotated and cropped sheets.

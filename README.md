@@ -142,6 +142,14 @@ rmink sheet status-send punkter/points.json "plan med bläck med punkter.pdf" --
 rmink sheet status-pull "/rmink/Ark/plan status" punkter/points.json "plan med bläck med punkter.pdf"
 ```
 
+A clean drawing can go the other way, onto a sheet at a true scale, with alternatives as layers to switch between:
+
+```bash
+rmink sheet drawing garage.json --paper a3     # garage.pdf, largest standard scale that fits
+```
+
+The scale comes from the written dimensions, so the sheet is as exact as they are.
+
 The PDF stays an ordinary PDF. Ink, layers, comments and status open in [Open PDF Studio](https://github.com/OpenAEC-Foundation/open-pdf-studio) (tried on 2026.45.0), which can take the sheet on to DXF. Only the rm2 is tried on a device. Reading the crosses needs no model; the handwriting needs someone to read it.
 
 ## How it works

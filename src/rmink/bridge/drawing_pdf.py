@@ -28,6 +28,7 @@ from rmink.drawing.render import (
     _bbox_of,
     _dimension,
     _element_paths,
+    _option,
     _Pen,
     _Style,
     symbol_paths,
@@ -45,6 +46,7 @@ MIN_LINE = 0.18  # mm
 CAP_HEIGHT = 0.72  # of the font size in Helvetica
 MIN_FONT = 5.0  # pt
 FIT = 0.2  # share a text may grow or shrink to keep its width
+OPTION_WIDTH = 1100.0  # px an alternative is laid out in
 STATES = {"accepted": "Accepted", "rejected": "Rejected"}
 
 
@@ -204,6 +206,89 @@ def _title_block(
         line(plain(f"OBS: {w}"), 8, (0.76, 0.23, 0.13))
 
 
+def _draw_part(doc, page, part: _Part, layer: int, to_sheet, k: float) -> None:
+    shape = page.new_shape()
+    dashes = {"dashed": "[6 4] 0", "dotted": "[1 3] 0", "dashdot": "[8 3 1 3] 0"}
+    for path, st, width in part.paths:
+        shape.draw_polyline([to_sheet(p) for p in path])
+        shape.finish(
+            color=tuple(c / 255 for c in st.rgb),
+            width=max(width * PEN_MM, MIN_LINE) * PT_PER_MM,
+            dashes=dashes.get(st.line_type),
+            lineCap=1,
+            lineJoin=1,
+            closePath=False,
+            oc=layer,
+        )
+    if part.paths:
+        shape.commit()
+    for text, at, size, angle, st in part.labels:
+        label = plain(_letters(text))
+        page.insert_text(
+            to_sheet(at),
+            label,
+            fontsize=_font_size(label, text, size, k),
+            color=tuple(c / 255 for c in st.rgb),
+            morph=(to_sheet(at), pymupdf.Matrix(angle)) if angle else None,
+            oc=layer,
+        )
+
+
+def _alternatives(
+    doc, d: Drawing, alt, number: int, paper: tuple[float, float], frame: int, off: list[int]
+) -> list[int]:
+    """A page for one choice: its options in the same place, in layers of their
+    own, so that an editor shows one at a time."""
+    page = doc.new_page(width=paper[0] * PT_PER_MM, height=paper[1] * PT_PER_MM)
+    m = MARGIN * PT_PER_MM
+    r = page.rect
+    page.draw_rect(
+        pymupdf.Rect(m, m, r.width - m, r.height - m), color=(0, 0, 0), width=1.0, oc=frame
+    )
+    y = m + 26
+    title = plain(f"Alternativ · {d.name}: {alt.question}")
+    page.insert_text((m + 12, y), title, fontsize=15, oc=frame)
+    if alt.chosen:
+        y += 16
+        page.insert_text((m + 12, y), plain(f"Valt: {alt.chosen}"), fontsize=10, oc=frame)
+    y += 15
+    hint = "Visa ett alternativ i taget i PDF-läsarens lagerpanel."
+    page.insert_text((m + 12, y), plain(hint), fontsize=9, color=(0.4, 0.4, 0.4), oc=frame)
+    if alt.note:
+        y += 13
+        page.insert_text((m + 12, y), plain(alt.note), fontsize=9, oc=frame)
+
+    pens = []
+    for opt in alt.options:
+        pen = _Recorder(d, get_device("pro"))
+        pen.on(opt.key)
+        bottom = _option(pen, opt, 0.0, OPTION_WIDTH, 30.0)
+        pens.append((opt, pen, bottom))
+    room_w, room_h = r.width - 2 * m - 24, r.height - m - y - 24
+    k = min(room_w / OPTION_WIDTH, room_h / max(b for _, _, b in pens))
+
+    def to_sheet(p) -> pymupdf.Point:
+        return pymupdf.Point(float(p[0]) * k + m + 12, float(p[1]) * k + y + 12)
+
+    prefix = f"{number}" if number else ""
+    first = alt.chosen if alt.chosen in {o.key for o in alt.options} else alt.options[0].key
+    group = []
+    for opt, pen, _ in pens:
+        name = _layer_name(f"Alternativ {prefix}{opt.key} {opt.title}")[:60].strip()
+        layer = doc.add_ocg(name)
+        group.append(layer)
+        if opt.key != first:
+            off.append(layer)
+        _draw_part(doc, page, pen.parts[opt.key], layer, to_sheet, k)
+    return group
+
+
+def _exclusive_layers(doc, groups: list[list[int]], off: list[int]) -> None:
+    if groups:
+        on = [x for x in doc.get_ocgs() if x not in off]
+        doc.set_layer(-1, on=on, off=off, rbgroups=groups)
+
+
 def drawing_pdf(d: Drawing, paper: str = "a3", scale: int | None = None) -> SheetPdf:
     """The drawing on a sheet at a true scale, with the drawing itself embedded."""
     check = workflow.check_dimensions(d)
@@ -231,33 +316,7 @@ def drawing_pdf(d: Drawing, paper: str = "a3", scale: int | None = None) -> Shee
         return pymupdf.Point(float(p[0]) * k + ox, float(p[1]) * k + oy)
 
     for part in pen.parts.values():
-        layer = doc.add_ocg(_layer_name(part.layer))
-        shape = page.new_shape()
-        for path, st, width in part.paths:
-            shape.draw_polyline([to_sheet(p) for p in path])
-            dashes = {"dashed": "[6 4] 0", "dotted": "[1 3] 0", "dashdot": "[8 3 1 3] 0"}
-            shape.finish(
-                color=tuple(c / 255 for c in st.rgb),
-                width=max(width * PEN_MM, MIN_LINE) * PT_PER_MM,
-                dashes=dashes.get(st.line_type),
-                lineCap=1,
-                lineJoin=1,
-                closePath=False,
-                oc=layer,
-            )
-        if part.paths:
-            shape.commit()
-        for text, at, size, angle, st in part.labels:
-            label = plain(_letters(text))
-            font = _font_size(label, text, size, k)
-            page.insert_text(
-                to_sheet(at),
-                label,
-                fontsize=font,
-                color=tuple(c / 255 for c in st.rgb),
-                morph=(to_sheet(at), pymupdf.Matrix(angle)) if angle else None,
-                oc=layer,
-            )
+        _draw_part(doc, page, part, doc.add_ocg(_layer_name(part.layer)), to_sheet, k)
 
     frame = doc.add_ocg("Ritningshuvud")
     _title_block(page, d, n, paper, warnings, frame)
@@ -286,6 +345,15 @@ def drawing_pdf(d: Drawing, paper: str = "a3", scale: int | None = None) -> Shee
             doc.xref_set_key(reply.xref, "IRT", f"{comment.xref} 0 R")
             doc.xref_set_key(reply.xref, "State", pymupdf.get_pdf_str(STATES[ann.status]))
             doc.xref_set_key(reply.xref, "StateModel", pymupdf.get_pdf_str("Review"))
+
+    sets = [a for a in d.alternatives if a.options]
+    numbered = len(sets) > 1
+    off: list[int] = []
+    groups = [
+        _alternatives(doc, d, alt, i if numbered else 0, (w_mm, h_mm), frame, off)
+        for i, alt in enumerate(sets, start=1)
+    ]
+    _exclusive_layers(doc, groups, off)
 
     doc.set_metadata({"title": f"{d.name} r{d.revision:02d}", "creator": "rmink"})
     doc.embfile_add("rmink.drawing.json", d.model_dump_json().encode())

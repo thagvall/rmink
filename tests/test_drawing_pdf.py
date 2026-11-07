@@ -8,7 +8,16 @@ import pymupdf
 import pytest
 
 from rmink.bridge.drawing_pdf import PT_PER_MM, choose_sheet, drawing_pdf
-from rmink.drawing.model import Annotation, Dimension, Drawing, Element, Symbol
+from rmink.drawing.model import (
+    Alternatives,
+    Annotation,
+    Dimension,
+    Drawing,
+    Element,
+    Option,
+    OptionLayer,
+    Symbol,
+)
 
 
 def plan(**kw) -> Drawing:
@@ -144,6 +153,89 @@ def test_remarks_become_comments_and_keep_their_status():
         if doc.xref_get_key(a.xref, "State")[0] != "null"
     ]
     assert states == ["Accepted"]
+
+
+def choice(chosen: str = "") -> Alternatives:
+    def option(key: str, title: str, mm: float) -> Option:
+        return Option(
+            key=key,
+            title=title,
+            layers=[OptionLayer(text=f"Betong {mm:.0f}", thickness_mm=mm)],
+            facts=["Kostnad: låg"],
+            pros=["Enkel"],
+            cons=["Kall"],
+        )
+
+    return Alternatives(
+        id="alt",
+        question="Bottenplatta",
+        options=[option("A", "Tunn platta", 100), option("B", "Tjock platta", 200)],
+        chosen=chosen,
+    )
+
+
+def layers(doc) -> dict[str, bool]:
+    return {o["name"]: o["on"] for o in doc.get_ocgs().values()}
+
+
+def test_alternatives_get_a_page_and_a_layer_each():
+    doc = pymupdf.open(stream=drawing_pdf(plan(alternatives=[choice()])).pdf, filetype="pdf")
+    assert doc.page_count == 2
+    names = layers(doc)
+    assert names["Alternativ A Tunn platta"] is True
+    assert names["Alternativ B Tjock platta"] is False
+    assert names["Barande"] is True
+
+
+def test_only_one_alternative_can_be_on():
+    doc = pymupdf.open(stream=drawing_pdf(plan(alternatives=[choice()])).pdf, filetype="pdf")
+    root = doc.xref_get_key(doc.pdf_catalog(), "OCProperties")[1]
+    assert "/RBGroups" in root.replace(" ", "") or "RBGroups" in root
+    ui = doc.get_layer()
+    assert len(ui["rbgroups"]) == 1
+    assert len(ui["rbgroups"][0]) == 2
+
+
+def test_the_chosen_alternative_starts_on():
+    doc = pymupdf.open(stream=drawing_pdf(plan(alternatives=[choice("B")])).pdf, filetype="pdf")
+    names = layers(doc)
+    assert names["Alternativ B Tjock platta"] is True
+    assert names["Alternativ A Tunn platta"] is False
+    assert "Valt: B" in doc[1].get_text()
+
+
+def test_switching_layers_changes_what_shows():
+    pdf = drawing_pdf(plan(alternatives=[choice()])).pdf
+    before = pymupdf.open(stream=pdf, filetype="pdf")
+    first = before[1].get_pixmap(dpi=40).samples
+    doc = pymupdf.open(stream=pdf, filetype="pdf")
+    named = {o["name"]: x for x, o in doc.get_ocgs().items()}
+    a, b = named["Alternativ A Tunn platta"], named["Alternativ B Tjock platta"]
+    doc.set_layer(-1, on=[b], off=[a])
+    switched = pymupdf.open(stream=doc.tobytes(), filetype="pdf")
+    assert switched[1].get_pixmap(dpi=40).samples != first
+
+
+def test_two_choices_get_a_page_and_a_group_each():
+    second = choice().model_copy(update={"id": "alt2", "question": "Tak"})
+    doc = pymupdf.open(
+        stream=drawing_pdf(plan(alternatives=[choice(), second])).pdf, filetype="pdf"
+    )
+    assert doc.page_count == 3
+    assert len(doc.get_layer()["rbgroups"]) == 2
+    assert "Alternativ 2A Tunn platta" in layers(doc)
+
+
+def test_the_scale_is_on_the_drawing_only():
+    doc = pymupdf.open(stream=drawing_pdf(plan(alternatives=[choice()])).pdf, filetype="pdf")
+    assert key(doc, doc[0], "VP")[0] == "array"
+    assert key(doc, doc[1], "VP")[0] == "null"
+
+
+def test_a_drawing_without_alternatives_has_no_groups():
+    doc = pymupdf.open(stream=drawing_pdf(plan()).pdf, filetype="pdf")
+    assert doc.page_count == 1
+    assert not doc.get_layer().get("rbgroups")
 
 
 def test_symbols_get_a_layer():
