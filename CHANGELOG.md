@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.20.2 — 2026-11-07
+
+- `/rounds` has two tabs: **Bygg** with the drawings and *Ny skiss*, **Skola** with the workbooks and *Ny arbetsbok*. Each shows how many it holds, and the page remembers the last one used.
+- The intro on `/rounds` and the help text on *Rita om* describe what they do today.
+
 ## 2.20.1 — 2026-11-07
 
 - Open remarks are black on rm2 and Pure, as are their rings and numbers, because the gray was hard to read. This also applies to saved drawings when they are drawn again.

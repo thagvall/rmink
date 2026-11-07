@@ -278,7 +278,9 @@ def test_rounds_router(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
     monkeypatch.setenv("RMINK_CLOUD_TOKEN", "tok.en-1")
     client = TestClient(create_app(limits))
-    assert client.get("/rounds").status_code == 200
+    page = client.get("/rounds")
+    assert page.status_code == 200
+    assert 'data-tab="bygg"' in page.text and 'data-tab="skola"' in page.text
     assert client.get("/api/rounds/documents").status_code == 401
     assert (
         client.get("/api/rounds/documents", headers={"X-Rmink-Secret": "nope"}).status_code == 401

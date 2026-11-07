@@ -22,6 +22,10 @@ h1 { font-size: 1.5rem; margin: 0; letter-spacing: -0.01em; }
 h2 { font-size: 1.05rem; margin: 0; }
 p { margin: 0; }
 .muted { color: var(--muted); font-size: .92rem; }
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.tabs button { border: 0; background: none; padding: 8px 12px; font-weight: 600; color: var(--muted); }
+.tabs button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.tabs small { font-weight: 400; margin-left: 4px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; }
 label { font-weight: 600; font-size: .92rem; }
 input, select, textarea { font: inherit; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); }
@@ -44,7 +48,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .questions { margin: 0; padding-left: 1.2em; color: var(--mark); font-size: .95rem; }
 .qcount { color: var(--mark); font-weight: 600; font-size: .92rem; }
 .group-head { font-size: .9rem; color: var(--muted); font-weight: 600; margin: 8px 0 0; }
-.kind { font-size: .78rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; margin-left: 6px; font-weight: 500; }
 details { font-size: .9rem; }
 summary { cursor: pointer; color: var(--muted); }
 details ul { margin: 6px 0 0; padding-left: 1.2em; }
@@ -61,7 +64,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
 <main>
   <header>
     <h1>Revisionsvarv</h1>
-    <p class="muted">Markera eller skriv på plattan, låt den synka och kör nästa varv. Den nya revisionen hamnar i rmink/&lt;namn&gt; och den förra flyttas till Tidigare.</p>
+    <p class="muted">Markera eller skriv på plattan, låt den synka och kör nästa varv. Den nya revisionen hamnar i samma mapp på plattan och den förra flyttas till Tidigare.</p>
     <p class="muted" id="memory"></p>
   </header>
 
@@ -73,8 +76,13 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
     <p class="muted">Bara för ägaren. Nyckeln sparas i den här webbläsaren.</p>
   </section>
 
+  <nav class="tabs" id="tabs" aria-label="Visa" hidden>
+    <button type="button" data-tab="bygg">Bygg<small id="count-bygg"></small></button>
+    <button type="button" data-tab="skola">Skola<small id="count-skola"></small></button>
+  </nav>
+
   <section class="card" id="drawings" hidden>
-    <h2>Ritningar och arbetsböcker</h2>
+    <h2 id="drawings-title">Ritningar</h2>
     <div class="list" id="drawing-list"></div>
   </section>
 
@@ -142,6 +150,8 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
   const local = () => { try { return JSON.parse(store.get("rmink.roundsMemory")) || { drawings: {}, links: {} }; } catch { return { drawings: {}, links: {} }; } };
   // With a database on the server it keeps the drawings and this list comes from there.
   let saved = null;
+  // Bygg shows drawings and new sketches, Skola workbooks and new workbooks.
+  let tab = store.get("rmink.roundsTab") === "skola" ? "skola" : "bygg";
   const memory = () => saved ? { drawings: saved, links: {} } : local();
   async function loadSaved() {
     let r;
@@ -185,10 +195,25 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
 
   function show() {
     $("#login").hidden = !!secret;
-    $("#pick").hidden = !secret;
+    $("#tabs").hidden = !secret;
     $("#drawings").hidden = !secret;
-    $("#create").hidden = !secret;
+    showTab();
     if (secret) { drawings(); load(path); loadCatalog(); loadSaved().then(drawings); }
+  }
+
+  function showTab() {
+    $("#pick").hidden = !secret || tab !== "bygg";
+    $("#create").hidden = !secret || tab !== "skola";
+    $("#drawings-title").textContent = tab === "skola" ? "Arbetsböcker" : "Ritningar";
+    for (const b of document.querySelectorAll("#tabs button")) b.setAttribute("aria-pressed", String(b.dataset.tab === tab));
+  }
+  for (const b of document.querySelectorAll("#tabs button")) {
+    b.addEventListener("click", () => {
+      tab = b.dataset.tab;
+      store.set("rmink.roundsTab", tab);
+      showTab();
+      drawings();
+    });
   }
 
   // rmink skola: groups and their topics, for the "Ny arbetsbok" card.
@@ -229,30 +254,35 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
 
   // The drawings this browser keeps, latest round first, each with its next round one tap away.
   function drawings() {
-    const all = Object.entries(memory().drawings).map(([key, raw]) => { try { return { ...JSON.parse(raw), key }; } catch { return null; } }).filter(Boolean);
+    const every = Object.entries(memory().drawings).map(([key, raw]) => { try { return { ...JSON.parse(raw), key }; } catch { return null; } }).filter(Boolean);
+    const inSkola = (d) => d.kind === "workbook";
+    const skola = every.filter(inSkola).length;
+    $("#count-bygg").textContent = every.length - skola ? ` ${every.length - skola}` : "";
+    $("#count-skola").textContent = skola ? ` ${skola}` : "";
+    const all = every.filter((d) => inSkola(d) === (tab === "skola"));
     all.sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.revision - a.revision);
     // rmink skola groups first, in the order they were last used, then the rest.
     const groupOf = (d) => d.group || (d.kind !== "workbook" && d.area ? d.area : "");
     const order = [...new Set(all.map(groupOf))].sort((a, b) => (a === "") - (b === ""));
     all.sort((a, b) => order.indexOf(groupOf(a)) - order.indexOf(groupOf(b)));
-    const grouped = order.length > 1 || order[0] !== "";
-    const n = all.length;
+    // One group needs no heading, so Bygg stays a plain list.
+    const grouped = order.length > 1;
+    const n = every.length;
     $("#memory").textContent = saved
       ? `${n} sparade i databasen på servern.`
       : n ? `${n} sparade i den här webbläsaren.` : "Ritningar och arbetsböcker sparas i den här webbläsaren mellan varven.";
     const list = $("#drawing-list"); list.innerHTML = "";
-    if (!n) { list.appendChild(el("p", "muted", "Inga än. Börja med en skiss eller en arbetsbok nedan.")); return; }
+    if (!all.length) { list.appendChild(el("p", "muted", tab === "skola" ? "Inga än. Skapa en arbetsbok nedan." : "Inga än. Börja med en skiss nedan.")); return; }
     let heading = null;
     for (const d of all) {
       if (grouped && groupOf(d) !== heading) {
         heading = groupOf(d);
-        list.appendChild(el("h3", "group-head", !heading ? "Övrigt" : d.group ? [d.area || "Skola", ...heading.split("/")].join(" · ") : heading));
+        list.appendChild(el("h3", "group-head", !heading ? "Övrigt" : heading.split("/").join(" · ")));
       }
       const card = el("div", "drawing");
       const head = el("div", "row between");
       const wb = d.kind === "workbook";
       const title = el("b", null, d.name);
-      if (wb) title.appendChild(el("span", "kind", "arbetsbok"));
       head.appendChild(title);
       head.appendChild(el("span", "muted rev", [rev(d.revision), d.date].filter(Boolean).join(" · ")));
       card.appendChild(head);
@@ -334,7 +364,7 @@ details ul { margin: 6px 0 0; padding-left: 1.2em; }
       if (!wb && sent) {
         // Draw it again the current way (filed under rmink/Bygg if it is not yet).
         const up = el("button", null, d.area ? "Rita om" : "Till Bygg, större ritning"); up.type = "button";
-        up.title = "Skickar ritningen igen som nästa revision, anpassad till sidan med tre SVAR-rader per fråga. Kör nästa varv först om du har skrivit på den.";
+        up.title = "Skickar ritningen igen som nästa revision, ritad på det nuvarande sättet med samma innehåll. Kör nästa varv först om du har skrivit på den.";
         up.onclick = async () => {
           if (running) return;
           status.textContent = "Skickar…";
