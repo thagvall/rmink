@@ -821,7 +821,7 @@ def resend(drawing: Drawing, token: str, store: Store | None = None) -> str:
     d.revision += 1
     d.date = datetime.date.today().isoformat()
     d.sketch.document = d.sketch.sent_as
-    d.log.append(f"r{d.revision}: ny layout, större ritning och fler SVAR-rader")
+    d.log.append(f"r{d.revision}: omritad, ingen ändring i innehållet")
     with tempfile.TemporaryDirectory() as tmp:
         rev = build_revision(d, Path(tmp) / f"{revision_title(d)}.rmdoc", store=store)
         return send_revision(rev, token, store)

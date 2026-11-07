@@ -59,6 +59,13 @@ class _Style:
     width: float
 
 
+def _gray(width: float) -> _Style:
+    """For what should stay in the background on every tablet: answer lines
+    and the change log."""
+    entry = _PALETTE["gray"]
+    return _Style(entry.color, entry.rgb, "solid", width)
+
+
 def _style(cat: Category, device: DeviceProfile, line_type: LineType | None = None) -> _Style:
     if device.color:
         entry = _PALETTE.get(cat.color, _PALETTE["black"])
@@ -372,14 +379,15 @@ def _remarks(pen: _Pen, x0: float, x1: float, y: float, open_remarks) -> float:
     """ANMÄRKNINGAR with answer lines from ``y``; returns where they end."""
     st_c = pen.style("comment")
     pen.text("ANMÄRKNINGAR", (x0, y), 18, st_c)
-    answer_line = _Style(st_c.color, st_c.rgb, "solid", 1.2)
+    st_answer = _gray(st_c.width)
+    answer_line = _gray(1.2)
     for n, ann in open_remarks:
         for i, line in enumerate(_wrap(f"{n}. {ann.text}", 18, x1 - x0, 3)):
             y += 32 if i == 0 else 26
             pen.text(line, (x0, y), 18, st_c)
         # Lines to write the answer on, so it is clear which remark it answers.
         y += 66
-        pen.text("SVAR:", (x0 + 28, y), 16, st_c)
+        pen.text("SVAR:", (x0 + 28, y), 16, st_answer)
         start = x0 + 28 + text_width("SVAR:", 16) + 12
         pen.paths([np.array([[start, y], [x1, y]])], answer_line)
         for _ in range(_ANSWER_LINES - 1):
@@ -443,11 +451,13 @@ def _title_block(
         y = _remarks(pen, x0, x1, y + 24, open_remarks)
     if d.log:
         y += 36
-        pen.text("ÄNDRINGAR", (x0, y), 18, st_text)
+        # Past changes matter less than the open remarks, so they stay light.
+        st_log = _gray(st_text.width)
+        pen.text("ÄNDRINGAR", (x0, y), 18, st_log)
         for entry in d.log[-6:]:
             for i, line in enumerate(_wrap(entry, 16, x1 - x0, 2)):
                 y += 30 if i == 0 else 22
-                pen.text(line, (x0 + (0 if i == 0 else 24), y), 16, st_text)
+                pen.text(line, (x0 + (0 if i == 0 else 24), y), 16, st_log)
 
 
 def open_remarks(drawing: Drawing) -> list[tuple[int, Annotation]]:

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.20.1 — 2026-11-07
+
+- Open remarks are black on rm2 and Pure, as are their rings and numbers, because the gray was hard to read. This also applies to saved drawings when they are drawn again.
+- `SVAR:`, its answer lines and ÄNDRINGAR are gray on every tablet.
+- *Rita om* on `/rounds` and `rmink upgrade` log that the drawing was redrawn with its content unchanged, instead of naming a layout change.
+
 ## 2.20.0 — 2026-11-05
 
 - The tool is also served at `/app`, because the hosted site now has a home page at `/`. `rmink web` and Docker still show the tool at `/` as before.

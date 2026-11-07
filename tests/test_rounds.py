@@ -637,7 +637,7 @@ def test_move_an_old_drawing_into_bygg_and_resend(sketch, tmp_path, monkeypatch)
     assert sent_as == f"{folder}/Garage r02 · 1 fråga"
     assert fake.folders[f"{folder}/Tidigare"] == {"Garage r00 skiss", "Garage r01 · 1 fråga"}
     again = store.load("Garage")
-    assert again.revision == 2 and again.log[-1].startswith("r2: ny layout")
+    assert again.revision == 2 and again.log[-1].startswith("r2: omritad")
     pages = read_rmdoc(fake.documents[sent_as], RM2).pages
     assert len(pages) == 1  # just the drawing; the sketch stays in Tidigare
     # The next round reads the new revision.

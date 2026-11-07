@@ -16,7 +16,7 @@ from __future__ import annotations
 import math
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 Point = tuple[float, float]
 LineType = Literal["solid", "dashed", "dotted", "dashdot"]
@@ -45,7 +45,7 @@ DEFAULT_CATEGORIES: list[Category] = [
     Category(name="plumbing", label="VVS", color="blue", mono_line_type="dashed"),
     Category(name="change", label="Ändring", color="green", width=3.0),
     Category(name="dimension", label="Mått", color="gray", mono_color="gray", width=1.5),
-    Category(name="comment", label="Kommentar", color="magenta", mono_color="gray", width=2.5),
+    Category(name="comment", label="Kommentar", color="magenta", width=2.5),
     Category(name="text", label="Text", width=1.8),
 ]
 
@@ -213,6 +213,15 @@ class Drawing(BaseModel):
     # which unit the dimensions are in.
     show_units: bool = True
     sketch: SketchRef = Field(default_factory=SketchRef)
+
+    @model_validator(mode="after")
+    def _black_remarks(self) -> Drawing:
+        """Remarks were gray on greyscale tablets, too faint to read on an
+        rm2. Saved drawings carry their categories, so older ones turn black here."""
+        for c in self.categories:
+            if c.name == "comment":
+                c.mono_color = "black"
+        return self
 
     def category(self, name: str) -> Category:
         for c in self.categories:

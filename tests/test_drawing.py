@@ -144,6 +144,28 @@ def test_render_colour_and_mono(sketch):
     assert len(mono.strokes) > len(pro.strokes)
 
 
+def test_remarks_black_and_answers_and_log_gray_on_mono():
+    d = Drawing(
+        name="x",
+        annotations=[Annotation(id="a1", kind="note", text="ANGE C-AVSTÅND")],
+        log=["R1: FÖRSTA RITNINGEN"],
+    )
+    # A drawing saved earlier carries gray remarks in its own categories.
+    saved = json.loads(d.model_dump_json())
+    for c in saved["categories"]:
+        if c["name"] == "comment":
+            c["mono_color"] = "gray"
+    d = Drawing.model_validate(saved)
+    assert d.category("comment").mono_color == "black"
+
+    page = render_drawing(d, RM2)
+    first_gray = min(float(s.points[:, 1].min()) for s in page.strokes if s.color == PenColor.GRAY)
+    above = [s for s in page.strokes if float(s.points[:, 1].max()) < first_gray]
+    below = [s for s in page.strokes if float(s.points[:, 1].min()) >= first_gray]
+    assert above and {s.color for s in above} == {PenColor.BLACK}
+    assert below and {s.color for s in below} == {PenColor.GRAY}
+
+
 def test_rectify_and_dimensions():
     d = Drawing(
         name="x",
