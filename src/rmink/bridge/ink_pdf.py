@@ -123,7 +123,11 @@ def _user_unit(doc: pymupdf.Document, page: pymupdf.Page) -> float:
     return float(value) if kind == "real" or kind == "int" else 1.0
 
 
-def _is_tap(stroke: Stroke, tile: Tile, px: float) -> bool:
+def stroke_key(manifest: Manifest, tablet_page: int, stroke: Stroke) -> str:
+    return f"{manifest.session}:{tablet_page}:{stroke.id[0]}:{stroke.id[1]}"
+
+
+def is_tap(stroke: Stroke, tile: Tile, px: float) -> bool:
     (x0, y0), (x1, y1) = stroke.points.min(axis=0) * px, stroke.points.max(axis=0) * px
     x, y = (x0 + x1) / 2, (y0 + y1) / 2
     return max(x1 - x0, y1 - y0) < DOT and any(
@@ -184,9 +188,9 @@ def pull(notebook: bytes, sheet: bytes) -> Pulled:
         px = 72 / device.dpi
         scale = float(np.hypot(tile.matrix[0], tile.matrix[1])) * px
         for s in strokes:
-            if s.pen in ERASERS or s.id is None or _is_tap(s, tile, px):
+            if s.pen in ERASERS or s.id is None or is_tap(s, tile, px):
                 continue
-            stroke_id = f"{manifest.session}:{tablet_page}:{s.id[0]}:{s.id[1]}"
+            stroke_id = stroke_key(manifest, tablet_page, s)
             if f"rmink-{stroke_id}" in known:
                 result.skipped += 1
                 continue

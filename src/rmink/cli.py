@@ -644,6 +644,55 @@ def sheet_pull(
         typer.secho(f"warning: {msg}", fg="yellow", err=True)
 
 
+def _notebook(path: str) -> bytes:
+    from rmink import cloud
+
+    local = Path(path)
+    return local.read_bytes() if local.is_file() else cloud.get(_token(), path)
+
+
+@sheet_app.command("points")
+def sheet_points(
+    notebook: Annotated[str, typer.Argument(help="A .rmdoc, or the notebook's path in your cloud")],
+    sheet: Annotated[Path, typer.Argument(exists=True, help="The PDF from rmink sheet pull")],
+    output: Annotated[Path, typer.Option("--output", "-o", help="Folder to write to")] = Path(
+        "punkter"
+    ),
+) -> None:
+    """Group the ink into numbered points: points.json to fill in, and an image of each."""
+    from rmink.bridge.points import find_points, point_image
+
+    points = find_points(_notebook(notebook))
+    output.mkdir(parents=True, exist_ok=True)
+    data = sheet.read_bytes()
+    for p in points.points:
+        (output / f"{p.id}.png").write_bytes(point_image(data, p))
+    (output / "points.json").write_text(points.model_dump_json(indent=1), encoding="utf-8")
+    typer.echo(f"{output / 'points.json'}: {len(points.points)} points")
+
+
+@sheet_app.command("punch")
+def sheet_punch(
+    points: Annotated[Path, typer.Argument(exists=True, help="points.json, filled in")],
+    sheet: Annotated[Path, typer.Argument(exists=True, help="The PDF from rmink sheet pull")],
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Output PDF")] = None,
+) -> None:
+    """Add the points to the sheet as numbered comments, and write the list as CSV."""
+    from rmink.bridge.points import Points, points_csv, write_points
+
+    data = Points.model_validate_json(points.read_text(encoding="utf-8"))
+    out = output or sheet.with_name(f"{sheet.stem} med punkter.pdf")
+    try:
+        pdf, added, skipped = write_points(sheet.read_bytes(), data)
+    except ValueError as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+    out.write_bytes(pdf)
+    table = out.with_suffix(".csv")
+    table.write_bytes(points_csv(data).encode("utf-8"))
+    typer.echo(f"{out}: {added} points added, {skipped} already there; list in {table}")
+
+
 @app.command()
 def mcp() -> None:
     """Run the MCP server on stdio (for Claude and other MCP clients)."""

@@ -625,6 +625,58 @@ def pull_sheet(notebook: str, sheet_path: str, output_path: str) -> dict:
     }
 
 
+@server.tool()
+def read_sheet_points(notebook: str, sheet_path: str) -> list:
+    """Group the ink of a notebook from `send_sheet` into numbered points, for a field round.
+
+    Returns the points as JSON, then one image per point. Read the handwriting in the images,
+    fill in `text`, set `unsure` on anything you cannot read with confidence, leave a mark
+    without words empty and unsure, and pass the result to `save_sheet_points`. Never guess
+    a responsible person. `status` is one of Ny kommentar, Avvisad, Ska åtgärdas,
+    Har åtgärdats, Ny granskning, Annat forum.
+
+    Args:
+        notebook: A .rmdoc path, or the notebook's path in the user's cloud.
+        sheet_path: The PDF from `pull_sheet`.
+    """
+    from rmink.bridge.points import find_points, point_image
+
+    local = Path(notebook)
+    if local.is_file():
+        data = local.read_bytes()
+    else:
+        token = cloud.load_token()
+        if not token:
+            raise cloud.CloudAuthError("Not connected; call cloud_connect with a one-time code")
+        data = cloud.get(token, notebook)
+    points = find_points(data)
+    sheet = Path(sheet_path).read_bytes()
+    images = [Image(data=point_image(sheet, p), format="png") for p in points.points]
+    return [points.model_dump_json(), *images]
+
+
+@server.tool()
+def save_sheet_points(points: dict, sheet_path: str, output_path: str) -> dict:
+    """Add points from `read_sheet_points` to the sheet as numbered comments, plus a CSV list.
+
+    The ink stays. A point already on the sheet keeps what was done to it since.
+
+    Args:
+        points: The JSON from `read_sheet_points` with the text filled in.
+        sheet_path: The PDF from `pull_sheet`.
+        output_path: Where to write the PDF; the CSV goes beside it.
+    """
+    from rmink.bridge.points import Points, points_csv, write_points
+
+    data = Points.model_validate(points)
+    pdf, added, skipped = write_points(Path(sheet_path).read_bytes(), data)
+    out = Path(output_path)
+    out.write_bytes(pdf)
+    table = out.with_suffix(".csv")
+    table.write_bytes(points_csv(data).encode("utf-8"))
+    return {"path": str(out), "csv": str(table), "added": added, "already_there": skipped}
+
+
 def main() -> None:
     server.run()
 
