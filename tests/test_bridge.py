@@ -202,6 +202,22 @@ def test_pulling_twice_adds_nothing():
     assert read_manifest(second.pdf)["rounds"][0]["strokes"] == 1
 
 
+def test_pulling_twice_keeps_the_files_attached_to_the_sheet():
+    doc = pymupdf.open(stream=sheet_bytes(), filetype="pdf")
+    doc.embfile_add("ritning.dwg", b"dwg", desc="the user's")
+    doc.embfile_add("rmink.placement.json", b"{}")
+    source = doc.tobytes()
+    pack = build_pack(source, RM2, "Plan", "s")
+    data = notebook(pack, {0: [stroke_at(pack.manifest.tiles[0], 300, 200)]})
+    second = pull(data, pull(data, source).pdf).pdf
+    kept = pymupdf.open(stream=second, filetype="pdf")
+    names = ["rmink.manifest.json", "rmink.placement.json", "ritning.dwg"]
+    assert sorted(kept.embfile_names()) == sorted(names)
+    assert kept.embfile_get("ritning.dwg") == b"dwg"
+    assert kept.embfile_info("ritning.dwg")["description"] == "the user's"
+    assert read_manifest(second)["rounds"][0]["strokes"] == 1
+
+
 def test_erasers_and_blank_pages_leave_nothing():
     source = sheet_bytes()
     pack = build_pack(source, RM2, "Plan", "s")

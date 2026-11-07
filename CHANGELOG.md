@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.22.1 — 2026-11-07
+
+- Pulling a second time onto a sheet that has files of its own attached, such as a DWG, no longer risks deleting one of them. The PDF library removed the wrong attachment when rmink replaced its record of the rounds; the attachments are now written anew, all of them kept.
+
 ## 2.22.0 — 2026-11-07
 
 - `rmink sheet drawing` puts a clean drawing on a PDF sheet at a true scale: the largest standard scale that fits, on A4 to A1, or the one you ask for. Categories become PDF layers, text stays text, and the scale is stored the standard way, so a PDF editor can measure the drawing. In Open PDF Studio 2026.45.0 Garage's walls measure 6000 and 4500 mm, and it exports to DXF in millimetres with the layers kept.

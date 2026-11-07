@@ -254,6 +254,25 @@ def write_pack(
     return pack.manifest
 
 
+def put_embedded(doc: pymupdf.Document, name: str, data: bytes) -> None:
+    """Add or replace an embedded file, keeping the others as they are.
+
+    PyMuPDF adds files at the end of the name tree, which the PDF wants sorted, and
+    then deletes the wrong one: replacing a file could remove another, even one of
+    the user's. So the tree is written anew, sorted, every time."""
+    names = doc.embfile_names()
+    files = {}
+    for n in names:
+        info = doc.embfile_info(n)
+        files[n] = (doc.embfile_get(n), info.get("filename") or n, info.get("description") or "")
+    files[name] = (data, name, files.get(name, (b"", name, ""))[2])
+    if names:
+        doc.xref_set_key(doc.pdf_catalog(), "Names/EmbeddedFiles", "null")
+    for n in sorted(files):
+        content, filename, desc = files[n]
+        doc.embfile_add(n, content, filename=filename, desc=desc)
+
+
 def read_manifest(pdf: bytes) -> dict | None:
     """The manifest embedded in a PDF, if any."""
     doc = pymupdf.open(stream=pdf, filetype="pdf")

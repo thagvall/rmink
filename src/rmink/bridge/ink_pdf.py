@@ -25,7 +25,7 @@ from pydantic import BaseModel
 from rmscene.scene_items import Pen
 from rmscene.scene_stream import UnreadableBlock, read_blocks
 
-from rmink.bridge.sheet import MANIFEST, Manifest, Tile, read_manifest, unrotate
+from rmink.bridge.sheet import MANIFEST, Manifest, Tile, put_embedded, read_manifest, unrotate
 from rmink.devices import COLOR_PALETTE, get_device
 from rmink.model import Stroke
 from rmink.workbook.read import DOT, read_ink
@@ -220,8 +220,6 @@ def pull(notebook: bytes, sheet: bytes) -> Pulled:
             )
         )
     payload = json.dumps(record.model_dump(), ensure_ascii=False, indent=1).encode()
-    if MANIFEST in doc.embfile_names():
-        doc.embfile_del(MANIFEST)
-    doc.embfile_add(MANIFEST, payload)
+    put_embedded(doc, MANIFEST, payload)
     result.pdf = doc.tobytes(garbage=1, deflate=True)
     return result
