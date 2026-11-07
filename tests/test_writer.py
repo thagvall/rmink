@@ -9,6 +9,7 @@ from rmscene.scene_stream import AuthorIdsBlock, read_blocks, read_tree
 
 from rmink.api import convert
 from rmink.devices import get_device
+from rmink.ingest.rm import read_page
 from rmink.model import Page, Stroke
 from rmink.options import ConvertOptions
 from rmink.render.preview import read_lines
@@ -97,3 +98,22 @@ def test_repair_rezipped_rmdoc(examples, tmp_path):
     with zipfile.ZipFile(good) as a, zipfile.ZipFile(fixed) as b:
         assert sorted(a.namelist()) == sorted(b.namelist())
         assert all(a.read(n) == b.read(n) for n in a.namelist())
+
+
+def test_a_pen_colour_newer_than_rmscene_keeps_the_stroke():
+    device = get_device("rm2")
+    stroke = Stroke(
+        [(100, 100), (300, 100)],
+        pen=Pen.HIGHLIGHTER_2,
+        color=PenColor.HIGHLIGHT,
+        pressures=[99, 99],
+    )
+    data = write_page(
+        Page(device.width, device.height, [stroke], ["Layer 1"]), device, uuid.uuid4()
+    )
+    # A highlighter on rm2 writes colour 14, tag 2 of the line.
+    known, newer = bytes([0x24, 9, 0, 0, 0]), bytes([0x24, 14, 0, 0, 0])
+    assert known in data
+    data = data.replace(known, newer)
+    assert len(read_page(data, device).strokes) == 1
+    assert len(read_lines(data)) == 1

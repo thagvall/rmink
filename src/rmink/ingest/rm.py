@@ -16,6 +16,7 @@ import numpy as np
 from rmscene import scene_items as si
 from rmscene.scene_stream import read_tree
 
+import rmink.ingest.rm_compat  # noqa: F401
 from rmink.devices import DeviceProfile
 from rmink.model import Document, Page, Stroke
 

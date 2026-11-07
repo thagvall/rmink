@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.20.3 — 2026-11-07
+
+- Ink in a pen colour newer than rmink knows is read instead of lost. On rm2 the highlighter writes such a colour, so highlighted strokes went missing without a message in workbooks and drawing rounds. They now arrive, which means a highlight in a choice box can read as a cross.
+
 ## 2.20.2 — 2026-11-07
 
 - `/rounds` has two tabs: **Bygg** with the drawings and *Ny skiss*, **Skola** with the workbooks and *Ny arbetsbok*. Each shows how many it holds, and the page remembers the last one used.

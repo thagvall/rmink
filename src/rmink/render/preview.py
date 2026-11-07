@@ -12,6 +12,7 @@ from PIL import Image, ImageDraw
 from rmscene import scene_items as si
 from rmscene.scene_stream import SceneLineItemBlock, read_blocks
 
+import rmink.ingest.rm_compat  # noqa: F401
 from rmink.devices import COLOR_PALETTE, DeviceProfile
 
 _HIGHLIGHT_ALPHA = 90
