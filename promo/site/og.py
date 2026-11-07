@@ -21,7 +21,7 @@ PUBLIC = Path(__file__).resolve().parents[2] / "deploy" / "vercel" / "public"
 SHOTS = [
     ("/?demo=en", 62.5, "og.jpg"),
     ("/skola?demo", 20, "promo/skola/og.jpg"),
-    ("/bygg?demo", 40, "promo/bygg/og.jpg"),
+    ("/bygg?demo", 14, "promo/bygg/og.jpg"),
 ]
 SEEK = """async (t) => {
   const v = document.querySelector('#video-dialog video');
