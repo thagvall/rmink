@@ -693,6 +693,68 @@ def sheet_punch(
     typer.echo(f"{out}: {added} points added, {skipped} already there; list in {table}")
 
 
+@sheet_app.command("status-send")
+def sheet_status_send(
+    points: Annotated[Path, typer.Argument(exists=True, help="points.json")],
+    sheet: Annotated[Path, typer.Argument(exists=True, help="The PDF with the points")],
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Output .rmdoc")] = None,
+    people: Annotated[str, typer.Option("--ansvariga", help="Who to cross, e.g. El,VVS,Bygg")] = "",
+    device: Device = "rm2",
+    send: Annotated[bool, typer.Option(help=f"Upload to {SHEET_FOLDER}/ in your cloud")] = False,
+) -> None:
+    """A status list for the tablet: a row per point, with boxes to cross."""
+    from rmink import cloud
+    from rmink.bridge.points import Points
+    from rmink.bridge.review import write_status_notebook
+    from rmink.devices import get_device
+
+    data = Points.model_validate_json(points.read_text(encoding="utf-8"))
+    out = output or points.with_name(f"{data.name} status.rmdoc")
+    names = [n.strip() for n in people.split(",") if n.strip()]
+    count = write_status_notebook(data, sheet.read_bytes(), out, get_device(device), names)
+    typer.echo(f"{out} ({count} tablet pages)")
+    if send:
+        token = _token()
+        cloud.mkdir(token, "/rmink")
+        cloud.mkdir(token, f"/{SHEET_FOLDER}")
+        name = cloud.put(out, token, folder=f"/{SHEET_FOLDER}", name=out.stem)
+        typer.echo(f"Sent as {f'/{SHEET_FOLDER}/{name}'!r}")
+
+
+@sheet_app.command("status-pull")
+def sheet_status_pull(
+    notebook: Annotated[str, typer.Argument(help="A .rmdoc, or the notebook's path in your cloud")],
+    points: Annotated[Path, typer.Argument(exists=True, help="points.json; it is updated")],
+    sheet: Annotated[Path, typer.Argument(exists=True, help="The PDF with the points")],
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Output PDF")] = None,
+) -> None:
+    """Read the crosses and set status and responsible on the sheet and in the list."""
+    from rmink.bridge.points import Points, points_csv, update_points
+    from rmink.bridge.review import read_status
+
+    data = Points.model_validate_json(points.read_text(encoding="utf-8"))
+    try:
+        result = read_status(_notebook(notebook), data)
+        pdf, missing = update_points(sheet.read_bytes(), result.points)
+    except ValueError as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+    out = output or sheet.with_name(f"{sheet.stem} status.pdf")
+    out.write_bytes(pdf)
+    table = out.with_suffix(".csv")
+    table.write_bytes(points_csv(result.points).encode("utf-8"))
+    points.write_text(result.points.model_dump_json(indent=1), encoding="utf-8")
+    for point, change in result.changed.items():
+        typer.echo(f"{point}: {change}")
+    typer.echo(f"{out}: {len(result.changed)} points changed; list in {table}")
+    if result.unclear:
+        msg = f"unclear, not changed: {', '.join(result.unclear)}"
+        typer.secho(f"warning: {msg}", fg="yellow", err=True)
+    if missing:
+        msg = f"not on the sheet: {', '.join(missing)}"
+        typer.secho(f"warning: {msg}", fg="yellow", err=True)
+
+
 @app.command()
 def mcp() -> None:
     """Run the MCP server on stdio (for Claude and other MCP clients)."""

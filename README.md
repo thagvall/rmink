@@ -126,6 +126,24 @@ The MCP tools are `create_workbook`, `read_workbook` and `save_workbook_answers`
 The owner's `/rounds` page can do the same. Details are in
 [docs/workbook.md](https://github.com/thagvall/rmink/blob/main/docs/workbook.md) (Swedish).
 
+## Sheets and field rounds
+
+Put a PDF of any size on the tablet, write on it, and get the ink back on the original file:
+
+```bash
+rmink sheet send plan.pdf --send                       # overview and tiles in rmink/Ark/
+rmink sheet pull "/rmink/Ark/plan" plan.pdf            # plan med bläck.pdf, ink as annotations
+
+rmink sheet points "/rmink/Ark/plan" "plan med bläck.pdf" -o punkter   # numbered notes, images
+# fill in the text in punkter/points.json, or let an assistant do it through MCP
+rmink sheet punch punkter/points.json "plan med bläck.pdf"             # comments and a CSV list
+
+rmink sheet status-send punkter/points.json "plan med bläck med punkter.pdf" --ansvariga "El,VVS" --send
+rmink sheet status-pull "/rmink/Ark/plan status" punkter/points.json "plan med bläck med punkter.pdf"
+```
+
+The PDF stays an ordinary PDF. Ink, layers, comments and status open in [Open PDF Studio](https://github.com/OpenAEC-Foundation/open-pdf-studio) (tried on 2026.45.0), which can take the sheet on to DXF. Only the rm2 is tried on a device. Reading the crosses needs no model; the handwriting needs someone to read it.
+
 ## How it works
 
 ```

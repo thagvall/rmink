@@ -232,14 +232,8 @@ def write_points(sheet: bytes, points: Points) -> tuple[bytes, int, int]:
         _key(doc, comment.xref, "NM", name)
         _key(doc, comment.xref, "RMINK_Status", p.status)
         _key(doc, comment.xref, "RMINK_Strokes", json.dumps(p.strokes))
-        state = STATUSES[p.status]
-        if state:
-            reply = page.add_text_annot(pymupdf.Point(0, 0), p.status)
-            reply.set_flags(pymupdf.PDF_ANNOT_IS_HIDDEN)
-            reply.update()
-            doc.xref_set_key(reply.xref, "IRT", f"{comment.xref} 0 R")
-            doc.xref_set_key(reply.xref, "State", pymupdf.get_pdf_str(state))
-            doc.xref_set_key(reply.xref, "StateModel", pymupdf.get_pdf_str("Review"))
+        if STATUSES[p.status]:
+            _add_state(doc, page, comment.xref, p.status)
         side = pymupdf.Rect(x1 + 3, y0, x1 + 5 + 8 * len(number) + 6, y0 + 15) * unrotate(page)
         label = page.add_freetext_annot(
             side, number, fontsize=11, text_color=(0.76, 0.23, 0.13), rotate=page.rotation,
@@ -251,6 +245,50 @@ def write_points(sheet: bytes, points: Points) -> tuple[bytes, int, int]:
         _key(doc, label.xref, "NM", f"{name}-nr")
         added += 1
     return doc.tobytes(garbage=1, deflate=True), added, skipped
+
+
+def _state_replies(doc: pymupdf.Document, page: pymupdf.Page, xref: int) -> list[pymupdf.Annot]:
+    target = f"{xref} 0 R"
+    return [
+        a
+        for a in page.annots()
+        if doc.xref_get_key(a.xref, "IRT")[1] == target
+        and doc.xref_get_key(a.xref, "State")[0] != "null"
+    ]
+
+
+def _add_state(doc: pymupdf.Document, page: pymupdf.Page, xref: int, status: str) -> None:
+    reply = page.add_text_annot(pymupdf.Point(0, 0), status)
+    reply.set_flags(pymupdf.PDF_ANNOT_IS_HIDDEN)
+    reply.update()
+    doc.xref_set_key(reply.xref, "IRT", f"{xref} 0 R")
+    doc.xref_set_key(reply.xref, "State", pymupdf.get_pdf_str(STATUSES[status]))
+    doc.xref_set_key(reply.xref, "StateModel", pymupdf.get_pdf_str("Review"))
+
+
+def update_points(sheet: bytes, points: Points) -> tuple[bytes, list[str]]:
+    """Set status and responsible on points already on the sheet. Returns the PDF
+    and the ids that are not on it, which are left out."""
+    doc = pymupdf.open(stream=sheet, filetype="pdf")
+    missing = []
+    for p in points.points:
+        if p.status not in STATUSES:
+            raise ValueError(f"{p.id}: unknown status {p.status!r}")
+        page = doc[p.sheet_page]
+        name = f"rmink-point-{points.session}-{p.id}"
+        comment = next((a for a in page.annots() if a.info.get("id") == name), None)
+        if comment is None:
+            missing.append(p.id)
+            continue
+        xref = comment.xref
+        if p.responsible:
+            doc.xref_set_key(xref, "T", pymupdf.get_pdf_str(p.responsible))
+        _key(doc, xref, "RMINK_Status", p.status)
+        for reply in _state_replies(doc, page, xref):
+            page.delete_annot(reply)
+        if STATUSES[p.status]:
+            _add_state(doc, page, xref, p.status)
+    return doc.tobytes(garbage=1, deflate=True), missing
 
 
 def points_csv(points: Points) -> str:

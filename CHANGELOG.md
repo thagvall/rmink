@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.21.0 — 2026-11-07
+
+- `rmink sheet send` puts a PDF of any size on the tablet: an overview whose numbers open the tiles, and tiles that show the sheet at its printed size and lead back. `rmink sheet pull` adds what was written to the original PDF as ordinary annotations, each stroke with its pressure, layer and an id, so pulling again adds nothing. It works on rotated and cropped sheets.
+- `rmink sheet points` groups the ink into numbered notes, rings and lines, without a model, with an image of each. Fill in the text, and `rmink sheet punch` adds the points as numbered comments in a layer of their own, with a CSV list that opens in a Swedish Excel.
+- `rmink sheet status-send` makes a status list for the tablet: a row per point with the statuses from BEAst Effektivare granskning and, with `--ansvariga`, who is responsible. `rmink sheet status-pull` reads the crosses, again without a model. A row that is unclear changes nothing and is reported.
+- The results open in Open PDF Studio with ink, pressure, layers and status, tried on 2026.45.0, and from there export to DXF.
+- The MCP server has the same steps: `send_sheet`, `pull_sheet`, `read_sheet_points`, `save_sheet_points`, `send_status_list` and `read_status_list`.
+
 ## 2.20.3 — 2026-11-07
 
 - Ink in a pen colour newer than rmink knows is read instead of lost. On rm2 the highlighter writes such a colour, so highlighted strokes went missing without a message in workbooks and drawing rounds. They now arrive, which means a highlight in a choice box can read as a cross.

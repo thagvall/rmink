@@ -677,6 +677,72 @@ def save_sheet_points(points: dict, sheet_path: str, output_path: str) -> dict:
     return {"path": str(out), "csv": str(table), "added": added, "already_there": skipped}
 
 
+@server.tool()
+def send_status_list(
+    points: dict,
+    sheet_path: str,
+    output_path: str,
+    people: list[str] | None = None,
+    device: str = "rm2",
+) -> dict:
+    """Write a status list for the tablet: a row per point with boxes to cross.
+
+    Args:
+        points: The points from `read_sheet_points`, with their text.
+        sheet_path: The PDF from `save_sheet_points`.
+        output_path: Where to write the .rmdoc.
+        people: Who can be responsible, for a row of boxes per point. Ask the user; never guess.
+        device: rm2, pure, pro or move.
+    """
+    from rmink.bridge.points import Points
+    from rmink.bridge.review import write_status_notebook
+
+    data = Points.model_validate(points)
+    sheet = Path(sheet_path).read_bytes()
+    count = write_status_notebook(data, sheet, Path(output_path), get_device(device), people)
+    return {"path": output_path, "tablet_pages": count}
+
+
+@server.tool()
+def read_status_list(notebook: str, points: dict, sheet_path: str, output_path: str) -> dict:
+    """Read the crosses on a status list and set status and responsible on the sheet.
+
+    A row that is unclear, such as two crosses, changes nothing and comes back in `unclear`:
+    ask the user about it. The CSV list goes beside `output_path`.
+
+    Args:
+        notebook: A .rmdoc path, or the notebook's path in the user's cloud.
+        points: The points the list was made from.
+        sheet_path: The PDF with the points.
+        output_path: Where to write the PDF.
+    """
+    from rmink.bridge.points import Points, points_csv, update_points
+    from rmink.bridge.review import read_status
+
+    local = Path(notebook)
+    if local.is_file():
+        data = local.read_bytes()
+    else:
+        token = cloud.load_token()
+        if not token:
+            raise cloud.CloudAuthError("Not connected; call cloud_connect with a one-time code")
+        data = cloud.get(token, notebook)
+    result = read_status(data, Points.model_validate(points))
+    pdf, missing = update_points(Path(sheet_path).read_bytes(), result.points)
+    out = Path(output_path)
+    out.write_bytes(pdf)
+    table = out.with_suffix(".csv")
+    table.write_bytes(points_csv(result.points).encode("utf-8"))
+    return {
+        "path": str(out),
+        "csv": str(table),
+        "changed": result.changed,
+        "unclear": result.unclear,
+        "not_on_the_sheet": missing,
+        "points": result.points.model_dump(),
+    }
+
+
 def main() -> None:
     server.run()
 
