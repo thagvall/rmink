@@ -16,8 +16,12 @@
 # sketch:        hur den brukar se ut handritad, för tolkningen av skissen
 # syn:           ord och förkortningar man skriver i stället
 # rules:         granskningsregler i rules.toml
+# ifc:           IFC4-klassen för det symbolen står för, "" = bara en beteckning
+# ifc_type:      klassens PredefinedType, "" = ingen som passar
+# ops:           samma symbol i Open PDF Studios bibliotek (open-pdf-studio-library,
+#                MIT), "" = finns inte där. Kopplas bara när betydelsen är densamma.
 
-version = "2026-10-28"
+version = "2026-11-07"
 
 # ------------------------------------------------------------- orientering
 
@@ -32,6 +36,9 @@ required_when = "Alltid på situationsplan och planritning."
 sketch = "Pil eller spets med ett N, ofta i en cirkel."
 syn = ["N-pil", "nordpil", "N", "väderstreck"]
 rules = ["rmink-norrpil"]
+ifc = ""
+ifc_type = ""
+ops = "lib-common-north-arrows-north-arrow-simple"
 
 [[symbol]]
 id = "section"
@@ -44,6 +51,9 @@ required_when = "När projektet har en sektion: markeras i planen i båda ändar
 sketch = "Streckprickad linje med pilar eller flaggor i ändarna och en bokstav, A-A."
 syn = ["sektion", "sektionsmarkering", "snittmarkering", "A-A", "B-B"]
 rules = ["rmink-sektionsmarkering"]
+ifc = ""
+ifc_type = ""
+ops = ""
 
 [[symbol]]
 id = "level"
@@ -56,6 +66,9 @@ required_when = "På sektion och fasad: golv, bjälklag, takfot och nock. På si
 sketch = "Liten triangel med spetsen mot en linje och en siffra, ofta med ÖK, UK eller FG."
 syn = ["nivå", "höjd", "nivåmärke", "±0", "+0", "FG", "ÖK", "UK", "▽"]
 rules = ["rmink-niva-nollpunkt"]
+ifc = ""
+ifc_type = ""
+ops = ""
 
 [[symbol]]
 id = "detail"
@@ -68,6 +81,9 @@ required_when = "När en del redovisas i större skala på en annan ritning."
 sketch = "Cirkel delad av ett vågrätt streck, med siffror över och under, ofta med en ring runt delen."
 syn = ["detalj", "detaljmarkering", "hänvisning", "se detalj"]
 rules = []
+ifc = ""
+ifc_type = ""
+ops = ""
 
 [[symbol]]
 id = "point"
@@ -80,6 +96,9 @@ required_when = ""
 sketch = "Kryss eller plus med en ring."
 syn = ["mätpunkt", "fixpunkt", "utsättning", "stomkryss"]
 rules = []
+ifc = ""
+ifc_type = ""
+ops = ""
 
 [[symbol]]
 id = "cross"
@@ -92,6 +111,9 @@ required_when = ""
 sketch = "Två korsade streck."
 syn = ["X", "rivs", "utgår"]
 rules = ["rmink-forklaring"]
+ifc = ""
+ifc_type = ""
+ops = ""
 
 # ------------------------------------------------------------------- bygg
 
@@ -106,6 +128,9 @@ required_when = "Varje dörr i planen."
 sketch = "Rakt streck med en kvartscirkel från väggen."
 syn = ["dörr", "D", "slagbåge", "ytterdörr", "innerdörr", "M10", "10x21"]
 rules = ["bfs9-fri-hojd", "bfs12-entre-smahus"]
+ifc = "IfcDoor"
+ifc_type = "DOOR"
+ops = ""
 
 [[symbol]]
 id = "window"
@@ -118,6 +143,9 @@ required_when = "Varje fönster i planen; i fasad ritas det som det ser ut."
 sketch = "Två eller tre tunna parallella streck i väggen, ibland med en mittpost."
 syn = ["fönster", "F", "fönsterparti", "12x12"]
 rules = ["bfs9-fonster-barn", "bfs8-dagsljus"]
+ifc = "IfcWindow"
+ifc_type = "WINDOW"
+ops = ""
 
 [[symbol]]
 id = "column"
@@ -130,6 +158,9 @@ required_when = "Varje bärande stolpe och pelare."
 sketch = "Fyrkant med kryss i, eller ifylld fyrkant."
 syn = ["stolpe", "pelare", "P", "KKR", "VKR"]
 rules = ["rmink-dimension-saknas"]
+ifc = "IfcColumn"
+ifc_type = "COLUMN"
+ops = ""
 
 [[symbol]]
 id = "pier"
@@ -142,6 +173,9 @@ required_when = "Plintgrund: varje plint och avståndet mellan dem."
 sketch = "Liten fyrkant eller cirkel i ett rutnät, ofta med c-mått mellan."
 syn = ["plint", "plintar", "betongplint", "markskruv", "plintsko"]
 rules = ["praxis-frostfritt"]
+ifc = "IfcFooting"
+ifc_type = "PAD_FOOTING"
+ops = ""
 
 [[symbol]]
 id = "stair"
@@ -154,6 +188,9 @@ required_when = "Varje trappa i planen."
 sketch = "Prick och pil längs trappans steg, ofta med texten upp eller ned."
 syn = ["trappa", "upp", "ned", "gångriktning", "trappil"]
 rules = ["bfs9-ledstang", "praxis-trappa-stegmatt", "bfs9-plan-dorr-trappa"]
+ifc = "IfcStair"
+ifc_type = ""
+ops = ""
 
 [[symbol]]
 id = "railing"
@@ -166,6 +203,9 @@ required_when = "Där någon kan falla ner, t.ex. altan, trappa och loftgång."
 sketch = "Linje med korta streck tätt längs den, eller ett tunt streck utanför altanens kant."
 syn = ["räcke", "skyddsräcke", "staket", "ledstång", "spjälräcke"]
 rules = ["bfs9-skydd-mot-fall", "bfs9-racke-barn", "praxis-racke-hojd"]
+ifc = "IfcRailing"
+ifc_type = "GUARDRAIL"
+ops = ""
 
 [[symbol]]
 id = "bolt"
@@ -178,6 +218,9 @@ required_when = "När ett förband är dimensionerat med bultar."
 sketch = "Cirkel med ett kryss eller plus genom."
 syn = ["bult", "M10", "M12", "M16", "genomgående"]
 rules = ["praxis-infastning-korrosion"]
+ifc = "IfcMechanicalFastener"
+ifc_type = "BOLT"
+ops = ""
 
 [[symbol]]
 id = "weld"
@@ -190,6 +233,9 @@ required_when = "När stål svetsas, t.ex. pelarfot eller balksko."
 sketch = "Liten triangel på en hänvisningslinje."
 syn = ["svets", "kälsvets", "a-mått"]
 rules = []
+ifc = "IfcFastener"
+ifc_type = "WELD"
+ops = ""
 
 # --------------------------------------------------------------------- el
 
@@ -204,6 +250,9 @@ required_when = "På elritning och på planen när en ny central sätts."
 sketch = "Rektangel med en diagonal, ofta halvt ifylld."
 syn = ["central", "elcentral", "proppskåp", "gruppcentral", "C"]
 rules = ["elsl-behorighet"]
+ifc = "IfcElectricDistributionBoard"
+ifc_type = "DISTRIBUTIONBOARD"
+ops = "lib-iec60617-electrical-distribution-board"
 
 [[symbol]]
 id = "outlet"
@@ -216,6 +265,9 @@ required_when = "På elritning. I planen när kunden vill se uttagens placering.
 sketch = "Liten halvcirkel eller cirkel mot väggen, ibland med två korta streck."
 syn = ["uttag", "vägguttag", "eluttag", "jordat uttag"]
 rules = ["elsl-behorighet"]
+ifc = "IfcOutlet"
+ifc_type = "POWEROUTLET"
+ops = "lib-iec60617-electrical-socket-earthed"
 
 [[symbol]]
 id = "outlet_double"
@@ -228,6 +280,9 @@ required_when = ""
 sketch = "Som eluttag men med två par streck eller siffran 2."
 syn = ["dubbeluttag", "2-uttag", "dubbelt uttag"]
 rules = ["elsl-behorighet"]
+ifc = "IfcOutlet"
+ifc_type = "POWEROUTLET"
+ops = "lib-iec60617-electrical-socket-double"
 
 [[symbol]]
 id = "switch"
@@ -240,6 +295,9 @@ required_when = ""
 sketch = "Liten cirkel med ett snett streck."
 syn = ["brytare", "strömbrytare", "omkopplare", "dimmer"]
 rules = ["elsl-behorighet"]
+ifc = "IfcSwitchingDevice"
+ifc_type = "TOGGLESWITCH"
+ops = "lib-iec60617-electrical-switch-single"
 
 [[symbol]]
 id = "light"
@@ -252,6 +310,9 @@ required_when = ""
 sketch = "Cirkel med ett kryss."
 syn = ["lampa", "armatur", "takuttag", "DCL", "belysning", "spotlight"]
 rules = ["elsl-behorighet"]
+ifc = "IfcLightFixture"
+ifc_type = "POINTSOURCE"
+ops = "lib-iec60617-electrical-light-point"
 
 [[symbol]]
 id = "smoke"
@@ -264,6 +325,9 @@ required_when = "När planen visar bostadens sovrum och hall."
 sketch = "Cirkel med ett B eller ett vågigt streck."
 syn = ["brandvarnare", "rökdetektor", "BV", "brandlarm"]
 rules = []
+ifc = "IfcSensor"
+ifc_type = "SMOKESENSOR"
+ops = ""
 
 # -------------------------------------------------------------------- VVS
 
@@ -278,6 +342,9 @@ required_when = "I varje våtrum med golvbrunn."
 sketch = "Fyrkant eller cirkel, ofta med GB."
 syn = ["golvbrunn", "GB", "brunn", "avlopp"]
 rules = ["praxis-vatrum-branschregler"]
+ifc = "IfcWasteTerminal"
+ifc_type = "FLOORTRAP"
+ops = ""
 
 [[symbol]]
 id = "slope"
@@ -290,6 +357,9 @@ required_when = "I våtrum mot golvbrunnen, och på altan och mark intill huset.
 sketch = "Pil med texten fall, ofta med ett förhållande som 1:50 eller 1 %."
 syn = ["fall", "lutning", "fallpil", "1:50", "1:100"]
 rules = ["praxis-vatrum-branschregler"]
+ifc = ""
+ifc_type = ""
+ops = ""
 
 [[symbol]]
 id = "wc"
@@ -302,6 +372,9 @@ required_when = "I hygienrum."
 sketch = "Rektangel med en oval framför, eller texten WC."
 syn = ["WC", "toalett", "toalettstol", "klosett"]
 rules = ["bfs12-hygienrum"]
+ifc = "IfcSanitaryTerminal"
+ifc_type = "TOILETPAN"
+ops = ""
 
 [[symbol]]
 id = "basin"
@@ -314,6 +387,9 @@ required_when = "I hygienrum."
 sketch = "Rektangel eller halvcirkel mot väggen, ibland med TS."
 syn = ["tvättställ", "handfat", "TS", "kommod"]
 rules = ["bfs12-hygienrum"]
+ifc = "IfcSanitaryTerminal"
+ifc_type = "WASHHANDBASIN"
+ops = ""
 
 [[symbol]]
 id = "shower"
@@ -326,6 +402,9 @@ required_when = "När våtrummet har dusch."
 sketch = "Fyrkant med en diagonal, ofta med D."
 syn = ["dusch", "duschplats", "duschhörna", "D"]
 rules = ["praxis-vatrum-branschregler"]
+ifc = "IfcSanitaryTerminal"
+ifc_type = "SHOWER"
+ops = ""
 
 [[symbol]]
 id = "radiator"
@@ -338,6 +417,9 @@ required_when = ""
 sketch = "Smal rektangel mot väggen, ibland med tvärstreck."
 syn = ["radiator", "element", "värmeelement", "elradiator"]
 rules = []
+ifc = "IfcSpaceHeater"
+ifc_type = "RADIATOR"
+ops = "lib-common-hvac-symbols-radiator"
 
 # ------------------------------------------------------------ ventilation
 
@@ -352,6 +434,9 @@ required_when = "När ventilationen visas i planen."
 sketch = "Cirkel med en pil ut, eller texten TL."
 syn = ["tilluft", "TL", "tilluftsdon", "uteluftsventil", "spaltventil"]
 rules = ["bfs8-ventilation"]
+ifc = "IfcAirTerminal"
+ifc_type = "DIFFUSER"
+ops = "lib-common-hvac-symbols-supply-diffuser"
 
 [[symbol]]
 id = "exhaust_air"
@@ -364,6 +449,9 @@ required_when = "När ventilationen visas i planen; alltid i våtrum."
 sketch = "Cirkel med en pil in, eller texten FL."
 syn = ["frånluft", "FL", "frånluftsdon", "utsug", "köksfläkt"]
 rules = ["bfs8-ventilation"]
+ifc = "IfcAirTerminal"
+ifc_type = ""
+ops = ""
 
 # ------------------------------------------------------------------- kök
 
@@ -378,6 +466,9 @@ required_when = ""
 sketch = "Fyrkant med fyra små cirklar."
 syn = ["spis", "häll", "induktion", "spishäll"]
 rules = []
+ifc = "IfcElectricAppliance"
+ifc_type = "ELECTRICCOOKER"
+ops = ""
 
 [[symbol]]
 id = "fridge"
@@ -390,6 +481,9 @@ required_when = ""
 sketch = "Fyrkant med KY, FR eller en stjärna."
 syn = ["kyl", "kylskåp", "KY", "frys", "FR", "kyl/frys"]
 rules = []
+ifc = "IfcElectricAppliance"
+ifc_type = "REFRIGERATOR"
+ops = ""
 
 # ------------------------------------------------------------------- mark
 
@@ -404,6 +498,9 @@ required_when = ""
 sketch = "Cirkel, ofta vågig, med en prick i mitten."
 syn = ["träd", "buske", "plantering"]
 rules = []
+ifc = "IfcGeographicElement"
+ifc_type = ""
+ops = ""
 
 # ---------------------------------------------------------- revision
 
@@ -418,6 +515,9 @@ required_when = "Vid varje ändring efter att ritningen lämnats ut."
 sketch = "Liten triangel med en bokstav eller siffra."
 syn = ["rev", "revision", "rev A", "revisionstriangel", "ändring"]
 rules = ["rmink-ritningshuvud"]
+ifc = ""
+ifc_type = ""
+ops = ""
 
 [[symbol]]
 id = "revision_cloud"
@@ -430,3 +530,6 @@ required_when = "Vid varje ändring efter att ritningen lämnats ut."
 sketch = "Bubblig, molnformad ring."
 syn = ["moln", "revisionsmoln", "ändringsmoln"]
 rules = []
+ifc = ""
+ifc_type = ""
+ops = ""

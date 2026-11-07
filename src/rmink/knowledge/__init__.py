@@ -171,6 +171,12 @@ def variant_facts(variant: dict) -> dict:
     return facts
 
 
+def symbol(kind: str) -> dict | None:
+    """The catalogue entry of a drawn symbol, with its IFC class and its symbol in
+    Open PDF Studio's library, or None for a kind that is not in the catalogue."""
+    return next((s for s in load()["symbols"]["symbol"] if s["id"] == kind), None)
+
+
 def _table(kind: str) -> list[dict]:
     file, table = KINDS[kind]
     return load()[file].get(table, [])

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.24.0 — 2026-11-07
+
+- Every symbol in the knowledge base says what it is elsewhere: its IFC4 class and PredefinedType, such as `IfcOutlet` / `POWEROUTLET` for a socket, and the same symbol in Open PDF Studio's symbol library where its meaning is the same. Nine of the 33 have one there; notations such as section and level have no IFC class.
+- `rmink sheet measure` uses it: a cross on a symbol carries the symbol's library id in the PDF, which Open PDF Studio 2026.45.0 reads, and the CSV list has an IFC column.
+- `symbol_svg()` draws rmink's symbols as SVG in the library's format: strokes only, 64 by 64, self-contained.
+
 ## 2.23.0 — 2026-11-07
 
 - `rmink sheet measure` measures with the pen on a sheet with a scale. A straight stroke becomes a length and a small cross or ring a count; writing and underlines are left alone. No model is involved.

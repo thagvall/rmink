@@ -29,6 +29,7 @@ import numpy as np
 import pymupdf
 from pydantic import BaseModel
 
+from rmink import knowledge
 from rmink.bridge.ink_pdf import ERASERS, is_tap, notebook_manifest, stroke_key
 from rmink.bridge.sheet import Manifest, unrotate
 from rmink.devices import DeviceProfile, get_device
@@ -63,6 +64,7 @@ class Quantity(BaseModel):
     value: float  # mm for a length, 1 for a count
     unit: str  # "mm" or "st"
     strokes: list[str]
+    symbol: str = ""  # the rmink symbol a count is on, as in knowledge/symbols.toml
 
 
 class Takeoff(BaseModel):
@@ -249,7 +251,7 @@ class _Plan:
 
     def __init__(self, segments: list, symbols: list) -> None:
         self.segments = segments  # (a, b, group) in sheet pt
-        self.symbols = symbols  # (centre, radius, name) in sheet pt
+        self.symbols = symbols  # (centre, radius, name, kind) in sheet pt
 
     def length_group(self, a: np.ndarray, b: np.ndarray) -> str:
         d = b - a
@@ -265,11 +267,12 @@ class _Plan:
                 return group
         return "Linje"
 
-    def count_group(self, at: np.ndarray, shape: str) -> str:
-        for centre, radius, name in self.symbols:
+    def count_group(self, at: np.ndarray, shape: str) -> tuple[str, str]:
+        """The group a mark counts in, and the symbol it is on ("" for none)."""
+        for centre, radius, name, kind in self.symbols:
             if np.linalg.norm(at - centre) <= max(radius, ALONG / PT_TO_MM):
-                return name
-        return "Kryss" if shape == "cross" else "Ring"
+                return name, kind
+        return _shape_group(shape), ""
 
 
 def _plan(doc: pymupdf.Document, sheet_page: int) -> _Plan | None:
@@ -301,10 +304,15 @@ def _plan(doc: pymupdf.Document, sheet_page: int) -> _Plan | None:
             np.array(s.at, dtype=float) * k + origin,
             s.size * k * 0.75,
             s.label or SYMBOLS.get(s.kind, (s.kind, []))[0],
+            s.kind,
         )
         for s in d.symbols
     ]
     return _Plan(segments, symbols)
+
+
+def _shape_group(shape: str) -> str:
+    return "Kryss" if shape == "cross" else "Ring"
 
 
 def find_quantities(notebook: bytes, sheet: bytes, scale: int | None = None) -> Takeoff:
@@ -363,17 +371,13 @@ def find_quantities(notebook: bytes, sheet: bytes, scale: int | None = None) -> 
                 )  # fmt: skip
             else:
                 at = sheet_point(where)
-                group = (
-                    plan.count_group(at, shape)
-                    if plan
-                    else ("Kryss" if shape == "cross" else "Ring")
-                )
+                group, kind = plan.count_group(at, shape) if plan else (_shape_group(shape), "")
                 numbers["A"] += 1
                 result.quantities.append(
                     Quantity(
                         id=f"A{numbers['A']}", kind="count", group=group,
                         sheet_page=tile.sheet_page, tablet_page=tile.tablet_page,
-                        points=[tuple(at)], value=1, unit="st", strokes=keys,
+                        points=[tuple(at)], value=1, unit="st", strokes=keys, symbol=kind,
                     )
                 )  # fmt: skip
     return result
@@ -466,6 +470,9 @@ def write_quantities(
             _str(doc, x, "OPS_CountCategory", group)
             _str(doc, x, "OPS_CountCategoryName", q.group)
             _str(doc, x, "OPS_MarkerStyle", "dot")
+            mapped = knowledge.symbol(q.symbol) if q.symbol else None
+            if mapped and mapped["ops"]:
+                _str(doc, x, "OPS_SymbolId", mapped["ops"])
         _str(doc, x, "NM", name)
         _str(doc, x, "RMINK_Strokes", json.dumps(q.strokes))
         names.add(name)
@@ -477,16 +484,24 @@ def _number(value: float, decimals: int) -> str:
     return f"{value:.{decimals}f}".replace(".", ",")
 
 
+def _ifc(kind: str) -> str:
+    """IfcOutlet.POWEROUTLET for a count on a symbol with an IFC class."""
+    mapped = knowledge.symbol(kind) if kind else None
+    if not mapped or not mapped["ifc"]:
+        return ""
+    return ".".join(x for x in (mapped["ifc"], mapped["ifc_type"]) if x)
+
+
 def quantities_csv(takeoff: Takeoff) -> str:
     """Every length and count, then the sums per group; Swedish Excel opens it as is."""
     out = io.StringIO()
     out.write("﻿")
     w = csv.writer(out, delimiter=";")
-    w.writerow(["Nr", "Typ", "Grupp", "Blad", "Värde", "Enhet"])
+    w.writerow(["Nr", "Typ", "Grupp", "Blad", "Värde", "Enhet", "IFC"])
     for q in takeoff.quantities:
         kind = "Längd" if q.kind == "length" else "Antal"
         value = _number(q.value, 0)
-        w.writerow([q.id, kind, q.group, q.sheet_page + 1, value, q.unit])
+        w.writerow([q.id, kind, q.group, q.sheet_page + 1, value, q.unit, _ifc(q.symbol)])
     w.writerow([])
     w.writerow(["Summa", "Typ", "Grupp", "Antal", "Summa", "Enhet"])
     for kind, group, n, total in takeoff.totals():

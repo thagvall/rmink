@@ -156,7 +156,7 @@ On a sheet with a scale the pen measures: a straight stroke is a length, a small
 rmink sheet measure "/rmink/Ark/garage" "garage med bläck.pdf"   # measurements, counts and a CSV list
 ```
 
-On a drawing from `rmink sheet drawing` a length along a wall takes the wall's category, and a cross on a symbol counts as that symbol. The lengths are as drawn by hand; on rm2 a 6000 mm wall drawn on the overview came out as 6043 mm.
+On a drawing from `rmink sheet drawing` a length along a wall takes the wall's category, and a cross on a symbol counts as that symbol, with the symbol's id in Open PDF Studio's library and its IFC class in the list. The lengths are as drawn by hand; on rm2 a 6000 mm wall drawn on the overview came out as 6043 mm.
 
 The PDF stays an ordinary PDF. Ink, layers, comments, status, measurements and counts open in [Open PDF Studio](https://github.com/OpenAEC-Foundation/open-pdf-studio) (tried on 2026.45.0), which can take the sheet on to DXF. Only the rm2 is tried on a device. Reading the crosses needs no model; the handwriting needs someone to read it.
 

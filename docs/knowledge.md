@@ -123,6 +123,13 @@ Detaljerat per byggdel. Tabellen visar vad som ska synas i varje ritningsslag oc
 
 Varje post anger vad symbolen betyder, vilken text som står vid den (`+0,00`, `A`, `10x21`, `1:50`), hur den brukar se ut handritad och vilka granskningsregler som hör till. Geometrin är rmink:s egen. Elsymbolerna liknar IEC 60617 men kopierar den inte. Därför förklaras varje använd symbol i FÖRKLARINGAR.
 
+Varje post säger också vad symbolen är i andra system:
+
+- **`ifc` och `ifc_type`:** IFC4-klassen och dess PredefinedType, till exempel `IfcOutlet` och `POWEROUTLET` för eluttag. Tomt för beteckningar som snitt, nivå och revisionsmärke, som inte står för någon byggdel.
+- **`ops`:** samma symbol i Open PDF Studios symbolbibliotek, till exempel `lib-iec60617-electrical-socket-earthed`. Den kopplas bara när betydelsen är densamma, i dag för nio symboler. Övriga saknas i biblioteket.
+
+`rmink sheet measure` använder kopplingen: ett kryss på en symbol får symbolens id i PDF:en och IFC-klassen i CSV-listan. `symbol_svg()` i `src/rmink/drawing/symbols.py` ger rminks symboler som SVG i bibliotekets format, så att de som saknas där kan föreslås som ett svenskt bidrag.
+
 ## 4. Arbetsgång för typiska småhusprojekt
 
 | Projekt | Ritningar som behövs | Skede | Viktigaste granskningspunkter (regel-ID) |

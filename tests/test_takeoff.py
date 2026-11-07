@@ -162,7 +162,7 @@ def test_writing_quantities_twice_adds_nothing():
 def test_the_list_has_every_quantity_and_the_sums():
     _, takeoff, _ = written([line(20, 20, 120, 20), line(20, 40, 70, 40), *cross(40, 80)])
     rows = list(csv.reader(io.StringIO(quantities_csv(takeoff).lstrip("﻿")), delimiter=";"))
-    assert rows[0] == ["Nr", "Typ", "Grupp", "Blad", "Värde", "Enhet"]
+    assert rows[0] == ["Nr", "Typ", "Grupp", "Blad", "Värde", "Enhet", "IFC"]
     sums = rows[rows.index(["Summa", "Typ", "Grupp", "Antal", "Summa", "Enhet"]) + 1 :]
     assert sums[0][:4] == ["", "Längd", "Linje", "2"]
     total = sum(q.value for q in takeoff.quantities if q.kind == "length")
@@ -172,7 +172,7 @@ def test_the_list_has_every_quantity_and_the_sums():
 
 
 def test_on_a_drawing_a_wall_and_a_symbol_are_named():
-    d = plan(symbols=[Symbol(id="s1", kind="column", at=(700, 300), size=40)])
+    d = plan(symbols=[Symbol(id="s1", kind="outlet", at=(700, 300), size=40)])
     source = drawing_pdf(d, "a3").pdf
     doc = pymupdf.open(stream=source, filetype="pdf")
     place = json.loads(doc.embfile_get("rmink.placement.json"))
@@ -198,6 +198,16 @@ def test_on_a_drawing_a_wall_and_a_symbol_are_named():
     draw([(600, 600), (900, 600)], lambda a, b: [line(*a, *b)])  # across the floor
     takeoff = find_quantities(notebook(pack, strokes), source)
     found = sorted((q.kind, q.group) for q in takeoff.quantities)
-    assert found == [("count", "Pelare"), ("length", "Bärande"), ("length", "Linje")]
+    assert found == [("count", "Eluttag"), ("length", "Bärande"), ("length", "Linje")]
     wall = next(q for q in takeoff.quantities if q.group == "Bärande")
     assert wall.value == pytest.approx(1500, rel=0.01)  # 300 px at 5 mm per px
+
+    # The count knows its symbol: Open PDF Studio's id in the PDF, the IFC class in the list.
+    pdf, *_ = write_quantities(source, takeoff)
+    out = pymupdf.open(stream=pdf, filetype="pdf")
+    page = out[0]
+    (marker,) = [a for a in page.annots() if a.type[1] == "Circle"]
+    symbol_id = out.xref_get_key(marker.xref, "OPS_SymbolId")[1]
+    assert symbol_id == "lib-iec60617-electrical-socket-earthed"
+    rows = list(csv.reader(io.StringIO(quantities_csv(takeoff).lstrip("\ufeff")), delimiter=";"))
+    assert ["Eluttag", "IfcOutlet.POWEROUTLET"] in [[r[2], r[6]] for r in rows[1:4]]

@@ -185,3 +185,23 @@ def symbol_paths(
     a = np.radians(rotation)
     rot = np.array([[np.cos(a), np.sin(a)], [-np.sin(a), np.cos(a)]])
     return [(p * size) @ rot + np.asarray(at) for p in paths]
+
+
+def symbol_svg(kind: str, box: float = 64.0, margin: float = 6.0, width: float = 2.0) -> str:
+    """Symbol ``kind`` as a self-contained SVG with strokes only, y down, in a
+    ``box`` square: the format of Open PDF Studio's symbol library."""
+    if kind not in SYMBOLS:
+        raise KeyError(kind)
+    k = box - 2 * margin
+    paths = []
+    for p in symbol_paths(kind, (box / 2, box / 2), k):
+        d = " ".join(f"{'M' if i == 0 else 'L'}{x:.2f} {y:.2f}" for i, (x, y) in enumerate(p))
+        if len(p) > 2 and np.allclose(p[0], p[-1]):
+            d += " Z"
+        paths.append(f'<path d="{d}"/>')
+    return (
+        f'<svg viewBox="0 0 {box:g} {box:g}" xmlns="http://www.w3.org/2000/svg" fill="none" '
+        f'stroke="#000" stroke-width="{width:g}" stroke-linecap="round" stroke-linejoin="round">'
+        + "".join(paths)
+        + "</svg>"
+    )

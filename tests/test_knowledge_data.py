@@ -236,3 +236,40 @@ def test_reference_states_when_permits_come_back():
     # a 2,1 m deck next to the house needs a permit inside a detaljplan
     line = next(x for x in knowledge.reference().splitlines() if x.startswith("- altan:"))
     assert "1,8 m" in line and "3,6 m" in line
+
+
+# Collections of Open PDF Studio's library (open-pdf-studio-library, index.json of
+# 2026-11-07) and their symbols that rmink points to.
+OPS_LIBRARY = {
+    "iec60617-electrical": {
+        "distribution-board",
+        "light-point",
+        "socket-double",
+        "socket-earthed",
+        "switch-single",
+    },
+    "common-hvac-symbols": {"radiator", "supply-diffuser"},
+    "common-north-arrows": {"north-arrow-simple"},
+}
+IFC_CLASSES = {
+    "IfcAirTerminal", "IfcColumn", "IfcDoor", "IfcElectricAppliance",
+    "IfcElectricDistributionBoard", "IfcFastener", "IfcFooting", "IfcGeographicElement",
+    "IfcLightFixture", "IfcMechanicalFastener", "IfcOutlet", "IfcRailing", "IfcSanitaryTerminal",
+    "IfcSensor", "IfcSpaceHeater", "IfcStair", "IfcSwitchingDevice", "IfcWasteTerminal",
+    "IfcWindow",
+}  # fmt: skip
+
+
+def test_every_symbol_says_its_ifc_class_and_library_symbol(kb):
+    for s in kb["symbols"]["symbol"]:
+        assert {"ifc", "ifc_type", "ops"} <= s.keys(), s["id"]
+        assert s["ifc"] == "" or s["ifc"] in IFC_CLASSES, (s["id"], s["ifc"])
+        assert s["ifc"] or not s["ifc_type"], s["id"]
+        assert s["ifc_type"] == s["ifc_type"].upper(), s["id"]
+        if s["ops"]:
+            collection, name = next(
+                (c, s["ops"].removeprefix(f"lib-{c}-"))
+                for c in OPS_LIBRARY
+                if s["ops"].startswith(f"lib-{c}-")
+            )
+            assert name in OPS_LIBRARY[collection], (s["id"], s["ops"])
