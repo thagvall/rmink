@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import io
 import json
 import tempfile
@@ -14,7 +15,7 @@ import pytest
 from rmscene.scene_items import Pen, PenColor
 
 from rmink.bridge.ink_pdf import notebook_manifest, pull
-from rmink.bridge.sheet import MANIFEST, build_pack, read_manifest, write_pack
+from rmink.bridge.sheet import MANIFEST, build_pack, read_manifest, tablet_size, write_pack
 from rmink.devices import get_device
 from rmink.model import Page, Stroke
 from rmink.package.rmdoc import RmdocPage, UuidFactory, write_rmdoc
@@ -25,10 +26,12 @@ RM2 = get_device("rm2")
 MARK = pymupdf.Rect(100, 50, 130, 80)  # in the unrotated page
 
 
-def sheet_bytes(rotation=0, crop=None, unit=None, size=(800, 500)) -> bytes:
+def sheet_bytes(rotation=0, crop=None, unit=None, size=(800, 500), frame=False) -> bytes:
     doc = pymupdf.open()
     page = doc.new_page(width=size[0], height=size[1])
     page.draw_rect(MARK, color=None, fill=(0, 0, 0))
+    if frame:
+        page.draw_rect(page.rect + (5, 5, -5, -5), color=(0, 0, 0), width=1)
     if crop:
         page.set_cropbox(pymupdf.Rect(crop))
     if unit:
@@ -54,8 +57,10 @@ def notebook(pack, strokes: dict[int, list[Stroke]], device=RM2) -> bytes:
     uuids = UuidFactory(1)
     author = uuids()
     pages = []
+    # The tablet keeps x from the middle of the page as shown (see read._landscape_shifts).
+    shift = (device.height - device.width) / 2 if pack.manifest.orientation == "landscape" else 0
     for n in range(len(pack.manifest.tiles)):
-        on_page = strokes.get(n, [])
+        on_page = [dataclasses.replace(s, points=s.points - (shift, 0)) for s in strokes.get(n, [])]
         page = Page(device.width, device.height, on_page, ["Layer 1"])
         pages.append(
             RmdocPage(write_page(page, device, author) if on_page else b"", None, page.layers)
@@ -97,7 +102,7 @@ def test_tiles_show_the_sheet_where_the_matrix_says(case, zoom):
     source = sheet_bytes(**case)
     x0, y0, x1, y1 = box(dark(source))
     pack = build_pack(source, RM2, "Plan", "s", zoom=zoom)
-    width, height = 1404 * 72 / 226, 1872 * 72 / 226
+    width, height = tablet_size(RM2, pack.manifest.orientation).br
     tiles = [t for t in pack.manifest.tiles if t.kind == "tile"] or pack.manifest.tiles
     whole = [
         t
@@ -148,17 +153,39 @@ def test_transform_error_is_below_half_a_point():
 
 
 def test_a_big_sheet_is_cut_with_overlap_and_covers_everything():
-    pack = build_pack(sheet_bytes(size=(2384, 1684)), RM2, "A1", "s", zoom=1.0)
+    pack = build_pack(sheet_bytes(size=(2384, 1684), frame=True), RM2, "A1", "s", zoom=1.0)
     tiles = [t for t in pack.manifest.tiles if t.kind == "tile"]
     assert pack.manifest.tiles[0].kind == "overview"
-    assert len(tiles) >= 18
-    tablet = (1404 * 72 / 226, 1872 * 72 / 226)
+    assert pack.manifest.orientation == "landscape"
+    # 4 x 4 at the largest zoom a little below 1 that saves pages; 1 would take 5 x 4.
+    assert len(tiles) == 16
+    assert 1 / tiles[0].matrix[0] == pytest.approx(0.95)
+    tablet = tablet_size(RM2, "landscape").br
     seen = np.zeros((1684, 2384), dtype=bool)
     for t in tiles:
         x0, y0 = t.to_sheet(0, 0)
         x1, y1 = t.to_sheet(*tablet)
         seen[int(y0) : int(np.ceil(y1)), int(x0) : int(np.ceil(x1))] = True
     assert seen.all()
+
+
+def test_a_landscape_a3_takes_four_landscape_tiles_where_it_took_six():
+    a3 = (420 * 72 / 25.4, 297 * 72 / 25.4)
+    source = sheet_bytes(size=a3, frame=True)
+    turned = build_pack(source, RM2, "A3", "s", legend="none")
+    upright = build_pack(source, RM2, "A3", "s", orientation="portrait", legend="none")
+    assert [t.kind for t in turned.manifest.tiles].count("tile") == 4
+    assert [t.kind for t in upright.manifest.tiles].count("tile") == 6
+    # The overview is a third larger.
+    assert turned.manifest.tiles[0].matrix[0] < upright.manifest.tiles[0].matrix[0] * 0.76
+
+
+def test_blank_margins_get_no_tiles():
+    source = sheet_bytes(size=(2384, 1684))  # only a mark near the top left
+    tiles = [t for t in build_pack(source, RM2, "A1", "s").manifest.tiles if t.kind == "tile"]
+    assert len(tiles) == 1
+    x, y = tiles[0].to_sheet(0, 0)
+    assert x == 0 and y == 0
 
 
 def test_a_sheet_that_fits_is_one_page():
@@ -327,8 +354,11 @@ def test_write_pack_makes_a_notebook_read_ink_accepts(tmp_path):
         pdf = next(n for n in zf.namelist() if n.endswith(".pdf"))
         pages = pymupdf.open(stream=zf.read(pdf), filetype="pdf")
     assert pages.page_count == len(manifest.tiles)
-    assert pages[0].rect.width == pytest.approx(1404 * 72 / 226)
+    assert pages[0].rect.width == pytest.approx(1872 * 72 / 226)  # the sheet lies
     assert json.loads(pages.embfile_get(MANIFEST))["format"] == "rmink/sheet"
+    with zipfile.ZipFile(io.BytesIO(data)) as zf:
+        content = json.loads(zf.read(next(n for n in zf.namelist() if n.endswith(".content"))))
+    assert content["orientation"] == "landscape"
 
 
 def test_only_a_notebook_from_send_is_accepted():

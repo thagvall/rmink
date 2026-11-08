@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.25.0 — 2026-11-08
+
+- Sheets lie on the tablet as they do on paper. A landscape drawing becomes a landscape notebook, which the tablet shows turned with its menus, so the overview of an A3 is a third larger and it takes four tiles instead of six. A notebook lies as most of its sheets do; `--orientation` decides otherwise.
+- Tiles cover what is drawn, not the blank margins round it, and may show the sheet up to a tenth smaller than printed when that saves pages.
+- The title block or legend in the bottom right corner is pasted beside every tile, at a size to read it. When it would be too small there, it gets a page of its own with a button to it from every tile. Ink on the pasted legend stays off the sheet. The legend is found by its frame or its text and can be wrong; the overview marks it, and `--legend` gives it or turns it off.
+- A sheet from `rmink sheet drawing` has a legend left of its title block: each symbol and line kind it uses, drawn as on the sheet, with what it means; a long one ends with how many more there are. It is this legend that goes beside the tiles.
+- The buttons on the tablet pages lost their Ö on sheets from `rmink sheet drawing`, and on any sheet with a font of the same name, and showed "versikt"; they now keep it.
+- Measured on rm2: on a landscape page the tablet keeps x from the middle of the page as shown, half a screen height in; ink is read accordingly.
+- The MCP tool `send_sheet` takes `orientation` and `legend` and says how each sheet was laid out; `pull_sheet` counts strokes left on the legend.
+
 ## 2.24.0 — 2026-11-07
 
 - Every symbol in the knowledge base says what it is elsewhere: its IFC4 class and PredefinedType, such as `IfcOutlet` / `POWEROUTLET` for a socket, and the same symbol in Open PDF Studio's symbol library where its meaning is the same. Nine of the 33 have one there; notations such as section and level have no IFC class.

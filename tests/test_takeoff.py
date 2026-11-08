@@ -14,7 +14,7 @@ from test_drawing_pdf import plan
 from test_points import line, ring, word
 
 from rmink.bridge.drawing_pdf import _viewport, drawing_pdf
-from rmink.bridge.sheet import build_pack
+from rmink.bridge.sheet import build_pack, tablet_size
 from rmink.bridge.takeoff import (
     find_quantities,
     page_scale,
@@ -178,24 +178,29 @@ def test_on_a_drawing_a_wall_and_a_symbol_are_named():
     place = json.loads(doc.embfile_get("rmink.placement.json"))
     k, (ox, oy) = place["pt_per_px"], place["origin"]
     pack = build_pack(source, RM2, "Garage", "g")
+    w, h = (v / TABLET_PX / PX for v in tablet_size(RM2, pack.manifest.orientation).br)
     strokes: dict[int, list[Stroke]] = {}
 
     def draw(points: list[tuple[float, float]], make) -> None:
         """``make`` given tablet mm for ``points``, drawing px, on a tile holding them all."""
         sheet = [(x * k + ox, y * k + oy) for x, y in points]
         for tile in pack.manifest.tiles:
-            if tile.tablet_page == 0:
+            if tile.kind != "tile":
                 continue
-            mm = [np.array(tile.to_tablet(*p)) / TABLET_PX / PX for p in sheet]
-            if all(5 < x < 150 and 5 < y < 200 for x, y in mm):
+            pt = [tile.to_tablet(*p) for p in sheet]
+            free = all(
+                not (r[0] <= x <= r[2] and r[1] <= y <= r[3]) for x, y in pt for r in tile.blocked
+            )
+            mm = [np.array(p) / TABLET_PX / PX for p in pt]
+            if free and all(5 < x < w - 5 and 5 < y < h - 5 for x, y in mm):
                 strokes.setdefault(tile.tablet_page, []).extend(make(*mm))
                 return
         raise AssertionError("no tile holds the points")
 
     # 6 px (30 mm) beside the top wall: 1.2 mm on the sheet at 1:25.
-    draw([(600, 106), (900, 106)], lambda a, b: [line(*a, *b)])  # along the top wall
+    draw([(350, 106), (650, 106)], lambda a, b: [line(*a, *b)])  # along the top wall
     draw([(700, 300)], lambda c: cross(*c))  # on the column
-    draw([(600, 600), (900, 600)], lambda a, b: [line(*a, *b)])  # across the floor
+    draw([(350, 600), (650, 600)], lambda a, b: [line(*a, *b)])  # across the floor
     takeoff = find_quantities(notebook(pack, strokes), source)
     found = sorted((q.kind, q.group) for q in takeoff.quantities)
     assert found == [("count", "Eluttag"), ("length", "Bärande"), ("length", "Linje")]

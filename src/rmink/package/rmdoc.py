@@ -83,6 +83,7 @@ def _content(
     device: DeviceProfile,
     size_bytes: int,
     pdf: bool = False,
+    orientation: str = "portrait",
 ) -> dict:
     stamp = "1:2"
     content = {
@@ -108,7 +109,7 @@ def _content(
         "coverPageNumber": -1,
         "customZoomCenterX": 0,
         "customZoomCenterY": device.height // 2,
-        "customZoomOrientation": "portrait",
+        "customZoomOrientation": orientation,
         "customZoomPageHeight": device.height,
         "customZoomPageWidth": device.width,
         "customZoomScale": 1,
@@ -124,7 +125,7 @@ def _content(
         "formatVersion": 2,
         "lineHeight": -1,
         "margins": 125,
-        "orientation": "portrait",
+        "orientation": orientation,
         "pageCount": len(page_ids),
         "pageTags": [],
         "sizeInBytes": str(size_bytes),
@@ -170,6 +171,7 @@ def write_rmdoc(
     compress: bool = False,
     now_ms: int | None = None,
     pdf: bytes | None = None,
+    orientation: str = "portrait",
 ) -> RmdocResult:
     """Write the archive. With ``pdf``, a PDF document with one entry in
     ``pages`` per PDF page; an entry with empty ``rm_bytes`` has no ink."""
@@ -190,7 +192,8 @@ def write_rmdoc(
         add(
             f"{doc_id}.content",
             json.dumps(
-                _content(page_ids, author_uuid, device, payload_size, pdf is not None), indent=4
+                _content(page_ids, author_uuid, device, payload_size, pdf is not None, orientation),
+                indent=4,
             ).encode(),
         )
         add(f"{doc_id}.metadata", json.dumps(_metadata(name, now_ms), indent=4).encode())

@@ -572,11 +572,15 @@ def send_sheet(
     device: str = "rm2",
     zoom: float = 1.0,
     pages: str | None = None,
+    orientation: str = "auto",
+    legend: str = "auto",
 ) -> dict:
     """Cut a PDF sheet of any size into a notebook of tablet pages.
 
     The notebook has an overview, then tiles that know their exact place on the sheet, so
-    ink written on them can go back with `pull_sheet`.
+    ink written on them can go back with `pull_sheet`. The pages lie as most sheets do. A
+    legend or title block found in the bottom right corner is pasted beside every tile, or
+    put on a page of its own when it would be too small there to read.
 
     Args:
         path: The PDF sheet.
@@ -584,11 +588,21 @@ def send_sheet(
         device: rm2, pure, pro or move.
         zoom: 1 shows the sheet at its printed size; higher means fewer sheet points per page.
         pages: Sheet pages, e.g. "1-3,7"; all by default.
+        orientation: auto, portrait or landscape.
+        legend: auto, none, or "x0,y0,x1,y1" in mm from the sheet's top left.
     """
-    from rmink.bridge.sheet import write_pack
+    from rmink.bridge.sheet import layout, parse_legend, write_pack
 
-    manifest = write_pack(Path(path), Path(output_path), get_device(device), zoom, pages)
-    return {"path": output_path, "tablet_pages": len(manifest.tiles)}
+    manifest = write_pack(
+        Path(path), Path(output_path), get_device(device), zoom, pages,
+        orientation=orientation, legend=parse_legend(legend),
+    )  # fmt: skip
+    return {
+        "path": output_path,
+        "tablet_pages": len(manifest.tiles),
+        "orientation": manifest.orientation,
+        "sheets": layout(manifest),
+    }
 
 
 @server.tool()
@@ -622,6 +636,7 @@ def pull_sheet(notebook: str, sheet_path: str, output_path: str) -> dict:
         "layers": result.layers,
         "pages_added_on_tablet": result.added_pages,
         "blocks_not_read": result.unread,
+        "strokes_on_legend": result.on_legend,
     }
 
 

@@ -64,6 +64,7 @@ class Pulled:
     pages: dict[int, int] = field(default_factory=dict)  # sheet page -> strokes added
     added_pages: int = 0  # tablet pages the user added, which have no place on the sheet
     unread: int = 0  # blocks on the tablet pages that could not be read; ink may be missing
+    on_legend: int = 0  # strokes on the legend pasted beside the sheet, left out
 
 
 def notebook_manifest(notebook: bytes) -> Manifest:
@@ -135,6 +136,19 @@ def is_tap(stroke: Stroke, tile: Tile, px: float) -> bool:
     )
 
 
+def on_legend(stroke: Stroke, tile: Tile, px: float) -> bool:
+    """Ink whose middle is on the legend pasted beside the sheet, which is not
+    where that part of the sheet is."""
+    (x0, y0), (x1, y1) = stroke.points.min(axis=0) * px, stroke.points.max(axis=0) * px
+    x, y = (x0 + x1) / 2, (y0 + y1) / 2
+    return any(r[0] <= x <= r[2] and r[1] <= y <= r[3] for r in tile.blocked)
+
+
+def off_sheet(stroke: Stroke, tile: Tile, px: float) -> bool:
+    """A tap on a button, or ink on the pasted legend."""
+    return is_tap(stroke, tile, px) or on_legend(stroke, tile, px)
+
+
 def add_stroke(
     doc: pymupdf.Document,
     page: pymupdf.Page,
@@ -189,6 +203,9 @@ def pull(notebook: bytes, sheet: bytes) -> Pulled:
         scale = float(np.hypot(tile.matrix[0], tile.matrix[1])) * px
         for s in strokes:
             if s.pen in ERASERS or s.id is None or is_tap(s, tile, px):
+                continue
+            if on_legend(s, tile, px):
+                result.on_legend += 1
                 continue
             stroke_id = stroke_key(manifest, tablet_page, s)
             if f"rmink-{stroke_id}" in known:

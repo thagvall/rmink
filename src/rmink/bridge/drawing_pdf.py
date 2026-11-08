@@ -14,6 +14,7 @@ The geometry is a sketch cleaned up, not a survey, and the sheet says that too.
 from __future__ import annotations
 
 import json
+import math
 import unicodedata
 from dataclasses import dataclass, field
 
@@ -23,7 +24,7 @@ import pymupdf
 from rmink.devices import get_device
 from rmink.drawing import workflow
 from rmink.drawing.font import _letters, text_width
-from rmink.drawing.model import Drawing
+from rmink.drawing.model import Drawing, LegendEntry
 from rmink.drawing.render import (
     _angle,
     _bbox_of,
@@ -32,6 +33,7 @@ from rmink.drawing.render import (
     _option,
     _Pen,
     _Style,
+    default_legend,
     symbol_paths,
 )
 from rmink.workbook.build import plain
@@ -49,6 +51,11 @@ MIN_FONT = 5.0  # pt
 FIT = 0.2  # share a text may grow or shrink to keep its width
 OPTION_WIDTH = 1100.0  # px an alternative is laid out in
 STATES = {"accepted": "Accepted", "rejected": "Rejected"}
+LEGEND_HEAD = 8.0  # mm, the heading of the legend
+LEGEND_ROW = 5.2  # mm a row
+LEGEND_COL = 62.0  # mm a column at most
+LEGEND_SAMPLE = 4.2  # mm, a symbol in the legend
+DASHES = {"dashed": "[6 4] 0", "dotted": "[1 3] 0", "dashdot": "[8 3 1 3] 0"}
 
 
 @dataclass
@@ -184,7 +191,7 @@ def _viewport(doc: pymupdf.Document, page: pymupdf.Page, n: int) -> None:
 
 def _title_block(
     page: pymupdf.Page, d: Drawing, n: int, paper: str, warnings: list[str], layer: int
-) -> None:
+) -> pymupdf.Rect:
     r = page.rect
     m = MARGIN * PT_PER_MM
     frame = pymupdf.Rect(m, m, r.width - m, r.height - m)
@@ -205,11 +212,70 @@ def _title_block(
     line("Skiss renritad av rmink. Skalan är härledd ur skrivna mått.", 8)
     for w in warnings[:2]:
         line(plain(f"OBS: {w}"), 8, (0.76, 0.23, 0.13))
+    return box
+
+
+def _legend(
+    page: pymupdf.Page, d: Drawing, pen: _Recorder, title: pymupdf.Rect, layer: int
+) -> pymupdf.Rect | None:
+    """The symbols and line kinds the drawing uses and what they mean, in the strip
+    left of the title block, column by column; None when there is nothing to explain."""
+    entries = d.legend or [LegendEntry(key=k, meaning=m) for k, m in default_legend(d)]
+    if not entries:
+        return None
+    mm = PT_PER_MM
+    room = title.x0 - MARGIN * mm
+    col_w = min(LEGEND_COL * mm, room)
+    if col_w < 30 * mm:
+        return None
+    rows = int((TITLE_H - LEGEND_HEAD) // LEGEND_ROW)
+    cols = min(math.ceil(len(entries) / rows), int(room // col_w))
+    shown = entries[: rows * cols]
+    rest = len(entries) - len(shown)
+    if rest:
+        shown, rest = shown[:-1], rest + 1
+    box = pymupdf.Rect(title.x0 - cols * col_w, title.y0, title.x0, title.y1)
+    page.draw_rect(box, color=(0, 0, 0), width=0.7, oc=layer)
+    page.insert_text((box.x0 + 8, box.y0 + 15), "Förklaring", fontsize=11, oc=layer)
+    text_w = col_w - 16 * mm
+    for i, entry in enumerate(shown):
+        col, row = divmod(i, rows)
+        x = box.x0 + col * col_w + 3 * mm
+        y = box.y0 + (LEGEND_HEAD + (row + 0.75) * LEGEND_ROW) * mm
+        mid = np.array([x + 5 * mm, y - 1.1 * mm])
+        if entry.key.startswith("category:"):
+            st = pen.style(entry.key.split(":", 1)[1])
+            page.draw_line(
+                pymupdf.Point(*(mid - (4.5 * mm, 0))),
+                pymupdf.Point(*(mid + (4.5 * mm, 0))),
+                color=tuple(c / 255 for c in st.rgb),
+                width=max(st.width * PEN_MM, MIN_LINE) * mm,
+                dashes=DASHES.get(st.line_type),
+                oc=layer,
+            )
+        else:
+            shape = page.new_shape()
+            for p in symbol_paths(entry.key, (0.0, 0.0), LEGEND_SAMPLE * mm):
+                shape.draw_polyline([pymupdf.Point(*(q + mid)) for q in p])
+            shape.finish(
+                color=(0, 0, 0), width=0.5, closePath=False, lineCap=1, lineJoin=1, oc=layer
+            )
+            shape.commit()
+        label = plain(entry.meaning)
+        while label and pymupdf.get_text_length(label, fontsize=8) > text_w:
+            label = label[:-4].rstrip() + "..."
+        page.insert_text((x + 12 * mm, y), label, fontsize=8, oc=layer)
+    if rest:
+        col, row = divmod(len(shown), rows)
+        x = box.x0 + col * col_w + 3 * mm
+        y = box.y0 + (LEGEND_HEAD + (row + 0.75) * LEGEND_ROW) * mm
+        page.insert_text((x + 12 * mm, y), f"+ {rest} till", fontsize=8, oc=layer)
+    return box
 
 
 def _draw_part(doc, page, part: _Part, layer: int, to_sheet, k: float) -> None:
     shape = page.new_shape()
-    dashes = {"dashed": "[6 4] 0", "dotted": "[1 3] 0", "dashdot": "[8 3 1 3] 0"}
+    dashes = DASHES
     for path, st, width in part.paths:
         shape.draw_polyline([to_sheet(p) for p in path])
         shape.finish(
@@ -320,7 +386,8 @@ def drawing_pdf(d: Drawing, paper: str = "a3", scale: int | None = None) -> Shee
         _draw_part(doc, page, part, doc.add_ocg(_layer_name(part.layer)), to_sheet, k)
 
     frame = doc.add_ocg("Ritningshuvud")
-    _title_block(page, d, n, paper, warnings, frame)
+    title = _title_block(page, d, n, paper, warnings, frame)
+    legend = _legend(page, d, pen, title, doc.add_ocg("Forklaring"))
     _viewport(doc, page, n)
 
     taken: dict[tuple[int, int], int] = {}
@@ -358,7 +425,8 @@ def drawing_pdf(d: Drawing, paper: str = "a3", scale: int | None = None) -> Shee
 
     doc.set_metadata({"title": f"{d.name} r{d.revision:02d}", "creator": "rmink"})
     doc.embfile_add("rmink.drawing.json", d.model_dump_json().encode())
-    # Where the drawing lies on the first page, so that marks on it can be tied to it.
-    place = {"page": 0, "pt_per_px": k, "origin": [ox, oy]}
+    # Where the drawing lies on the first page, so that marks on it can be tied to it,
+    # and its legend, or its title block, which rmink sheet send pastes beside every tile.
+    place = {"page": 0, "pt_per_px": k, "origin": [ox, oy], "legend": list(legend or title)}
     doc.embfile_add("rmink.placement.json", json.dumps(place).encode())
     return SheetPdf(doc.tobytes(garbage=3, deflate=True), n, paper, mm_per_px, warnings)

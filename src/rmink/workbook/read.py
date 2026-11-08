@@ -64,6 +64,7 @@ def read_ink(data: bytes, device: DeviceProfile) -> Ink:
         meta_name = f"{doc_id}.metadata"
         meta = json.loads(zf.read(meta_name)) if meta_name in names else {}
         ink = Ink(zf.read(f"{doc_id}.pdf"), {}, meta.get("visibleName", ""))
+        shifts = _landscape_shifts(ink.pdf, device)
         for entry in content.get("cPages", {}).get("pages", []):
             rm_name = f"{doc_id}/{entry['id']}.rm"
             if "deleted" in entry or rm_name not in names:
@@ -73,8 +74,24 @@ def read_ink(data: bytes, device: DeviceProfile) -> Ink:
             if redir is None:
                 ink.added_pages += bool(strokes)
                 continue
+            shift = shifts.get(int(redir), 0.0)
+            for s in strokes if shift else ():
+                s.points[:, 0] += shift
             ink.pages.setdefault(int(redir), []).extend(strokes)
     return ink
+
+
+def _landscape_shifts(pdf: bytes, device: DeviceProfile) -> dict[int, float]:
+    """Device px to add to x on PDF pages of the tablet's landscape size. The
+    tablet stores x from the middle of the page as shown, which on such a page
+    lies half a screen height in, not half a width (measured on rm2)."""
+    doc = pymupdf.open(stream=pdf, filetype="pdf")
+    wide = device.height * 72 / device.dpi
+    return {
+        n: (device.height - device.width) / 2
+        for n, page in enumerate(doc)
+        if page.rect.width > page.rect.height and abs(page.rect.width - wide) < 1
+    }
 
 
 def _bounds_pt(stroke: Stroke, device: DeviceProfile) -> tuple[float, float, float, float]:

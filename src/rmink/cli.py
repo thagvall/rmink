@@ -594,20 +594,43 @@ def sheet_send(
     device: Device = "rm2",
     zoom: Annotated[float, typer.Option(help="1 shows the sheet at its printed size")] = 1.0,
     pages: Pages = None,
+    orientation: Annotated[
+        str, typer.Option(help="auto turns the pages as most sheets lie; or portrait, landscape")
+    ] = "auto",
+    legend: Annotated[
+        str,
+        typer.Option(
+            help="auto finds the legend or title block in the bottom right corner; "
+            "none; or x0,y0,x1,y1 in mm from the sheet's top left"
+        ),
+    ] = "auto",
     send: Annotated[bool, typer.Option(help=f"Upload to {SHEET_FOLDER}/ in your cloud")] = False,
 ) -> None:
-    """Cut a PDF into tablet pages: an overview, then tiles that know their place on the sheet."""
+    """Cut a PDF into tablet pages: an overview, then tiles that know their place on the sheet.
+
+    Pages lie as the sheets do. A legend found is pasted beside every tile, or put on a
+    page of its own when it would be too small there."""
     from rmink import cloud
-    from rmink.bridge.sheet import write_pack
+    from rmink.bridge.sheet import layout, parse_legend, write_pack
     from rmink.devices import get_device
 
     out = output or source.with_suffix(".rmdoc")
     try:
-        manifest = write_pack(source, out, get_device(device), zoom, pages)
+        manifest = write_pack(
+            source, out, get_device(device), zoom, pages,
+            orientation=orientation, legend=parse_legend(legend),
+        )  # fmt: skip
     except ValueError as e:
         typer.secho(f"error: {e}", fg="red", err=True)
         raise typer.Exit(1) from e
-    typer.echo(f"{out} ({len(manifest.tiles)} tablet pages)")
+    typer.echo(f"{out} ({len(manifest.tiles)} tablet pages, {manifest.orientation})")
+    for row in layout(manifest):
+        if row["legend"]:
+            x0, y0, x1, y1 = row["legend_mm"]
+            where = f"legend {x0},{y0},{x1},{y1} mm, {row['legend']}"
+        else:
+            where = "no legend" + (" found; give one with --legend" if legend == "auto" else "")
+        typer.echo(f"  sheet page {row['sheet_page']}: {row['tablet_pages']} pages, {where}")
     if send:
         token = _token()
         cloud.mkdir(token, "/rmink")
@@ -641,6 +664,9 @@ def sheet_pull(
         typer.secho(f"warning: {msg}", fg="yellow", err=True)
     if result.unread:
         msg = f"{result.unread} blocks could not be read; some ink may be missing"
+        typer.secho(f"warning: {msg}", fg="yellow", err=True)
+    if result.on_legend:
+        msg = f"{result.on_legend} strokes on the pasted legend were left out"
         typer.secho(f"warning: {msg}", fg="yellow", err=True)
 
 

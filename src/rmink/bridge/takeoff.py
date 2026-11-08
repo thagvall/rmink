@@ -30,7 +30,7 @@ import pymupdf
 from pydantic import BaseModel
 
 from rmink import knowledge
-from rmink.bridge.ink_pdf import ERASERS, is_tap, notebook_manifest, stroke_key
+from rmink.bridge.ink_pdf import ERASERS, notebook_manifest, off_sheet, stroke_key
 from rmink.bridge.sheet import Manifest, unrotate
 from rmink.devices import DeviceProfile, get_device
 from rmink.drawing.fit import classify
@@ -331,7 +331,7 @@ def find_quantities(notebook: bytes, sheet: bytes, scale: int | None = None) -> 
         strokes = [
             s
             for s in ink.pages.get(tile.tablet_page, [])
-            if s.pen not in ERASERS and s.id is not None and not is_tap(s, tile, px)
+            if s.pen not in ERASERS and s.id is not None and not off_sheet(s, tile, px)
         ]
         if not strokes:
             continue

@@ -24,7 +24,7 @@ import numpy as np
 import pymupdf
 from pydantic import BaseModel
 
-from rmink.bridge.ink_pdf import ERASERS, HIGHLIGHTERS, is_tap, notebook_manifest, stroke_key
+from rmink.bridge.ink_pdf import ERASERS, HIGHLIGHTERS, notebook_manifest, off_sheet, stroke_key
 from rmink.bridge.sheet import Manifest, unrotate
 from rmink.devices import DeviceProfile, get_device
 from rmink.drawing.fit import classify
@@ -164,7 +164,7 @@ def find_points(notebook: bytes) -> Points:
         strokes = [
             s
             for s in ink.pages.get(tile.tablet_page, [])
-            if s.pen not in ERASERS and s.id is not None and not is_tap(s, tile, px)
+            if s.pen not in ERASERS and s.id is not None and not off_sheet(s, tile, px)
         ]
         for group in group_notes(strokes, device):
             members = [strokes[i] for i in group]
