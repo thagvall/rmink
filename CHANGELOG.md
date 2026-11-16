@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.27.0 — 2026-11-16
 
 - `usb` is a built-in transport: `rmink --via usb …` or `rmink transport use usb` sends and fetches over the tablet's USB web interface (10.11.99.1), with no reMarkable Cloud subscription. The interface cannot make, move or remove anything, so the rmink folders are made on the tablet by hand, rmink names the one that is missing, and a notebook a round has read stays beside the new revision instead of moving to `Tidigare`. Measured on an rm2: uploads land in the folder listed last and are named from inside the archive.
 - `rmink transport check` tries the transport in use: for `usb`, whether the tablet answers and hands out notebooks as `.rmdoc` (system software 3.9 and later).
