@@ -9,19 +9,22 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 import tempfile
 from pathlib import Path
 
 from mcp.server.mcpserver import Image, MCPServer
 
-from rmink import api, calc, cloud, knowledge
+from rmink import api, calc, cloud, knowledge, transport
 from rmink.devices import all_devices, get_device
 from rmink.drawing import workflow
 from rmink.drawing.model import Drawing
 from rmink.drawing.render import page_svg, render_alternatives, render_drawing
-from rmink.drawing.symbols import SYMBOLS
+from rmink.drawing.symbols import symbols
 from rmink.model import Document
 from rmink.options import ConvertOptions
+
+log = logging.getLogger(__name__)
 
 server = MCPServer(
     "rmink",
@@ -58,6 +61,10 @@ server = MCPServer(
         "revision has the answers as PDF text, the solutions on a hidden 'Facit' layer and a "
         "results page. For school (rmink skola), `list_school_topics` gives groups such as "
         "'Bråk och division' with topics and briefs; pass the group to `create_workbook`."
+        "\n\n"
+        "Without reMarkable Cloud: the user picks another transport with `rmink transport "
+        "use folder:PATH` (or one from a plugin). Sending and reading then use that tree "
+        "instead, with the same rmink/... paths; `files_list` shows it."
     ),
 )
 
@@ -216,6 +223,35 @@ def cloud_list(path: str = "/") -> list[dict]:
     return [{"name": e.name, "folder": e.folder} for e in cloud.ls(token, path)]
 
 
+def _via() -> transport.Transport:
+    via = transport.default()
+    if via is None:
+        raise cloud.CloudAuthError(
+            "Not connected; call cloud_connect with a one-time code, or the user runs "
+            "`rmink transport use folder:PATH` to work from a folder without the cloud"
+        )
+    return via
+
+
+def _notebook(source: str) -> bytes:
+    """A notebook from a local .rmdoc or, failing that, from the transport."""
+    local = Path(source)
+    return local.read_bytes() if local.is_file() else _via().get(source)
+
+
+@server.tool()
+def files_list(path: str = "/") -> dict:
+    """List notebooks and folders where rmink leaves and fetches them: the user's
+    reMarkable Cloud, or the folder or plugin transport chosen with
+    `rmink transport use` (for users without the cloud). Paths given to the other
+    tools ("the notebook's path in the user's cloud") are paths in this tree."""
+    via = _via()
+    return {
+        "transport": repr(via),
+        "entries": [{"name": e.name, "folder": e.folder} for e in via.ls(path)],
+    }
+
+
 @server.tool()
 def read_sketch(
     document: str, page: int = 1, device: str = "rm2", since_drawing: str | None = None
@@ -252,7 +288,7 @@ def drawing_reference() -> str:
     return json.dumps(
         {
             "schema": Drawing.model_json_schema(),
-            "symbols": {k: v[0] for k, v in SYMBOLS.items()},
+            "symbols": {k: v[0] for k, v in symbols().items()},
             "categories": [c.model_dump() for c in Drawing(name="x").categories],
             "notes": [
                 "Coordinates are page pixels of the sketch (origin top-left).",
@@ -415,10 +451,7 @@ def save_revision(
         Path(svg_path).write_text(page_svg(render_drawing(rev.drawing, dev), dev))
         result["svg"] = svg_path
     if send:
-        token = cloud.load_token()
-        if not token:
-            raise cloud.CloudAuthError("Not connected; call cloud_connect with a one-time code")
-        result["sent_as"] = workflow.send_revision(rev, token)
+        result["sent_as"] = workflow.send_revision(rev, _via())
     return result
 
 
@@ -472,6 +505,15 @@ def create_workbook(
             is right or wrong, shown as a hint after a wrong cross, so never naming the
             right choice}]; rmink reads and grades the crosses, and in practice gives up to
             three attempts. Latin-1 characters only (3/4, x^2).
+            Geography: a section or a field can have "figure", a map of Sweden printed on
+            the page: {"view": what to frame (landskap, or Götaland, Svealand, Norrland; empty
+            is all of Sweden), "highlight": filled grey, "borders": false for a bare contour,
+            "labels": printed names, "pins": cities, "lakes": Vänern, Vättern, Mälaren,
+            Hjälmaren, Storsjön, Siljan, Torneträsk, "solution_labels" and "solution_pins":
+            names that come with the facit, "height": pt, 210 by default}. It stands beside
+            the choices and above a box to write in. Never print the answer in "labels".
+            "map_summary": true on the workbook closes it with Sweden's outline to fill in,
+            and the facit has all 25 landskap drawn and named on it.
         device: rm2 | pure | pro | move.
         send: Upload to the user's reMarkable Cloud (needs cloud_connect).
         output_path: Where to write the .rmdoc (default when not sending:
@@ -619,14 +661,7 @@ def pull_sheet(notebook: str, sheet_path: str, output_path: str) -> dict:
     """
     from rmink.bridge.ink_pdf import pull
 
-    local = Path(notebook)
-    if local.is_file():
-        data = local.read_bytes()
-    else:
-        token = cloud.load_token()
-        if not token:
-            raise cloud.CloudAuthError("Not connected; call cloud_connect with a one-time code")
-        data = cloud.get(token, notebook)
+    data = _notebook(notebook)
     result = pull(data, Path(sheet_path).read_bytes())
     Path(output_path).write_bytes(result.pdf)
     return {
@@ -656,14 +691,7 @@ def read_sheet_points(notebook: str, sheet_path: str) -> list:
     """
     from rmink.bridge.points import find_points, point_image
 
-    local = Path(notebook)
-    if local.is_file():
-        data = local.read_bytes()
-    else:
-        token = cloud.load_token()
-        if not token:
-            raise cloud.CloudAuthError("Not connected; call cloud_connect with a one-time code")
-        data = cloud.get(token, notebook)
+    data = _notebook(notebook)
     points = find_points(data)
     sheet = Path(sheet_path).read_bytes()
     images = [Image(data=point_image(sheet, p), format="png") for p in points.points]
@@ -734,14 +762,7 @@ def read_status_list(notebook: str, points: dict, sheet_path: str, output_path: 
     from rmink.bridge.points import Points, points_csv, update_points
     from rmink.bridge.review import read_status
 
-    local = Path(notebook)
-    if local.is_file():
-        data = local.read_bytes()
-    else:
-        token = cloud.load_token()
-        if not token:
-            raise cloud.CloudAuthError("Not connected; call cloud_connect with a one-time code")
-        data = cloud.get(token, notebook)
+    data = _notebook(notebook)
     result = read_status(data, Points.model_validate(points))
     pdf, missing = update_points(Path(sheet_path).read_bytes(), result.points)
     out = Path(output_path)
@@ -777,14 +798,7 @@ def measure_sheet(
     """
     from rmink.bridge.takeoff import find_quantities, quantities_csv, write_quantities
 
-    local = Path(notebook)
-    if local.is_file():
-        data = local.read_bytes()
-    else:
-        token = cloud.load_token()
-        if not token:
-            raise cloud.CloudAuthError("Not connected; call cloud_connect with a one-time code")
-        data = cloud.get(token, notebook)
+    data = _notebook(notebook)
     sheet = Path(sheet_path).read_bytes()
     takeoff = find_quantities(data, sheet, scale)
     pdf, added, skipped = write_quantities(sheet, takeoff, scale)
@@ -844,7 +858,38 @@ def save_drawing_pdf(
     }
 
 
+@server.tool()
+def export_drawing(drawing: dict, output_path: str, format: str = "svg") -> dict:
+    """Write a Drawing in another program's format: "pdf", "svg", or one a plugin
+    brings (the error for an unknown format lists them).
+
+    Args:
+        drawing: The Drawing JSON, as from `get_drawing`.
+        output_path: Where to write the file.
+        format: The format's name.
+    """
+    from rmink.drawing.export import export
+
+    Path(output_path).write_bytes(export(workflow.drawing_from_json(drawing), format))
+    return {"path": output_path, "format": format}
+
+
+def _plugin_tools() -> list[str]:
+    """Let each ``rmink.mcp_tools`` plugin add its tools; returns those that did."""
+    from rmink import plugins
+
+    added = []
+    for name, register in plugins.load_all("rmink.mcp_tools").items():
+        try:
+            register(server)
+            added.append(name)
+        except Exception as e:  # a plugin must never stop the server
+            log.warning("plugin %r could not add its tools: %s", name, e)
+    return added
+
+
 def main() -> None:
+    _plugin_tools()
     server.run()
 
 

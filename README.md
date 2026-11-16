@@ -162,6 +162,28 @@ The tablet pages lie as the sheets do, so a landscape drawing fills the turned t
 
 The PDF stays an ordinary PDF. Ink, layers, comments, status, measurements and counts open in [Open PDF Studio](https://github.com/OpenAEC-Foundation/open-pdf-studio) (tried on 2026.45.0), which can take the sheet on to DXF. Only the rm2 is tried on a device. Reading the crosses needs no model; the handwriting needs someone to read it.
 
+## Without reMarkable Cloud, and plugins
+
+The rounds above (drawings, workbooks, sheets) need somewhere to leave a notebook and
+find it again. That is the reMarkable Cloud by default, and can be a folder on your
+computer instead:
+
+```bash
+rmink transport use folder:~/Documents/rmink     # or, for one command: rmink --via folder:PATH ...
+rmink sheet send ritning.pdf --send              # lands in ~/Documents/rmink/rmink/Ark/
+```
+
+The folder is the handover point: you carry the `.rmdoc` files between it and the tablet
+yourself (USB web interface, a sync tool, a server of your own), or install a transport
+that does.
+
+Other packages can bring parts to rmink: transports, content packs (knowledge, symbols
+and workbook groups as TOML, no code), file formats in and out, commands and MCP tools.
+`rmink plugins` lists what is installed. Your own knowledge files in
+`~/.config/rmink/knowledge/` are read on top of the built-in ones. See
+[docs/plugins.md](https://github.com/thagvall/rmink/blob/main/docs/plugins.md) and the
+example in [examples/rmink-plugin-exempel](https://github.com/thagvall/rmink/tree/main/examples/rmink-plugin-exempel).
+
 ## How it works
 
 ```

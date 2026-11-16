@@ -32,7 +32,7 @@ def _cells(path: Path) -> list[ET.Element]:
 
 
 def test_every_diagram_is_valid_drawio(built):
-    assert len(built) == 19
+    assert len(built) == 20
     for path in built:
         cells = _cells(path)
         ids = [c.get("id") for c in cells]

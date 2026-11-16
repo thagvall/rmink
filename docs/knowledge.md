@@ -203,7 +203,7 @@ Varje punkt anger var i koden den kopplas in.
 6. **Typkonstruktioner som mallar.** När Claude känner igen en yttervägg föreslår det `YV1` och visar lagren. Användaren svarar på SVAR-raden ("YV1 ok" eller "byt till 45×170"). Så återanvänds lösningar mellan projekt.
 7. **Export i Bluebeam-stil.** `rmink export --markups out.csv` med kolumnerna i `markup.toml [csv]`. Anmärkningarna kan då läsas in i ett granskningsverktyg eller i Excel.
 8. **Skill.** Generera `skills/rmink/references/*.md` från TOML-filerna, så att Claude via MCP har samma kunskap utan att den underhålls på två ställen.
-9. **Overlay.** `~/.config/rmink/knowledge/*.toml` läses ovanpå de inbyggda filerna. Den som har licens kan lägga in AMA-text, och ett företag kan lägga in egna typkonstruktioner och förkortningar. Inget av det skickas till repot.
+9. **✅ Inkopplad (2.26.0). Overlay.** `~/.config/rmink/knowledge/*.toml` läses ovanpå de inbyggda filerna; en post med samma `id` ersätter den inbyggda. Se [plugins.md](plugins.md) för paket som kan delas. Den som har licens kan lägga in AMA-text, och ett företag kan lägga in egna typkonstruktioner och förkortningar. Inget av det skickas till repot.
 
 Ordningen ovan går från liten insats och stor nytta till större insats. Punkt 1 och 2 kräver ingen ändring av ritningsmodellen.
 

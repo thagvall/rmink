@@ -1,12 +1,13 @@
 # Teknik: hur rmink och kunskapsbasen är byggda
 
-Här finns nitton tekniska diagram över hur rmink fungerar och vad kunskapsbasen för byggritningar innehåller. Verksamhetens bild av processerna, med roller och system, finns i [../verksamhet](../verksamhet/README.md). Varje diagram finns som `.drawio`, som går att öppna och redigera i [draw.io](https://www.drawio.com), och som `.svg` för att visa.
+Här finns tjugo tekniska diagram över hur rmink fungerar och vad kunskapsbasen för byggritningar innehåller. Verksamhetens bild av processerna, med roller och system, finns i [../verksamhet](../verksamhet/README.md). Varje diagram finns som `.drawio`, som går att öppna och redigera i [draw.io](https://www.drawio.com), och som `.svg` för att visa.
 
 Diagrammen **byggs ur koden**:
 - **Kunskapsbasen:** TOML-filerna i `src/rmink/knowledge/data/`.
 - **Symboler och skrafferingar:** ritas med rmink:s egen kod, så de ser ut som på plattan.
 - **Ritningsmodellen:** fälten läses ur pydantic-modellerna.
 - **Gränssnitten:** CLI-kommandon, MCP-verktyg och webbroutes listas ur appen.
+- **Plugin:** entry point-grupperna, transportens anrop och exempelpluginets delar läses ur koden och ur `examples/rmink-plugin-exempel/pyproject.toml`.
 
 Bygg om dem efter en ändring:
 
@@ -59,6 +60,11 @@ Från ändring på main via tagg, PyPI och godkännande till höjningen på Verc
 Klassdiagram över `Drawing` och dess delar, linjekategorierna och ritningshuvudet.
 
 ![Ritningsmodellen](08-ritningsmodellen.svg)
+
+### 20. Plugin, innehållspaket och transporter
+Delarna ett plugin kan ta med sig, var rmink frågar efter dem och var användaren möter dem. Visar också lagren av innehållspaket, hur en transport väljs (moln, mapp eller från ett plugin) och tre exempel: ett ark genom en mapp utan moln, en symbol från ett paket och GeoJSON in och ut. Gränssnitten beskrivs i [docs/plugins.md](../../plugins.md).
+
+![Plugin och transporter](20-plugin-och-transporter.svg)
 
 ## Kunskapsbasen
 

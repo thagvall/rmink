@@ -16,6 +16,10 @@ on the hidden "Facit" layer (:func:`solution_strokes`), in rmink's
 single-stroke capitals, since the tablet can hide layers but not PDF text.
 Once answers are graded, a results page closes the workbook.
 
+A question or section can have a map (:mod:`rmink.workbook.maps`), drawn as
+vectors. Names on it that belong to the solution are ink on the "Facit" layer,
+and so are all the landskap on the closing map page.
+
 A choice question has a box per choice to cross. While it is open the boxes
 are empty, with the hint from the last attempt under them; once done the
 crosses are drawn in and the solution circles the right boxes.
@@ -35,7 +39,8 @@ from rmscene.scene_items import PenColor
 from rmink.devices import DeviceProfile
 from rmink.drawing.font import text_paths, text_width
 from rmink.model import Stroke
-from rmink.workbook.model import MAX_ATTEMPTS, AnswerField, Workbook, letter
+from rmink.workbook import maps
+from rmink.workbook.model import MAX_ATTEMPTS, AnswerField, MapFigure, Workbook, letter
 
 FACIT_LAYER = "Facit"
 SOLUTION_SIZE = 7.0  # pt, cap height of the solution ink
@@ -44,6 +49,8 @@ SOLUTION_INDENT = 34.0  # pt, room for the "Facit" label
 VERDICTS = {"correct": "Rätt", "partial": "Delvis rätt", "wrong": "Fel", "": "Inte rättad"}
 
 MARGIN = 40.0
+MAP_ASPECT = 0.8  # width per height of a map beside the choices
+MAP_CHOICES = 175.0  # pt, a map beside the choices leaves them at least this
 CHOICE_GAP = 8.0  # pt between a choice box and its text
 LINK = (0.0, 0.0, 0.6)
 ANSWER = (0.0, 0.0, 0.45)
@@ -265,6 +272,97 @@ def solution_strokes(workbook: Workbook, device: DeviceProfile) -> dict[int, lis
                 out.setdefault(f.page, []).append(
                     Stroke(path, width=1.6, color=color, layer=FACIT_LAYER)
                 )
+        fig = f.figure
+        if fig and fig.rect and (fig.solution_labels or fig.solution_pins):
+            labels = maps.expand(fig.solution_labels)
+            out.setdefault(fig.page, []).extend(_map_ink(fig, labels, fig.solution_pins, k, color))
+    if workbook.map_summary and workbook.show_solutions() and workbook.map_page >= 0:
+        fig = summary_figure(workbook)
+        out.setdefault(workbook.map_page, []).extend(
+            _map_ink(fig, maps.names(), [], k, color, borders=True)
+        )
+    return out
+
+
+MAP_SIZE = 6.0  # pt, cap height of ink names on a map
+MAP_ROW = 11.0  # pt between names in a column
+MAP_SMALLEST = 130.0  # pt, a map above a box is not squeezed below this
+MAP_PRINT = 7.5  # pt, printed names
+
+
+def _print_width(text: str) -> float:
+    return pymupdf.get_text_length(plain(text), fontsize=MAP_PRINT)
+
+
+def _ink_width(text: str) -> float:
+    return text_width(text.upper(), MAP_SIZE)
+
+
+def _polyline(page: pymupdf.Page, p: np.ndarray, width: float, gray: float = 0.0) -> None:
+    pts = [pymupdf.Point(float(x), float(y)) for x, y in p]
+    page.draw_polyline(pts, color=(gray, gray, gray), width=width, lineCap=1, lineJoin=1)
+
+
+def _draw_map(page: pymupdf.Page, fig: MapFigure, box: maps.Box, blank: bool = False) -> None:
+    """The printed part of a map. ``blank`` leaves the borders to the Facit layer."""
+    view = maps.view_of(fig, box)
+    m = maps.sverige()
+    for name in maps.expand(fig.highlight):
+        for ring in m.landskap[name].rings:
+            area = maps.clipped_area(view.page(ring), box)
+            if len(area) > 2:
+                pts = [pymupdf.Point(float(x), float(y)) for x, y in area]
+                page.draw_polyline(pts, color=None, fill=(0.8, 0.8, 0.8), width=0, closePath=True)
+    if fig.borders and not blank:
+        for p in maps.borders(view, box):
+            _polyline(page, p, 0.45, 0.45)
+    for p in maps.outline(view, box):
+        _polyline(page, p, 0.9)
+    for p in maps.lake_paths(fig, view, box):
+        pts = [pymupdf.Point(float(x), float(y)) for x, y in p]
+        page.draw_polyline(pts, color=(0.4, 0.4, 0.4), fill=(1, 1, 1), width=0.4, closePath=True)
+    for lab in maps.place_labels(maps.expand(fig.labels), view, box, _print_width, MAP_ROW):
+        page.insert_text(lab.at, plain(lab.text), fontsize=MAP_PRINT)
+        if lab.leader:
+            page.draw_line(*lab.leader, color=(0.45, 0.45, 0.45), width=0.35)
+            page.draw_circle(lab.leader[1], 1.0, color=(0, 0, 0), fill=(0, 0, 0))
+    for city in fig.pins:
+        x, y = view.page(np.array(m.city(city)))
+        page.draw_circle((float(x), float(y)), 2.2, color=(0, 0, 0), fill=(0, 0, 0))
+        # White behind the name: pins sit on busy coasts.
+        w = _print_width(city)
+        page.draw_rect(
+            pymupdf.Rect(x + 3, y - 4.5, x + 5 + w, y + 4.5), color=None, fill=(1, 1, 1), width=0
+        )
+        page.insert_text((float(x) + 4, float(y) + 2.5), plain(city), fontsize=MAP_PRINT)
+
+
+def _map_ink(
+    fig: MapFigure, labels: list[str], pins: list[str], k: float, color, borders: bool = False
+) -> list[Stroke]:
+    """Names, pins and (on a blank map) borders for the Facit layer."""
+    box = fig.rect
+    view = maps.view_of(fig, box)
+    m = maps.sverige()
+    out = []
+
+    def ink(path: np.ndarray, width: float = 1.6) -> None:
+        out.append(Stroke(np.asarray(path, float) * k, width=width, color=color, layer=FACIT_LAYER))
+
+    if borders:
+        for p in maps.borders(view, box):
+            ink(p, 1.8)
+    for lab in maps.place_labels(labels, view, box, _ink_width, MAP_ROW):
+        for path in text_paths(lab.text.upper(), (lab.at[0] * k, lab.at[1] * k), MAP_SIZE * k):
+            ink(path / k)
+        if lab.leader:
+            ink(np.array(lab.leader), 1.2)
+    t = np.linspace(0, 2 * np.pi, 13)
+    for city in pins:
+        x, y = view.page(np.array(m.city(city)))
+        ink(np.column_stack([x + 2.5 * np.cos(t), y + 2.5 * np.sin(t)]))
+        for path in text_paths(city.upper(), ((x + 5) * k, (y + 3) * k), MAP_SIZE * k):
+            ink(path / k)
     return out
 
 
@@ -286,6 +384,13 @@ def _fill(
         for f in fields:
             extra[f.id] = free * max(f.lines, m.min_lines) / lines
     return extra
+
+
+def _solution_h(f: AnswerField, w: float, m: Metrics) -> float:
+    """The room a field's solution takes under its box."""
+    sol = f.solution_text()
+    width = w - m.margin - (m.margin + m.indent) - SOLUTION_INDENT - 6
+    return len(solution_lines(sol, width)) * SOLUTION_LINE + 4 if sol else 0
 
 
 def _sections(
@@ -329,26 +434,56 @@ def _sections(
         )
         if section.text:
             y += _text(page, pymupdf.Rect(margin, y, w - margin, bottom), section.text, 11) + 14
+        if section.figure:
+            fig = section.figure
+            if y + fig.height > bottom and y > 80:
+                page, y = new_page(section.title, cont=True)
+            fig.rect, fig.page = (margin, y, w - margin, y + fig.height), doc.page_count - 1
+            _draw_map(page, fig, fig.rect)
+            y += fig.height + 12
         for f in section.fields:
             prompt = f.prompt + (choice_note(f) if f.is_choice() else "")
             prompt_h = _measure(prompt, inner, 11)
+            fig = f.figure
+            # A map stands beside the choices, and above a box to write in.
+            beside = 0.0
+            if fig and f.is_choice():
+                beside = min(fig.height * MAP_ASPECT, inner - m.indent - 10 - MAP_CHOICES)
+            above = fig.height + 8 if fig and not f.is_choice() else 0.0
+            if above:
+                # A map gives way before the question moves to a new page. Taken
+                # from the box's own lines, so both layout passes agree.
+                lines_h = max(f.lines, m.min_lines) * m.line + 8
+                room = bottom - y - prompt_h - 4 - 8 - lines_h - _solution_h(f, w, m)
+                if MAP_SMALLEST <= room < fig.height:
+                    above = room + 8
             if f.is_choice():
-                rows, hint_h = _choice_heights(f, inner - m.indent, workbook.mode, m.box)
-                box_h = sum(rows) + hint_h
+                width = inner - m.indent - (beside + 10 if beside else 0)
+                rows, hint_h = _choice_heights(f, width, workbook.mode, m.box)
+                box_h = max(sum(rows) + hint_h, fig.height if beside else 0)
             else:
                 box_h = max(f.lines, m.min_lines) * m.line + 8 + extra.get(f.id, 0.0)
-            sol_w = w - margin - (margin + m.indent) - SOLUTION_INDENT - 6
             sol = f.solution_text()
-            sol_h = len(solution_lines(sol, sol_w)) * SOLUTION_LINE + 4 if sol else 0
+            sol_h = _solution_h(f, w, m)
             slack = 1.0 if extra else 0.0
-            if y + prompt_h + 4 + box_h + sol_h > bottom + slack and y > 80:
+            if y + prompt_h + 4 + above + box_h + sol_h > bottom + slack and y > 80:
                 page, y = new_page(section.title, cont=True)
             y += _text(page, pymupdf.Rect(margin, y, w - margin, y + prompt_h + 4), prompt, 11)
             y += 4
+            if above:
+                fig.rect, fig.page = (margin, y, w - margin, y + above - 8), doc.page_count - 1
+                _draw_map(page, fig, fig.rect)
+                y += above
             if f.is_choice():
-                end = _choices(page, f, margin + m.indent, w - margin, y, workbook.mode, m.box)
+                x1 = w - margin - (beside + 10 if beside else 0)
+                end = _choices(page, f, margin + m.indent, x1, y, workbook.mode, m.box)
                 box = pymupdf.Rect(f.rect)
                 f.page = doc.page_count - 1
+                if beside:
+                    fig.rect = (w - margin - beside, y, w - margin, y + fig.height)
+                    fig.page = f.page
+                    _draw_map(page, fig, fig.rect)
+                    end = max(end, y + fig.height)
             else:
                 box = pymupdf.Rect(margin + m.indent, y, w - margin, min(y + box_h, bottom))
                 page.draw_rect(box, color=(0, 0, 0), width=0.8)
@@ -386,6 +521,35 @@ def _sections(
     return last_pages, ends
 
 
+def summary_figure(workbook: Workbook) -> MapFigure:
+    """The closing map: the outline and lakes printed, all else on the Facit layer."""
+    return MapFigure(
+        lakes=["Vänern", "Vättern", "Mälaren", "Hjälmaren", "Storsjön", "Siljan"],
+        solution_labels=["Sverige"],
+        rect=workbook.map_rect,
+        page=workbook.map_page,
+    )
+
+
+def _summary(doc: pymupdf.Document, workbook: Workbook, w: float, h: float) -> int:
+    """Add the closing map page and return its index."""
+    margin = metrics(workbook).margin
+    doc.new_page(width=w, height=h)
+    page = doc[-1]
+    _link(page, pymupdf.Rect(w - margin - 100, 24, w - margin, 46), "<< Innehåll", 0)
+    page.insert_text((margin, 40), "Sverigekartan", fontsize=20, fontname="hebo")
+    note = (
+        "Skriv in så många landskap du kan. Tänd lagret Facit för att se alla 25."
+        if workbook.show_solutions()
+        else "Skriv in så många landskap du kan. Facit kommer efter rättningen."
+    )
+    y = 60 + _text(page, pymupdf.Rect(margin, 60, w - margin, 100), note, 11) + 6
+    workbook.map_rect = (margin, y, w - margin, h - margin)
+    workbook.map_page = doc.page_count - 1
+    _draw_map(page, summary_figure(workbook), workbook.map_rect, blank=True)
+    return workbook.map_page
+
+
 def build_pdf(workbook: Workbook, device: DeviceProfile) -> bytes:
     """The workbook as PDF bytes. Sets each section's ``page`` and each field's
     ``page`` and ``rect`` in ``workbook``: the layout does not depend on the
@@ -405,13 +569,15 @@ def build_pdf(workbook: Workbook, device: DeviceProfile) -> bytes:
     doc.new_page(width=w, height=h)  # the cover, filled in last
     last_pages, _ = _sections(doc, workbook, w, h, m, extra)
 
+    summary = _summary(doc, workbook, w, h) if workbook.map_summary else None
     results = _results(doc, workbook, w, h) if workbook.graded() else None
-    for last, nxt in zip(last_pages, workbook.sections[1:], strict=False):
+    targets = [s.page for s in workbook.sections[1:]] + ([summary] if summary is not None else [])
+    for last, target in zip(last_pages, targets, strict=False):
         _link(
             doc[last],
             pymupdf.Rect(w - margin - 100, h - margin - 24, w - margin, h - margin),
             "Nästa >>",
-            nxt.page,
+            target,
         )
 
     cover = doc[0]
@@ -432,8 +598,8 @@ def build_pdf(workbook: Workbook, device: DeviceProfile) -> bytes:
     y += 30
     # Leave room at the bottom for the note about unsure answers.
     entries = [(f"{n}. {s.title}", s.page) for n, s in enumerate(workbook.sections, 1)] + (
-        [("Resultat", results)] if results is not None else []
-    )
+        [("Sverigekartan", summary)] if summary is not None else []
+    ) + ([("Resultat", results)] if results is not None else [])
     row = max(16.0, min(30.0, (h - margin - 70 - y) / max(len(entries), 1)))
     for label, target in entries:
         r = pymupdf.Rect(margin, y, w - margin, y + row - 6)
@@ -463,6 +629,8 @@ def build_pdf(workbook: Workbook, device: DeviceProfile) -> bytes:
     cover.insert_text((margin, h - margin), plain(footer), fontsize=8, color=(0.4, 0.4, 0.4))
 
     toc = [[1, "Innehåll", 1]] + [[1, plain(s.title), s.page + 1] for s in workbook.sections]
+    if summary is not None:
+        toc.append([1, "Sverigekartan", summary + 1])
     if results is not None:
         toc.append([1, "Resultat", results + 1])
     doc.set_toc(toc)

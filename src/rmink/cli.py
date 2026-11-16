@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import zipfile
 from pathlib import Path
 from typing import Annotated
@@ -22,6 +23,22 @@ app = typer.Typer(
     no_args_is_help=True,
     add_completion=False,
 )
+
+
+@app.callback()
+def _root(
+    via: Annotated[
+        str | None,
+        typer.Option(
+            "--via",
+            help="Where notebooks are left and fetched: cloud, folder:PATH or a plugin's "
+            "NAME:ARG (default: what `rmink transport use` saved, else the cloud)",
+        ),
+    ] = None,
+) -> None:
+    if via:
+        os.environ["RMINK_TRANSPORT"] = via
+
 
 Inputs = Annotated[list[Path], typer.Argument(help="PDF, SVG or image files", exists=True)]
 Device = Annotated[str, typer.Option("--device", "-d", help="rm2 | pure | pro | move")]
@@ -212,6 +229,25 @@ def web(
     uvicorn.run(create_app(), host=host, port=port, log_level="warning")
 
 
+def _via():
+    """The transport to send and fetch with, or exit saying how to get one."""
+    from rmink import cloud, transport
+
+    try:
+        via = transport.default()
+    except transport.TransportError as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+    if via is None:
+        typer.secho(
+            f"error: rmink is not connected to reMarkable Cloud; run: rmink cloud connect CODE "
+            f"({cloud.CONNECT_URL}), or work from a folder: rmink transport use folder:PATH",
+            fg="red", err=True,
+        )  # fmt: skip
+        raise typer.Exit(1)
+    return via
+
+
 cloud_app = typer.Typer(help="reMarkable Cloud: connect, list, download and upload notebooks.")
 app.add_typer(cloud_app, name="cloud")
 
@@ -320,7 +356,7 @@ def draw(
             typer.secho(f"warning: {msg}", fg="yellow", err=True)
     typer.echo(str(rev.path))
     if send:
-        typer.echo(f"Sent as {workflow.send_revision(rev, _token())!r}")
+        typer.echo(f"Sent as {workflow.send_revision(rev, _via())!r}")
 
 
 @app.command(name="round")
@@ -371,7 +407,7 @@ def upgrade(
     except FileNotFoundError as e:
         raise typer.BadParameter(str(e)) from e
     try:
-        sent_as = workflow.upgrade(d, _token())
+        sent_as = workflow.upgrade(d, _via())
     except cloud.CloudError as e:
         typer.secho(f"error: {e}", fg="red", err=True)
         raise typer.Exit(1) from e
@@ -505,12 +541,9 @@ def workbook_move(
         title = catalog.group_path(group)
     except ValueError as e:
         raise typer.BadParameter(str(e)) from e
-    token = cloud.load_token()
-    if not token:
-        typer.secho("error: rmink is not connected to reMarkable Cloud", fg="red", err=True)
-        raise typer.Exit(1)
+    via = _via()
     try:
-        folder = workflow.move_to_group(wb, catalog.AREA, title, token, store)
+        folder = workflow.move_to_group(wb, catalog.AREA, title, via, store)
     except cloud.CloudError as e:
         typer.secho(f"error: {e}", fg="red", err=True)
         raise typer.Exit(1) from e
@@ -535,12 +568,9 @@ def workbook_relayout(
     if wb.layout >= LAYOUT:
         typer.echo(f"{wb.name} already has the current layout")
         return
-    token = cloud.load_token()
-    if not token:
-        typer.secho("error: rmink is not connected to reMarkable Cloud", fg="red", err=True)
-        raise typer.Exit(1)
+    via = _via()
     try:
-        sent_as = workflow.relayout(wb, token, store)
+        sent_as = workflow.relayout(wb, via, store)
     except cloud.CloudError as e:
         typer.secho(f"error: {e}", fg="red", err=True)
         raise typer.Exit(1) from e
@@ -604,13 +634,12 @@ def sheet_send(
             "none; or x0,y0,x1,y1 in mm from the sheet's top left"
         ),
     ] = "auto",
-    send: Annotated[bool, typer.Option(help=f"Upload to {SHEET_FOLDER}/ in your cloud")] = False,
+    send: Annotated[bool, typer.Option(help=f"Send to {SHEET_FOLDER}/ on the tablet")] = False,
 ) -> None:
     """Cut a PDF into tablet pages: an overview, then tiles that know their place on the sheet.
 
     Pages lie as the sheets do. A legend found is pasted beside every tile, or put on a
     page of its own when it would be too small there."""
-    from rmink import cloud
     from rmink.bridge.sheet import layout, parse_legend, write_pack
     from rmink.devices import get_device
 
@@ -632,25 +661,20 @@ def sheet_send(
             where = "no legend" + (" found; give one with --legend" if legend == "auto" else "")
         typer.echo(f"  sheet page {row['sheet_page']}: {row['tablet_pages']} pages, {where}")
     if send:
-        token = _token()
-        cloud.mkdir(token, "/rmink")
-        cloud.mkdir(token, f"/{SHEET_FOLDER}")
-        name = cloud.put(out, token, folder=f"/{SHEET_FOLDER}", name=manifest.name)
+        name = _send_sheet(out, manifest.name)
         typer.echo(f"Sent as {f'/{SHEET_FOLDER}/{name}'!r}")
 
 
 @sheet_app.command("pull")
 def sheet_pull(
-    notebook: Annotated[str, typer.Argument(help="A .rmdoc, or the notebook's path in your cloud")],
+    notebook: Annotated[str, typer.Argument(help="A .rmdoc, or the notebook's path on the tablet")],
     sheet: Annotated[Path, typer.Argument(exists=True, help="The PDF the notebook was made from")],
     output: Annotated[Path | None, typer.Option("--output", "-o", help="Output PDF")] = None,
 ) -> None:
     """Add a notebook's ink to the sheet as PDF annotations, each stroke one annotation."""
-    from rmink import cloud
     from rmink.bridge.ink_pdf import pull
 
-    local = Path(notebook)
-    data = local.read_bytes() if local.is_file() else cloud.get(_token(), notebook)
+    data = _notebook(notebook)
     out = output or sheet.with_name(f"{sheet.stem} med bläck.pdf")
     try:
         result = pull(data, sheet.read_bytes())
@@ -671,15 +695,20 @@ def sheet_pull(
 
 
 def _notebook(path: str) -> bytes:
-    from rmink import cloud
-
     local = Path(path)
-    return local.read_bytes() if local.is_file() else cloud.get(_token(), path)
+    return local.read_bytes() if local.is_file() else _via().get(path)
+
+
+def _send_sheet(file: Path, name: str) -> str:
+    via = _via()
+    via.mkdir("/rmink")
+    via.mkdir(f"/{SHEET_FOLDER}")
+    return via.put(file, folder=f"/{SHEET_FOLDER}", name=name)
 
 
 @sheet_app.command("points")
 def sheet_points(
-    notebook: Annotated[str, typer.Argument(help="A .rmdoc, or the notebook's path in your cloud")],
+    notebook: Annotated[str, typer.Argument(help="A .rmdoc, or the notebook's path on the tablet")],
     sheet: Annotated[Path, typer.Argument(exists=True, help="The PDF from rmink sheet pull")],
     output: Annotated[Path, typer.Option("--output", "-o", help="Folder to write to")] = Path(
         "punkter"
@@ -726,10 +755,9 @@ def sheet_status_send(
     output: Annotated[Path | None, typer.Option("--output", "-o", help="Output .rmdoc")] = None,
     people: Annotated[str, typer.Option("--ansvariga", help="Who to cross, e.g. El,VVS,Bygg")] = "",
     device: Device = "rm2",
-    send: Annotated[bool, typer.Option(help=f"Upload to {SHEET_FOLDER}/ in your cloud")] = False,
+    send: Annotated[bool, typer.Option(help=f"Send to {SHEET_FOLDER}/ on the tablet")] = False,
 ) -> None:
     """A status list for the tablet: a row per point, with boxes to cross."""
-    from rmink import cloud
     from rmink.bridge.points import Points
     from rmink.bridge.review import write_status_notebook
     from rmink.devices import get_device
@@ -740,16 +768,13 @@ def sheet_status_send(
     count = write_status_notebook(data, sheet.read_bytes(), out, get_device(device), names)
     typer.echo(f"{out} ({count} tablet pages)")
     if send:
-        token = _token()
-        cloud.mkdir(token, "/rmink")
-        cloud.mkdir(token, f"/{SHEET_FOLDER}")
-        name = cloud.put(out, token, folder=f"/{SHEET_FOLDER}", name=out.stem)
+        name = _send_sheet(out, out.stem)
         typer.echo(f"Sent as {f'/{SHEET_FOLDER}/{name}'!r}")
 
 
 @sheet_app.command("status-pull")
 def sheet_status_pull(
-    notebook: Annotated[str, typer.Argument(help="A .rmdoc, or the notebook's path in your cloud")],
+    notebook: Annotated[str, typer.Argument(help="A .rmdoc, or the notebook's path on the tablet")],
     points: Annotated[Path, typer.Argument(exists=True, help="points.json; it is updated")],
     sheet: Annotated[Path, typer.Argument(exists=True, help="The PDF with the points")],
     output: Annotated[Path | None, typer.Option("--output", "-o", help="Output PDF")] = None,
@@ -783,7 +808,7 @@ def sheet_status_pull(
 
 @sheet_app.command("measure")
 def sheet_measure(
-    notebook: Annotated[str, typer.Argument(help="A .rmdoc, or the notebook's path in your cloud")],
+    notebook: Annotated[str, typer.Argument(help="A .rmdoc, or the notebook's path on the tablet")],
     sheet: Annotated[Path, typer.Argument(exists=True, help="The sheet, or the PDF from pull")],
     output: Annotated[Path | None, typer.Option("--output", "-o", help="Output PDF")] = None,
     scale: Annotated[
@@ -846,6 +871,150 @@ def sheet_drawing(
 
 
 @app.command()
+def export(
+    drawing: Annotated[str, typer.Argument(help="Drawing JSON file, or a saved drawing's name")],
+    fmt: Annotated[str, typer.Option("--format", "-f", help="pdf, svg or a plugin's format")],
+    output: Annotated[Path | None, typer.Option("--output", "-o")] = None,
+) -> None:
+    """Write a clean drawing in another program's format."""
+    from rmink.drawing import workflow
+    from rmink.drawing.export import export as export_drawing
+
+    path = Path(drawing)
+    try:
+        if path.is_file():
+            d = workflow.drawing_from_json(path.read_text(encoding="utf-8"))
+        else:
+            d = workflow.load_drawing(drawing)
+        data = export_drawing(d, fmt)
+    except (FileNotFoundError, ValueError) as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+    out = output or Path(f"{path.stem if path.is_file() else d.name}.{fmt.lower().lstrip('.')}")
+    out.write_bytes(data)
+    typer.echo(str(out))
+
+
+transport_app = typer.Typer(
+    help="Where notebooks are left and fetched: the cloud, a folder, or a plugin's transport."
+)
+app.add_typer(transport_app, name="transport")
+
+
+@transport_app.command("list")
+def transport_list() -> None:
+    """The transports there are, and the one in use."""
+    from rmink import cloud, transport
+
+    current = transport.spec() or ("cloud" if cloud.load_token() else "")
+    for name in transport.names():
+        typer.echo(f"{'*' if current.partition(':')[0] == name else ' '} {name}")
+    typer.echo(f"In use: {current or 'none; run rmink cloud connect or rmink transport use'}")
+
+
+@transport_app.command("use")
+def transport_use(
+    spec: Annotated[str, typer.Argument(help="cloud, folder:PATH or a plugin's NAME:ARG")],
+) -> None:
+    """Choose the transport rounds, workbooks and sheets are sent and fetched with."""
+    from rmink import transport
+
+    try:
+        typer.echo(f"Using {spec}; saved in {transport.use(spec)}")
+    except transport.TransportError as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+
+
+@transport_app.command("ls")
+def transport_ls(path: Annotated[str, typer.Argument()] = "/") -> None:
+    """List notebooks and folders in the transport."""
+    from rmink import transport
+
+    try:
+        for e in _via().ls(path):
+            typer.echo(f"{'[d]' if e.folder else '   '} {e.name}")
+    except transport.TransportError as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+
+
+@transport_app.command("get")
+def transport_get(
+    path: Annotated[str, typer.Argument(help='Notebook path, e.g. "/rmink/Altan/Altan r02"')],
+    output: Annotated[Path | None, typer.Option("--output", "-o")] = None,
+) -> None:
+    """Fetch a notebook as .rmdoc."""
+    from rmink import transport
+
+    dst = output or Path(f"{path.rstrip('/').rsplit('/', 1)[-1]}.rmdoc")
+    try:
+        dst.write_bytes(_via().get(path))
+    except transport.TransportError as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+    typer.echo(str(dst))
+
+
+@transport_app.command("put")
+def transport_put(
+    path: Annotated[Path, typer.Argument(exists=True)],
+    folder: Annotated[str, typer.Option(help="Folder to leave it in; it must exist")] = "/",
+) -> None:
+    """Leave a .rmdoc in the transport."""
+    from rmink import transport
+
+    try:
+        typer.echo(f"Sent as {_via().put(path, folder=folder)!r}")
+    except transport.TransportError as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+
+
+plugins_app = typer.Typer(
+    help="Parts other packages bring: transports, packs, formats, commands, MCP tools.",
+    invoke_without_command=True,
+)
+app.add_typer(plugins_app, name="plugins")
+
+
+@plugins_app.callback()
+def plugins_list(ctx: typer.Context) -> None:
+    """List the plugins and content packs installed."""
+    if ctx.invoked_subcommand:
+        return
+    from rmink import packs, plugins
+
+    if not plugins.enabled():
+        typer.echo("Plugins are off (RMINK_NO_PLUGINS).")
+        return
+    found = plugins.listing()
+    for info in found:
+        state = f"did not load: {info.error}" if info.error else "ok"
+        kind = info.group.removeprefix("rmink.")
+        typer.echo(f"{kind:<11} {info.name:<16} {info.package} {info.version}  {state}")
+    for pack in packs.all_packs():
+        typer.echo(f"{'pack':<11} {pack.name:<16} {pack.version or '-'}  {pack.origin}")
+    if not found and not packs.all_packs():
+        typer.echo("No plugins or packs installed. See docs/plugins.md for how to make one.")
+
+
+@plugins_app.command("check")
+def plugins_check(
+    folder: Annotated[Path, typer.Argument(exists=True, file_okay=False, help="A pack folder")],
+) -> None:
+    """Check a content pack: its files, required fields and cross references."""
+    from rmink import packs
+
+    problems = packs.check(folder)
+    for problem in problems:
+        typer.secho(problem, fg="red", err=True)
+    if problems:
+        raise typer.Exit(1)
+    typer.echo(f"{folder}: ok")
+
+
+@app.command()
 def mcp() -> None:
     """Run the MCP server on stdio (for Claude and other MCP clients)."""
     try:
@@ -855,6 +1024,25 @@ def mcp() -> None:
         raise typer.Exit(1) from e
     main()
 
+
+def _plugin_commands() -> None:
+    """Add each ``rmink.commands`` plugin as ``rmink <name>``; a built-in name stays."""
+    from rmink import plugins
+
+    taken = {c.name or c.callback.__name__ for c in app.registered_commands}
+    taken |= {g.name for g in app.registered_groups}
+    for name in plugins.found("rmink.commands"):
+        if name in taken:
+            logging.getLogger(__name__).warning("plugin command %r is a built-in name", name)
+            continue
+        command = plugins.load("rmink.commands", name)
+        if isinstance(command, typer.Typer):
+            app.add_typer(command, name=name)
+        elif callable(command):
+            app.command(name)(command)
+
+
+_plugin_commands()
 
 if __name__ == "__main__":
     app()

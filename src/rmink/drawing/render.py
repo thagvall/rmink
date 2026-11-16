@@ -29,7 +29,7 @@ from rmink.drawing.model import (
     Element,
     LineType,
 )
-from rmink.drawing.symbols import SYMBOLS, symbol_paths
+from rmink.drawing.symbols import symbol_paths, symbols
 from rmink.model import Page, Stroke
 
 COMMENT_LAYER = "Kommentarer"
@@ -687,7 +687,7 @@ def default_legend(drawing: Drawing) -> list[tuple[str, str]]:
     """Legend rows for every symbol kind and non-default category in use."""
     rows: dict[str, str] = {}
     for s in drawing.symbols:
-        rows.setdefault(s.kind, SYMBOLS.get(s.kind, (s.kind, []))[0] or s.kind)
+        rows.setdefault(s.kind, symbols().get(s.kind, (s.kind, []))[0] or s.kind)
     for e in drawing.elements:
         if e.category not in ("default", "text"):
             cat = drawing.category(e.category)

@@ -9,10 +9,14 @@ See docs/knowledge.md.
 
 from __future__ import annotations
 
+import copy
 import functools
+import logging
 import re
 import tomllib
 from importlib import resources
+
+log = logging.getLogger(__name__)
 
 FILES = (
     "terms", "drawing_standard", "symbols", "materials", "assemblies", "rules", "markup",
@@ -41,9 +45,180 @@ _TEXT_FIELDS = (
 
 
 @functools.cache
-def load() -> dict[str, dict]:
+def builtin() -> dict[str, dict]:
+    """The knowledge rmink ships, without packs."""
     data = resources.files(__package__) / "data"
     return {name: tomllib.loads((data / f"{name}.toml").read_text("utf-8")) for name in FILES}
+
+
+@functools.cache
+def load() -> dict[str, dict]:
+    """The knowledge with the installed packs on top (see :mod:`rmink.packs`).
+    A pack's entry with a fault (:func:`validate`) is left out with a warning,
+    so a broken pack never breaks a drawing round."""
+    data = merged()
+    if data is builtin():
+        return data
+    for _ in range(5):  # leaving one out can orphan another
+        faults = _problems(data)
+        bad = {(file, table, key) for file, table, key, _ in faults}
+        dropped = False
+        for file, table, key, what in faults:
+            log.warning("knowledge %s.%s %s: %s", file, table, key, what)
+        for file, table in {(f, t) for f, t, _ in bad}:
+            entries = data[file].get(table, [])
+            keep = [
+                e for e in entries
+                if "pack" not in e or (file, table, (_key(e) or ("", "?"))[1]) not in bad
+            ]  # fmt: skip
+            dropped |= len(keep) != len(entries)
+            data[file][table] = keep
+        if not dropped:
+            break
+    return data
+
+
+def _key(entry: dict) -> tuple[str, object] | None:
+    for field in ("id", "letter", "n"):
+        if field in entry:
+            return field, entry[field]
+    return None
+
+
+def _merge(base: dict, layer: dict, pack: str) -> None:
+    for name, value in layer.items():
+        if name == "version":
+            continue
+        if isinstance(value, list) and all(isinstance(v, dict) for v in value):
+            table = base.setdefault(name, [])
+            at = {_key(e): i for i, e in enumerate(table)}
+            for entry in value:
+                entry = {**entry, "pack": pack}
+                key = _key(entry)
+                if key is not None and key in at:
+                    table[at[key]] = entry
+                else:
+                    at[key] = len(table)
+                    table.append(entry)
+        elif isinstance(value, dict) and isinstance(base.get(name), dict):
+            for k, v in value.items():
+                old = base[name].get(k)
+                if isinstance(old, list) and isinstance(v, list):
+                    base[name][k] = old + [x for x in v if x not in old]
+                else:
+                    base[name][k] = v
+        else:
+            base[name] = value
+
+
+def merged(packs_: tuple | None = None) -> dict[str, dict]:
+    """The built-in knowledge with ``packs_`` (default: the installed ones)
+    read on top. An entry with the id of one that is there replaces it, any
+    other is added, and each says which ``pack`` it came from."""
+    from rmink import packs
+
+    layers = {name: packs.knowledge_layers(name, packs_) for name in FILES}
+    if not any(layers.values()):
+        return builtin()
+    data = copy.deepcopy(builtin())
+    for name, found in layers.items():
+        for pack, layer in found:
+            _merge(data[name], layer, pack)
+    return data
+
+
+def _required(table: list[dict]) -> set[str]:
+    """The fields every built-in entry of a table has: the code reads them
+    without asking, so a pack's entries need them too."""
+    return set.intersection(*(set(e) for e in table)) if table else set()
+
+
+def _problems(data: dict[str, dict]) -> list[tuple[str, str, object, str]]:
+    """(file, table, id, what is wrong) for each fault in ``data``."""
+    out: list[tuple[str, str, object, str]] = []
+    base = builtin()
+
+    def ids(file: str, table: str) -> set:
+        return {e.get("id") for e in data[file].get(table, [])}
+
+    for file in FILES:
+        for table, entries in data[file].items():
+            if not (isinstance(entries, list) and all(isinstance(e, dict) for e in entries)):
+                continue
+            need = _required(base[file].get(table, []))
+            for e in entries:
+                if "pack" in e and (missing := sorted(need - set(e))):
+                    key = (_key(e) or ("", "?"))[1]
+                    out.append((file, table, key, "missing " + ", ".join(missing)))
+
+    std = data["drawing_standard"]
+    rules, materials = ids("rules", "rule"), ids("materials", "material")
+    types, hatches = ids("drawing_standard", "drawing_type"), ids("hatches", "hatch")
+    targets = (
+        types | ids("drawing_standard", "phase") | materials | ids("assemblies", "assembly")
+        | set(data["rules"].get("vocabulary", {}).get("targets", []))
+    )  # fmt: skip
+
+    def refs(file: str, table: str, field: str, known: set, what: str) -> None:
+        for e in data[file].get(table, []):
+            value = e.get(field, [])
+            unknown = set(value if isinstance(value, list) else [value]) - known - {""}
+            if unknown:
+                names = ", ".join(sorted(map(str, unknown)))
+                out.append((file, table, e.get("id", "?"), f"unknown {what} {names}"))
+
+    refs("materials", "material", "group", ids("materials", "group"), "group")
+    refs("materials", "material", "hatch", hatches, "hatch")
+    refs("materials", "material", "rules", rules, "rule")
+    refs("hatches", "hatch", "used_for", materials, "material")
+    refs("assemblies", "assembly", "rules", rules, "rule")
+    refs("assemblies", "assembly", "used_in", types, "drawing type")
+    refs("assemblies", "variant", "assembly", ids("assemblies", "assembly"), "assembly")
+    refs("rules", "rule", "applies_to", targets, "target")
+    refs("symbols", "symbol", "rules", rules, "rule")
+    refs("symbols", "symbol", "drawing_types", types, "drawing type")
+    for table in ("assembly", "variant"):
+        for e in data["assemblies"].get(table, []):
+            for layer in e.get("layers", []):
+                if layer.get("material") not in materials:
+                    what = f"unknown material {layer.get('material')}"
+                    out.append(("assemblies", table, e.get("id", "?"), what))
+    letters = {d.get("letter") for d in std.get("discipline", [])} | {""}
+    for s in data["symbols"].get("symbol", []):
+        if s.get("discipline", "") not in letters:
+            out.append(("symbols", "symbol", s.get("id", "?"), "unknown discipline"))
+        if "paths" in s and (why := _bad_paths(s["paths"])):
+            out.append(("symbols", "symbol", s.get("id", "?"), f"paths {why}"))
+    return out
+
+
+def validate(data: dict[str, dict]) -> list[str]:
+    """What is wrong with knowledge ``data`` (from :func:`merged`): entries
+    from packs that lack a field the built-in ones all have, references to
+    ids that do not exist, and symbol geometry that does not fit the unit box.
+    An empty list when it holds together."""
+    return [f"{file}.{table} {key}: {what}" for file, table, key, what in _problems(data)]
+
+
+def _bad_paths(paths: object) -> str:
+    """Why ``paths`` is not symbol geometry, or "" when it is: polylines of at
+    least two [x, y] points inside the unit box (-0.5..0.5, y down)."""
+    if not isinstance(paths, list) or not paths:
+        return "must be a list of polylines"
+    for line in paths:
+        if not isinstance(line, list) or len(line) < 2:
+            return "has a polyline with fewer than two points"
+        for point in line:
+            ok = (
+                isinstance(point, list)
+                and len(point) == 2
+                and all(isinstance(c, (int, float)) and not isinstance(c, bool) for c in point)
+            )
+            if not ok:
+                return "has a point that is not [x, y]"
+            if max(abs(point[0]), abs(point[1])) > 0.55:
+                return "go outside the unit box (-0.5..0.5)"
+    return ""
 
 
 def _fold(text: str) -> str:

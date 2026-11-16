@@ -9,10 +9,13 @@ one workbook practises; its brief goes to Claude with the grade.
 from __future__ import annotations
 
 import functools
+import logging
 import tomllib
 from importlib import resources
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
+
+log = logging.getLogger(__name__)
 
 AREA = "Skola"
 
@@ -43,8 +46,24 @@ class Group(BaseModel):
 
 @functools.cache
 def load() -> list[Group]:
+    """The groups rmink ships and those packs bring (``workbook/*.toml`` in a
+    pack, see :mod:`rmink.packs`); a pack's group replaces one with its id."""
+    from rmink import packs
+
     text = (resources.files(__package__) / "data" / "skola.toml").read_text("utf-8")
-    return [Group.model_validate(g) for g in tomllib.loads(text)["group"]]
+    groups = [Group.model_validate(g) for g in tomllib.loads(text)["group"]]
+    for pack, data in packs.workbook_groups():
+        try:
+            g = Group.model_validate(data)
+        except ValidationError as e:
+            log.warning("workbook group %s in pack %s was skipped: %s", data.get("id"), pack, e)
+            continue
+        at = next((i for i, old in enumerate(groups) if old.id == g.id), None)
+        if at is None:
+            groups.append(g)
+        else:
+            groups[at] = g
+    return groups
 
 
 def group(group_id: str) -> Group:

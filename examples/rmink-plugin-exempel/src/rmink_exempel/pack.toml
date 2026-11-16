@@ -1,0 +1,4 @@
+name = "exempel"
+version = "0.1.0"
+description = "Bastuaggregat som symbol, en term och en arbetsboksgrupp"
+api = 1

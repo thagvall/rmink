@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.26.0 — 2026-11-16
+
+- rmink works without reMarkable Cloud. A transport is where notebooks are left and fetched: the cloud as before, or a folder on the computer (`rmink transport use folder:PATH`, or `--via folder:PATH` for one command). Drawing rounds, workbooks and sheets file their revisions there with the same `rmink/...` paths. Carrying the files between the folder and the tablet is up to the user.
+- Plugins: a Python package can bring a transport, a content pack, a file format in or out, a command or MCP tools, declared as entry points. `rmink plugins` lists them, a plugin that fails to load is skipped, and `RMINK_NO_PLUGINS=1` turns them off. `docs/plugins.md` describes the interfaces and `examples/rmink-plugin-exempel` has one of each.
+- Content packs need no code: a folder with `pack.toml`, `knowledge/*.toml` and `workbook/*.toml`, installed as a package or put in `~/.config/rmink/packs/`. An entry with the id of a built-in one replaces it. A symbol with `paths` is drawn like a built-in symbol. `rmink plugins check` checks a pack; a faulty entry is left out with a warning.
+- Your own files in `~/.config/rmink/knowledge/` are read on top of the built-in knowledge, as docs/knowledge.md promised.
+- `rmink export DRAWING --format pdf|svg|…` and the MCP tool `export_drawing` write a clean drawing in another format; plugins add formats.
+- Workbooks can have maps of Sweden: a question or section takes a `figure` (a cut-out, highlighted landskap, printed names, cities, lakes), and `map_summary` ends the book with a page to fill in the whole country. Borders and the 25 names are ink on the hidden Facit layer. The map is vector graphics in the PDF and can be written on; a round reads only the answer boxes. Not yet tried through a full round on a tablet.
+- The MCP tool `files_list` lists the transport in use. `rmink cloud …` and the hosted web app are unchanged and use the cloud.
+
 ## 2.25.0 — 2026-11-08
 
 - Sheets lie on the tablet as they do on paper. A landscape drawing becomes a landscape notebook, which the tablet shows turned with its menus, so the overview of an A3 is a third larger and it takes four tiles instead of six. A notebook lies as most of its sheets do; `--orientation` decides otherwise.

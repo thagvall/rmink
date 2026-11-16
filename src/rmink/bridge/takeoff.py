@@ -284,7 +284,7 @@ def _plan(doc: pymupdf.Document, sheet_page: int) -> _Plan | None:
         return None
     from rmink.drawing import workflow
     from rmink.drawing.render import _element_paths
-    from rmink.drawing.symbols import SYMBOLS
+    from rmink.drawing.symbols import symbols
 
     d = workflow.drawing_from_json(doc.embfile_get(DRAWING).decode())
     k = place["pt_per_px"]
@@ -303,7 +303,7 @@ def _plan(doc: pymupdf.Document, sheet_page: int) -> _Plan | None:
         (
             np.array(s.at, dtype=float) * k + origin,
             s.size * k * 0.75,
-            s.label or SYMBOLS.get(s.kind, (s.kind, []))[0],
+            s.label or symbols().get(s.kind, (s.kind, []))[0],
             s.kind,
         )
         for s in d.symbols

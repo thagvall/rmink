@@ -2005,6 +2005,354 @@ def d19_terms() -> Diagram:
 
 # --- main ------------------------------------------------------------------------
 
+# --- 20. plugins and transports ---------------------------------------------------
+
+# What each entry point group is, in the words of the diagram:
+# (part, what the plugin gives, where rmink asks for it, where the user meets it)
+PLUGIN_PARTS: dict[str, tuple[str, list[str], list[str], list[str]]] = {
+    "rmink.transports": (
+        "Transport",
+        ["fabrik(arg) → objekt med de sex anropen", "namn = schemat i namn:arg"],
+        ["transport.open()", "src/rmink/transport/"],
+        ["--via namn:arg, rmink transport use", "varv, arbetsböcker och ark skickas och hämtas där"],
+    ),
+    "rmink.packs": (
+        "Innehållspaket",
+        ["ett paket (eller en mapp) med pack.toml", "knowledge/*.toml och workbook/*.toml, ingen kod"],
+        ["packs.all_packs() → knowledge.load()", "symbols() och catalog.load()"],
+        ["lookup_knowledge och Claudes prompt", "symboler på ritning och i förklaring", "grupper i rmink skola"],
+    ),
+    "rmink.importers": (
+        "Format in",
+        ["load(path, mode, pages) → sidor", "namn = filändelsen"],
+        ["ingest.load()", "när ingen inbyggd läsare passar"],
+        ["rmink convert fil.<ändelse>", "webbappen och convert_to_rmdoc"],
+    ),
+    "rmink.exporters": (
+        "Format ut",
+        ["export(drawing) → bytes", "namn = formatet"],
+        ["drawing.export.export()", "pdf och svg är inbyggda"],
+        ["rmink export RITNING --format namn", "MCP: export_drawing"],
+    ),
+    "rmink.commands": (
+        "Kommando",
+        ["ett typer.Typer eller en funktion", "namn = kommandot"],
+        ["cli._plugin_commands()", "när rmink startar"],
+        ["rmink <namn>"],
+    ),
+    "rmink.mcp_tools": (
+        "MCP-verktyg",
+        ["register(server)", "lägger till verktyg med @server.tool()"],
+        ["mcp_server._plugin_tools()", "när rmink mcp startar"],
+        ["nya verktyg hos Claude och andra MCP-klienter"],
+    ),
+}
+
+TRANSPORT_CALLS = {
+    "ls": "mappar och anteckningsböcker i en mapp",
+    "get": "en anteckningsbok som .rmdoc",
+    "put": "lämna en .rmdoc; upptaget namn blir namn_2",
+    "mkdir": "gör en mapp; finns den redan är det bra",
+    "mv": "flytta bok eller mapp; ExistsError om namnet är taget",
+    "rmdir": "ta bort en tom mapp",
+}
+
+
+def example_entry_points() -> list[list[str]]:
+    """The entry points of examples/rmink-plugin-exempel, as table rows."""
+    import tomllib
+
+    path = HERE.parents[1] / "examples" / "rmink-plugin-exempel" / "pyproject.toml"
+    table = tomllib.loads(path.read_text(encoding="utf-8"))["project"]["entry-points"]
+    return [[group, name, value] for group, entries in table.items() for name, value in entries.items()]
+
+
+def d20_plugins() -> Diagram:
+    from rmink import knowledge, plugins, transport
+
+    assert set(PLUGIN_PARTS) == set(plugins.GROUPS), "a plugin group is missing from the diagram"
+    calls = [m for m in vars(transport.Transport) if not m.startswith("_") and m != "name"]
+    assert set(calls) == set(TRANSPORT_CALLS), "the Transport calls changed"
+
+    d = Diagram(
+        "20-plugin-och-transporter",
+        "20. Plugin, innehållspaket och transporter",
+        "Andra paket tar med sig delar till rmink genom entry points. Inget importeras förrän det används, och en transport avgör var anteckningsböcker lämnas och hämtas.",
+    )
+
+    # --- A: what others bring, how it is found, where it attaches
+    d.text(40, 92, 900, 24, "<b>A. Delarna och var de fäster</b>", size=15)
+    top = 130
+    src_w, find_w = 290, 280
+    y = top
+    pip = d.box(
+        40, y, src_w, 118,
+        label(
+            "pip-paket: rmink-<namn>",
+            [
+                "pyproject.toml:",
+                '[project.entry-points."rmink.transports"]',
+                'webdav = "rmink_webdav:open"',
+                "kod som körs med användarens rättigheter",
+            ],
+        ),
+        "plugin",
+    )
+    y += 118 + 40
+    folder = d.box(
+        40, y, src_w, 92,
+        label(
+            "Paketmapp, ingen kod",
+            ["~/.config/rmink/packs/<namn>/", "pack.toml, knowledge/*.toml, workbook/*.toml"],
+        ),
+        "data",
+    )
+    y += 92 + 40
+    own = d.box(
+        40, y, src_w, 92,
+        label(
+            "Egna filer",
+            ["~/.config/rmink/knowledge/*.toml", "~/.config/rmink/workbook/*.toml", "läses sist, över allt annat"],
+        ),
+        "data",
+    )
+
+    fx = 40 + src_w + 70
+    found = d.box(
+        fx, top, find_w, 132,
+        label(
+            "plugins.py: upptäckt",
+            [
+                "found(grupp): listar, importerar inte",
+                "load(grupp, namn): importerar vid behov",
+                f"API_VERSION = {plugins.API_VERSION}",
+                "trasigt plugin → varning, hoppas över",
+                "RMINK_NO_PLUGINS=1 stänger av",
+            ],
+        ),
+        "core",
+    )
+    layers = d.box(
+        fx, top + 132 + 66, find_w, 150,
+        label(
+            "packs.py: lager på lager",
+            [
+                "1 det rmink har inbyggt",
+                "2 paket från plugin",
+                "3 paketmappar",
+                "4 egna filer",
+                "samma id ersätter, annat läggs till",
+                "en post med fel utelämnas med varning",
+            ],
+        ),
+        "core",
+    )
+    d.edge(pip, found, "entry points", exit=(1, 0.5), entry=(0, 0.5))
+    d.edge(found, layers, "rmink.packs", exit=(0.5, 1), entry=(0.5, 0))
+    d.edge(folder, layers, exit=(1, 0.5), entry=(0, 0.35))
+    d.edge(own, layers, exit=(1, 0.5), entry=(0, 0.75))
+
+    px = fx + find_w + 100
+    col = [300, 290, 330]
+    gap = 46
+    heads = ["Delen ett plugin tar med sig", "Här frågar rmink efter den", "Här möter användaren den"]
+    for i, head in enumerate(heads):
+        d.text(px + sum(col[:i]) + gap * i, top - 24, col[i], 20, f"<b>{esc(head)}</b>", size=12)
+    y = top
+    first = {}
+    for group in plugins.GROUPS:
+        part, gives, asks, meets = PLUGIN_PARTS[group]
+        texts = [(f"{part}: {group}", gives), ("", asks), ("", meets)]
+        h = max(text_height(plain_lines(t, ls), w) for (t, ls), w in zip(texts, col, strict=True))
+        kinds = ["plugin", "core", "interface"]
+        ids = []
+        for i, ((title, lines), w) in enumerate(zip(texts, col, strict=True)):
+            x = px + sum(col[:i]) + gap * i
+            ids.append(d.box(x, y, w, h, label(title, lines), kinds[i], hint=f"{group}_{i}"))
+        d.edge(ids[0], ids[1], exit=(1, 0.5), entry=(0, 0.5))
+        d.edge(ids[1], ids[2], exit=(1, 0.5), entry=(0, 0.5))
+        first[group] = ids
+        y += h + 14
+    parts_bottom = y
+    # Code parts come straight from the entry points; packs go through the layers.
+    def mid(cid: str) -> float:
+        _, by_, _, bh = d._abs[cid]
+        return by_ + bh / 2
+
+    for group, ids in first.items():
+        src, trunk = (layers, px - 28) if group == "rmink.packs" else (found, px - 56)
+        d.edge(
+            src, ids[0],
+            {"rmink.transports": "kod", "rmink.packs": "TOML-lager"}.get(group, ""),
+            exit=(1, 0.5), entry=(0, 0.5),
+            points=[(trunk, mid(src)), (trunk, mid(ids[0]))],
+        )
+
+    rules_y = max(parts_bottom, top + 132 + 66 + 150 + GAP) + 6
+    note_box(
+        d, 40, rules_y, 640,
+        "Regler för alla plugin",
+        [
+            "Inbyggda namn står kvar: ett plugin kan inte ersätta cloud, folder, .pdf, exporten pdf eller rmink convert.",
+            "Undantaget är paketdata: där ersätter samma id med flit.",
+            f"API_VERSION {plugins.API_VERSION} täcker grupperna, de sex transportanropen, paketmappens upplägg och signaturerna för format in och ut.",
+            "Allt annat i rmink.* är internt och kan ändras mellan versioner.",
+        ],
+        "note",
+    )
+    files = ", ".join(knowledge.FILES)
+    a_bottom = note_box(
+        d, 720, rules_y, 700,
+        "Vad ett innehållspaket kan innehålla",
+        [
+            f"knowledge/: {files}",
+            "En post behöver alla fält som rmink:s egna poster i samma tabell har, och det den pekar på måste finnas.",
+            "En symbol med paths (polylinjer i enhetsrutan −0,5..0,5) ritas som en inbyggd: på sidan, i förklaringen och som SVG.",
+            "workbook/: [[group]] med [[group.topic]], som i skola.toml.",
+            "rmink plugins check MAPP säger vad som saknas.",
+        ],
+        "data",
+    )
+
+    # --- B: transports
+    by = a_bottom + 60
+    d.text(40, by, 900, 24, "<b>B. Transporter: var anteckningsböcker lämnas och hämtas</b>", size=15)
+    by += 40
+    row_h, row_gap = 92, 26
+    my = by + (3 * row_h + 2 * row_gap - 150) / 2  # centred on the three transports
+    callers = d.box(
+        40, my, 270, 150,
+        label(
+            "Den som skickar och hämtar",
+            [
+                "ritningsvarv (drawing/workflow.py)",
+                "arbetsböcker (workbook/workflow.py)",
+                "ark: rmink sheet send | pull",
+                "MCP: save_revision, read_sketch, files_list",
+                "rmink transport ls | get | put",
+            ],
+        ),
+        "interface",
+    )
+    choose = d.box(
+        370, my, 270, 150,
+        label(
+            "Vilken transport?",
+            [
+                "1 --via eller $RMINK_TRANSPORT",
+                "2 rmink transport use → config.toml",
+                "3 molnet, om rmink cloud connect är gjort",
+                "annars: felet säger hur man väljer en",
+            ],
+        ),
+        "core",
+    )
+    api = d.box(
+        700, my, 330, 150,
+        label("Transport: sex anrop", [f"{m}: {TRANSPORT_CALLS[m]}" for m in calls]),
+        "core",
+    )
+    d.edge(callers, choose, exit=(1, 0.5), entry=(0, 0.5))
+    d.edge(choose, api, exit=(1, 0.5), entry=(0, 0.5))
+
+    ix, sx, tx = 1100, 1400, 1830
+    rows = [
+        (
+            "core", "cloud: CloudTransport", ["inbyggd, kör rmapi", "samma kod som förut"],
+            "external", "reMarkable Cloud", ["kräver prenumeration", "synkar själv till plattan"],
+            "synk", False,
+        ),
+        (
+            "core", "folder:MAPP: FolderTransport", ["inbyggd, ingen prenumeration", "/rmink/Bygg/Altan/Altan r02 =", "MAPP/rmink/Bygg/Altan/Altan r02.rmdoc"],
+            "data", "En mapp på datorn", ["överlämningspunkt: rmink når inte plattan", "användaren bär filerna: USB, synk, egen server"],
+            "bärs för hand", True,
+        ),
+        (
+            "plugin", "namn:arg: från ett plugin", ["exemplet: zip:FIL", "hela trädet i en zip-fil"],
+            "data", "Det pluginet talar med", ["en fil, en server, ett annat moln"],
+            "pluginets sätt", True,
+        ),
+    ]
+    device_ids = []
+    ry = by
+    tablet = d.box(
+        tx, ry + row_h + row_gap, 190, row_h,
+        label("reMarkable-plattan", ["skriv, rita, kryssa", "lägg tillbaka samma namn"]),
+        "device",
+    )
+    for kind, title, lines, skind, stitle, slines, how, dashed in rows:
+        impl = d.box(ix, ry, 250, row_h, label(title, lines), kind, hint=title)
+        store = d.box(sx, ry, 270, row_h, label(stitle, slines), skind, hint=stitle)
+        d.edge(api, impl, exit=(1, 0.5), entry=(0, 0.5))
+        d.edge(impl, store, exit=(1, 0.5), entry=(0, 0.5))
+        d.edge(store, tablet, how, dashed=dashed, exit=(1, 0.5), entry=(0, 0.5))
+        device_ids.append(store)
+        ry += row_h + row_gap
+    b_bottom = ry
+    b_bottom = note_box(
+        d, 40, b_bottom + 10, 990,
+        "Vad en transport måste hålla",
+        [
+            "put skriver aldrig över: den svarar med namnet den använde. ls av en mapp som saknas ger NotFoundError, och då gör rmink mapparna en i taget.",
+            "Fel är TransportError med ett meddelande som går att visa. En transport får filerna, aldrig användarens reMarkable-token.",
+            "Den hostade webbappen skickar bara via molnet; transporter gäller CLI och MCP på den egna datorn.",
+        ],
+        "note",
+    )
+
+    # --- C: examples
+    cy = b_bottom + 60
+    d.text(40, cy, 900, 24, "<b>C. Exempel</b>", size=15)
+    cy += 40
+    flows = [
+        (
+            "1. Utan moln: ett ark ut och tillbaka genom en mapp",
+            [
+                ("Välj mappen", ["rmink transport use folder:~/rmink"], "interface"),
+                ("Skicka arket", ["rmink sheet send ritning.pdf --send", "→ ~/rmink/rmink/Ark/ritning.rmdoc"], "core"),
+                ("Bär över och skriv", ["USB (10.11.99.1) eller synk", "skriv på plattan", "lägg filen tillbaka i mappen"], "device"),
+                ("Hämta bläcket", ["rmink sheet pull /rmink/Ark/ritning ritning.pdf"], "core"),
+                ("PDF med bläck", ["varje streck en PDF-anteckning", "öppnas i Open PDF Studio"], "data"),
+            ],
+        ),
+        (
+            "2. Ett innehållspaket: symbolen bastuaggregat",
+            [
+                ("Paketet", ["knowledge/symbols.toml", 'id = "sauna_heater"', "paths = fyra polylinjer"], "plugin"),
+                ("Läggs ovanpå", ["packs.py läser lagren", "knowledge.load() och symbols()"], "core"),
+                ("Claude slår upp", ['lookup_knowledge("bastuaggregat")', "posten säger pack = exempel"], "claude"),
+                ("Ritas i r02", ["symbolen på sidan", "raden i FÖRKLARINGAR"], "core"),
+                ("Vidare ut", ["symbol_svg() för OPS-biblioteket", "IFC-klass i mängdlistan"], "data"),
+            ],
+        ),
+        (
+            "3. Nya format: GeoJSON in och ut",
+            [
+                ("tomt.geojson", ["linjer och ytor från ett GIS"], "external"),
+                ("Importören", ["rmink.importers: geojson", "load_geojson() → VectorSource"], "plugin"),
+                ("Vanlig konvertering", ["rmink convert tomt.geojson", "→ tomt.rmdoc med redigerbart bläck"], "core"),
+                ("Exportören", ["rmink export Altan --format geojson", "rmink.exporters: geojson"], "plugin"),
+                ("altan.geojson", ["ritningens element", "öppnas i GIS eller annat program"], "external"),
+            ],
+        ),
+    ]
+    for title, steps in flows:
+        d.text(40, cy, 900, 20, f"<b>{esc(title)}</b>", size=12)
+        cy = snake(d, 40, cy + 26, 300, 5, steps, gap_x=50, gap_y=24)
+
+    _, c_bottom = table_box(
+        d, 40, cy + 10,
+        "Exempelpluginet examples/rmink-plugin-exempel: en av varje del",
+        ["entry point-grupp", "namn", "pekar på"],
+        example_entry_points(),
+        [200, 110, 300],
+        "plugin",
+        sub="pip install -e examples/rmink-plugin-exempel, sedan rmink plugins",
+    )
+    d.legend(720, cy + 10, ["plugin", "core", "interface", "data", "external", "claude", "device", "note"])
+    return d
+
+
 DIAGRAMS: list[Callable[[], Diagram]] = [
     d01_overview,
     d02_convert,
@@ -2025,6 +2373,7 @@ DIAGRAMS: list[Callable[[], Diagram]] = [
     d17_hatches,
     d18_markup,
     d19_terms,
+    d20_plugins,
 ]
 
 

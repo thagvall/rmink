@@ -31,7 +31,7 @@ from typing import Literal
 
 import pymupdf
 
-from rmink import cloud
+from rmink import cloud, transport
 from rmink.devices import DeviceProfile, get_device
 from rmink.drawing.store import WORKBOOK_LINK, Store
 from rmink.drawing.workflow import (
@@ -40,10 +40,12 @@ from rmink.drawing.workflow import (
     RMINK_FOLDER,
     _move_into,
     drawing_folder,
+    make_folders,
     safe_name,
 )
 from rmink.model import Page, Stroke
 from rmink.package.rmdoc import RmdocPage, UuidFactory, write_rmdoc
+from rmink.transport import Transport
 from rmink.workbook.build import FACIT_LAYER, build_pdf, solution_strokes
 from rmink.workbook.model import LAYOUT, Workbook
 from rmink.workbook.read import HANDWRITING_LAYER, Sorted
@@ -74,19 +76,6 @@ def workbook_folder(workbook: Workbook) -> str:
         return drawing_folder(workbook.name)
     parts = [workbook.area, *workbook.group.split("/"), workbook.name]
     return "/".join([RMINK_FOLDER, *(safe_name(p) for p in parts if p)])
-
-
-def _make_folders(token: str, folder: str) -> list[cloud.Entry]:
-    """The entries of ``folder``, made with the folders above it if missing."""
-    try:
-        return cloud.ls(token, folder)
-    except cloud.CloudNotFoundError:
-        pass
-    path = ""
-    for part in folder.strip("/").split("/"):
-        path += "/" + part
-        cloud.mkdir(token, path)  # a folder that is there counts as made
-    return []
 
 
 def _on(strokes: list[Stroke], layer: str) -> list[Stroke]:
@@ -147,13 +136,15 @@ def build_revision(
     return output.with_suffix(".rmdoc")
 
 
-def send_revision(workbook: Workbook, path: Path, token: str, store: Store) -> str:
-    """Upload a revision to the workbook's folder, save the workbook with where
-    it went and move the notebook this round read into ``Tidigare``. Returns
-    the cloud path."""
+def send_revision(workbook: Workbook, path: Path, via: Transport | str, store: Store) -> str:
+    """Upload a revision to the workbook's folder in the transport ``via`` (a
+    string is a reMarkable Cloud token), save the workbook with where it went
+    and move the notebook this round read into ``Tidigare``. Returns the path
+    there."""
+    t = transport.of(via)
     folder = workbook_folder(workbook)
-    entries = _make_folders(token, folder)
-    sent_as = f"{folder}/{cloud.put(path, token, folder=folder, name=revision_title(workbook))}"
+    entries = make_folders(t, folder)
+    sent_as = f"{folder}/{t.put(path, folder=folder, name=revision_title(workbook))}"
     read = workbook.document
     workbook.sent_as = sent_as
     store.save_workbook(workbook)
@@ -164,38 +155,42 @@ def send_revision(workbook: Workbook, path: Path, token: str, store: Store) -> s
         archive = f"{folder}/{ARCHIVE}"
         try:
             if not any(e.folder and e.name == ARCHIVE for e in entries):
-                cloud.mkdir(token, archive)
-            moved = _move_into(token, read, archive, base)
+                t.mkdir(archive)
+            moved = _move_into(t, read, archive, base)
             store.link(moved, WORKBOOK_LINK + workbook.name)
         except cloud.CloudError as e:
             log.warning("Could not move %s to %s: %s", read, archive, e)
     return sent_as
 
 
-def _remove_if_empty(token: str, folder: str, area_folder: str) -> None:
+def _remove_if_empty(via: Transport | str, folder: str, area_folder: str) -> None:
     """Remove a group folder the last workbook was moved out of. Only folders
     inside the area's folder go, and never the area's folder itself."""
     if not folder.startswith(area_folder + "/"):
         return
+    t = transport.of(via)
     try:
-        if not cloud.ls(token, folder):
-            cloud.rmdir(token, folder)
+        if not t.ls(folder):
+            t.rmdir(folder)
     except cloud.CloudError as e:
         log.warning("Could not remove the empty folder %s: %s", folder, e)
 
 
-def move_to_group(workbook: Workbook, area: str, group: str, token: str, store: Store) -> str:
+def move_to_group(
+    workbook: Workbook, area: str, group: str, via: Transport | str, store: Store
+) -> str:
     """Move a workbook's folder, with its revisions and Tidigare, into
     rmink/<area>/<group>/ and save it with its new paths. Returns the new
     folder; a folder already there is left alone (CloudExistsError)."""
+    t = transport.of(via)
     old = workbook_folder(workbook)
     moved = workbook.model_copy(update={"area": area, "group": group})
     new = workbook_folder(moved)
     if old == new:
         return new
-    _make_folders(token, new.rpartition("/")[0])
-    cloud.mv(token, old, new)
-    _remove_if_empty(token, old.rpartition("/")[0], f"{RMINK_FOLDER}/{area}")
+    make_folders(t, new.rpartition("/")[0])
+    t.mv(old, new)
+    _remove_if_empty(t, old.rpartition("/")[0], f"{RMINK_FOLDER}/{area}")
 
     def renamed(path: str) -> str:
         return new + path[len(old) :] if path.startswith(old + "/") else path
@@ -204,16 +199,16 @@ def move_to_group(workbook: Workbook, area: str, group: str, token: str, store: 
     moved.log.append(f"r{moved.revision:02d}: flyttad till {new.removeprefix(RMINK_FOLDER + '/')}")
     store.save_workbook(moved)
     link = WORKBOOK_LINK + moved.name
-    for e in cloud.ls(token, new):
+    for e in t.ls(new):
         if e.folder and e.name == ARCHIVE:
-            for old_rev in cloud.ls(token, f"{new}/{ARCHIVE}"):
+            for old_rev in t.ls(f"{new}/{ARCHIVE}"):
                 store.link(f"{new}/{ARCHIVE}/{old_rev.name}", link)
         elif not e.folder:
             store.link(f"{new}/{e.name}", link)
     return new
 
 
-def relayout(workbook: Workbook, token: str, store: Store) -> str:
+def relayout(workbook: Workbook, via: Transport | str, store: Store) -> str:
     """Send the workbook again in the current layout (:data:`LAYOUT`) as its
     next revision, with the answers so far; the current one moves to
     Tidigare. Run it when the current revision has no unread ink: ink drawn
@@ -226,4 +221,4 @@ def relayout(workbook: Workbook, token: str, store: Store) -> str:
     wb.log.append(f"r{wb.revision:02d}: ny layout med större svarsrutor")
     with tempfile.TemporaryDirectory() as tmp:
         path = build_revision(wb, Path(tmp) / "wb.rmdoc", get_device(wb.device))
-        return send_revision(wb, path, token, store)
+        return send_revision(wb, path, via, store)

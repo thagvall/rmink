@@ -25,13 +25,13 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from rmink import calc, cloud, knowledge
+from rmink import calc, knowledge, transport
 from rmink.devices import get_device
 from rmink.drawing import workflow
 from rmink.drawing.model import Drawing
 from rmink.drawing.render import render_alternatives, render_drawing
 from rmink.drawing.store import Store, guess_drawing_name
-from rmink.drawing.symbols import SYMBOLS
+from rmink.drawing.symbols import symbols
 from rmink.render.preview import render_lines
 from rmink.writer.rm_v6 import page_lines
 
@@ -171,7 +171,7 @@ def _reference() -> str:
     return json.dumps(
         {
             "schema": Drawing.model_json_schema(),
-            "symbols": {k: v[0] for k, v in SYMBOLS.items()},
+            "symbols": {k: v[0] for k, v in symbols().items()},
             "categories": [c.model_dump() for c in Drawing(name="x").categories],
         }
     )
@@ -405,10 +405,10 @@ def run_round(
                 )
                 sent_as = None
                 if send:
-                    token = cloud.load_token()
-                    if not token:
+                    via = transport.default()
+                    if via is None:
                         raise RoundError("rmink är inte kopplat till reMarkable Cloud")
-                    sent_as = workflow.send_revision(rev, token, store)
+                    sent_as = workflow.send_revision(rev, via, store)
             state["saved"] = {
                 "drawing": rev.drawing,
                 "sent_as": sent_as,

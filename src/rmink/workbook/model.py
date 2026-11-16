@@ -42,6 +42,26 @@ def letter(i: int) -> str:
     return "ABCDEFGH"[i]
 
 
+class MapFigure(BaseModel):
+    """A map of Sweden with a question or a section; see :mod:`rmink.workbook.maps`.
+
+    Names are landskap, or a landsdel (Götaland, Svealand, Norrland) or
+    "Sverige" for all of its own."""
+
+    view: list[str] = Field(default_factory=list)  # what to frame; empty is all of Sweden
+    highlight: list[str] = Field(default_factory=list)  # filled grey
+    borders: bool = True  # the borders between landskap
+    labels: list[str] = Field(default_factory=list)  # names printed on the map
+    pins: list[str] = Field(default_factory=list)  # cities marked and named
+    lakes: list[str] = Field(default_factory=lambda: ["Vänern", "Vättern", "Mälaren"])
+    # On the hidden "Facit" layer: lit with the solution.
+    solution_labels: list[str] = Field(default_factory=list)
+    solution_pins: list[str] = Field(default_factory=list)
+    height: float = Field(default=210.0, ge=80, le=480)  # pt on the page
+    rect: Rect | None = None  # where it landed, set by the layout
+    page: int = -1
+
+
 class Choice(BaseModel):
     text: str
     correct: bool = False
@@ -57,6 +77,7 @@ class AnswerField(BaseModel):
     prompt: str
     kind: Kind = "text"
     choices: list[Choice] = Field(default_factory=list)
+    figure: MapFigure | None = None
     lines: int = Field(default=3, ge=1, le=20)  # ruled lines to write on
     answer: str = ""
     # False when the handwriting was hard to read: the revision marks the box.
@@ -105,6 +126,7 @@ class Section(BaseModel):
     id: str
     title: str
     text: str = ""  # explanation shown above the fields
+    figure: MapFigure | None = None  # under the text
     fields: list[AnswerField] = Field(default_factory=list)
     page: int = -1  # PDF page index of the section's first page
 
@@ -123,6 +145,11 @@ class Workbook(BaseModel):
     area: str = ""
     group: str = ""
     sections: list[Section] = Field(default_factory=list)
+    # A closing page with Sweden's outline to fill in; the facit has every
+    # landskap drawn and named on the map.
+    map_summary: bool = False
+    map_page: int = -1  # set by the layout
+    map_rect: Rect | None = None
     revision: int = 1
     date: str = ""
     device: str = "rm2"

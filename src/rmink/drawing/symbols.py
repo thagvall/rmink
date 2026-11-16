@@ -3,7 +3,12 @@
 
 from __future__ import annotations
 
+import functools
+import logging
+
 import numpy as np
+
+log = logging.getLogger(__name__)
 
 
 def _circle(r: float = 0.5, cx: float = 0.0, cy: float = 0.0, n: int = 32) -> np.ndarray:
@@ -177,11 +182,30 @@ SYMBOLS: dict[str, tuple[str, list[np.ndarray]]] = {
 }
 
 
+@functools.cache
+def symbols() -> dict[str, tuple[str, list[np.ndarray]]]:
+    """:data:`SYMBOLS` with the symbols packs bring: a ``[[symbol]]`` in a
+    pack's ``knowledge/symbols.toml`` with ``paths`` (polylines in the unit
+    box) is drawn like a built-in one, and replaces one with the same id."""
+    from rmink import knowledge
+
+    out = dict(SYMBOLS)
+    for s in knowledge.load()["symbols"].get("symbol", []):
+        if "paths" not in s or "id" not in s:
+            continue
+        if why := knowledge._bad_paths(s["paths"]):
+            log.warning("symbol %s was skipped: paths %s", s["id"], why)
+            continue
+        paths = [np.array(line, dtype=float) for line in s["paths"]]
+        out[s["id"]] = (str(s.get("name") or s["id"]), paths)
+    return out
+
+
 def symbol_paths(
     kind: str, at: tuple[float, float], size: float, rotation: float = 0.0
 ) -> list[np.ndarray]:
     """Polylines for symbol ``kind``; unknown kinds draw a labelled box."""
-    _, paths = SYMBOLS.get(kind, ("", [_SQUARE]))
+    _, paths = symbols().get(kind, ("", [_SQUARE]))
     a = np.radians(rotation)
     rot = np.array([[np.cos(a), np.sin(a)], [-np.sin(a), np.cos(a)]])
     return [(p * size) @ rot + np.asarray(at) for p in paths]
@@ -190,7 +214,7 @@ def symbol_paths(
 def symbol_svg(kind: str, box: float = 64.0, margin: float = 6.0, width: float = 2.0) -> str:
     """Symbol ``kind`` as a self-contained SVG with strokes only, y down, in a
     ``box`` square: the format of Open PDF Studio's symbol library."""
-    if kind not in SYMBOLS:
+    if kind not in symbols():
         raise KeyError(kind)
     k = box - 2 * margin
     paths = []

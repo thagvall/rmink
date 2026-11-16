@@ -22,7 +22,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from rmink import cloud
+from rmink import transport
 from rmink.devices import DeviceProfile, get_device
 from rmink.drawing.agent import (
     FALLBACK_BETA,
@@ -35,7 +35,7 @@ from rmink.drawing.agent import (
     _image_block,
 )
 from rmink.drawing.store import WORKBOOK_LINK, Store, guess_drawing_name
-from rmink.workbook import catalog, workflow
+from rmink.workbook import catalog, maps, workflow
 from rmink.workbook.build import build_pdf
 from rmink.workbook.model import LAYOUT, AnswerField, Workbook, letter
 from rmink.workbook.read import Ink, Sorted, field_png, read_choices, read_ink, sort_ink
@@ -270,10 +270,10 @@ def _write(
         if not send:
             store.save_workbook(wb)
             return None
-        token = cloud.load_token()
-        if not token:
+        via = transport.default()
+        if via is None:
             raise RoundError("rmink är inte kopplat till reMarkable Cloud")
-        return workflow.send_revision(wb, path, token, store)
+        return workflow.send_revision(wb, path, via, store)
 
 
 def check_workbook(args: dict) -> Workbook:
@@ -289,6 +289,9 @@ def check_workbook(args: dict) -> Workbook:
     ids = [f.id for f in wb.fields()]
     if len(ids) != len(set(ids)):
         raise ValueError("Field ids must be unique.")
+    figures = [x.figure for x in (*wb.sections, *wb.fields()) if x.figure]
+    for figure in figures:
+        maps.check(figure)
     for f in wb.fields():
         if not f.is_choice():
             continue
@@ -544,10 +547,10 @@ def open_round(document: str, device_key: str | None, store: Store) -> OpenRound
         if "/" not in document and wb.sent_as:
             document = wb.sent_as
         document = document if document.startswith("/") else "/" + document
-        token = cloud.load_token()
-        if not token:
+        via = transport.default()
+        if via is None:
             raise RoundError("rmink är inte kopplat till reMarkable Cloud")
-        data = cloud.get(token, document)
+        data = via.get(document)
     device = get_device(device_key or wb.device)
     try:
         written = read_ink(data, device)

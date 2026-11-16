@@ -26,6 +26,7 @@ KINDS: dict[str, tuple[str, str, str]] = {
     "practice": ("#e1d5e7", "#9673a6", "Praxis och branschregler"),
     "rmink": ("#d5e8d4", "#82b366", "rmink-regel"),
     "claude": ("#ffe6cc", "#d79b00", "Claude"),
+    "plugin": ("#e1d5e7", "#9673a6", "Plugin: andras paket"),
     "device": ("#f5f5f5", "#333333", "reMarkable-platta"),
     "note": ("#ffffff", "#999999", "Anmärkning"),
     "fel": ("#f8cecc", "#b85450", "fel"),

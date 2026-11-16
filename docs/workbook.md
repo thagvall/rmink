@@ -26,6 +26,28 @@ Försättsbladet förklarar vad man gör:
 - **Texten är fel:** skriv rättelsen i rutan. Nytt bläck i en besvarad ruta läses som en ändring
   eller ett tillägg till svaret.
 
+## Kartor
+
+En fråga eller ett avsnitt kan ha en karta över Sverige (`figure`), och arbetsboken kan avslutas
+med en sida där man fyller i hela landet (`map_summary`). Kartan är vektorgrafik i PDF:en, så den
+är skarp på plattan. Man kan skriva på den, och varvet läser bara svarsrutorna.
+
+- **Vad som visas:** ett utsnitt (`view`), landskap fyllda i grått (`highlight`), en ren kontur
+  (`borders: false`), tryckta namn (`labels`), städer (`pins`) och sjöar (`lakes`).
+- **Facit:** `solution_labels` och `solution_pins` är bläck på det dolda lagret *Facit* och tänds
+  med facit. En flervalsfrågas namn kommer först när frågan är klar, som dess övriga facit.
+- **Sverigekartan:** sidan har konturen och sjöarna tryckta. Alla gränser och de 25 namnen ligger
+  på *Facit*. I läget Prov kommer de efter rättningen.
+- **Namn:** ett namn står i landskapet när det får plats, annars ute i en kolumn med en linje in.
+
+Kartan står bredvid svarsalternativen och ovanför en ruta att skriva i. Den krymper hellre än
+flyttar frågan till en ny sida. En gammal arbetsbok utan karta får samma layout som förut.
+
+Kartdata finns i `src/rmink/workbook/data/sverige.json` och byggs med `tools/sverige_karta.py`.
+Landskapen kommer från [svenska-landskap](https://github.com/perliedman/svenska-landskap) (CC0,
+från Lantmäteriets Distriktskarta) och sjöarna från Natural Earth (public domain). Filerna delar
+inga hörnpunkter, så de rastreras och gränserna spåras om. Varje gräns finns då exakt en gång.
+
 ## Facit och resultat
 
 Claude skriver ett facit för varje fråga: det väntade svaret med det viktigaste steget, och hur

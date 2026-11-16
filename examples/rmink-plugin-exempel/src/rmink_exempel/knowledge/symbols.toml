@@ -1,0 +1,24 @@
+# Same fields as rmink's own symbols.toml, plus "paths": the symbol as
+# polylines in the unit box (-0.5..0.5, y down). With paths the symbol is
+# drawn on the page, in the legend and as SVG for Open PDF Studio.
+
+[[symbol]]
+id = "sauna_heater"
+name = "Bastuaggregat"
+discipline = "E"
+drawing_types = ["planritning"]
+meaning = "Var bastuaggregatet står. Runt det gäller tillverkarens skyddsavstånd till brännbart material."
+label = "BA"
+required_when = "När ett rum är en bastu."
+sketch = "Fyrkant med tre vågiga streck uppåt, eller texten BA."
+syn = ["bastuaggregat", "aggregat", "BA", "bastuugn"]
+rules = []
+ifc = "IfcSpaceHeater"
+ifc_type = ""
+ops = ""
+paths = [
+    [[-0.4, 0.0], [0.4, 0.0], [0.4, 0.5], [-0.4, 0.5], [-0.4, 0.0]],
+    [[-0.25, -0.1], [-0.15, -0.25], [-0.25, -0.4], [-0.15, -0.5]],
+    [[0.0, -0.1], [0.1, -0.25], [0.0, -0.4], [0.1, -0.5]],
+    [[0.25, -0.1], [0.35, -0.25], [0.25, -0.4], [0.35, -0.5]],
+]

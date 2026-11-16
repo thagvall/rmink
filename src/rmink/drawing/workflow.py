@@ -36,7 +36,7 @@ from pathlib import Path
 
 import numpy as np
 
-from rmink import cloud
+from rmink import cloud, transport
 from rmink.devices import DeviceProfile, config_dir, get_device
 from rmink.drawing.fit import Group, analyse, overlay
 from rmink.drawing.font import text_width
@@ -54,6 +54,7 @@ from rmink.ingest.rm import read_page, read_rmdoc
 from rmink.model import Document, Page
 from rmink.package.rmdoc import RmdocPage, UuidFactory, write_rmdoc
 from rmink.render.preview import render_rm, thumbnail_png
+from rmink.transport import Transport
 from rmink.writer.rm_v6 import write_page
 
 log = logging.getLogger(__name__)
@@ -98,16 +99,17 @@ def drawing_folder(name: str, area: str = "") -> str:
     return "/".join([RMINK_FOLDER, *(safe_name(p) for p in (area, name) if p)])
 
 
-def make_folders(token: str, folder: str) -> list[cloud.Entry]:
+def make_folders(via: Transport | str, folder: str) -> list[cloud.Entry]:
     """The entries of ``folder``, made with the folders above it if missing."""
+    t = transport.of(via)
     try:
-        return cloud.ls(token, folder)
+        return t.ls(folder)
     except cloud.CloudNotFoundError:
         pass
     path = ""
     for part in folder.strip("/").split("/"):
         path += "/" + part
-        cloud.mkdir(token, path)  # a folder that is there counts as made
+        t.mkdir(path)  # a folder that is there counts as made
     return []
 
 
@@ -128,18 +130,12 @@ def load_drawing(name: str, store: Store | None = None) -> Drawing:
 
 def open_document(source: str, device: DeviceProfile) -> Document:
     """A notebook from a local ``.rmdoc``/``.rm`` file or, failing that, the
-    document at that path in the user's reMarkable Cloud."""
+    document at that path in the transport (the user's reMarkable Cloud, or
+    the one chosen with ``rmink transport use``)."""
     path = Path(source).expanduser()
     if path.is_file():
         return read_rmdoc(path, device)
-    token = cloud.load_token()
-    if not token:
-        raise cloud.CloudAuthError(
-            f'"{source}" is not a local file and rmink is not connected to reMarkable '
-            "Cloud; run `rmink cloud connect`"
-        )
-    remote = source if source.startswith("/") else "/" + source
-    return read_rmdoc(cloud.get(token, remote), device)
+    return read_rmdoc(transport.fetch(source), device)
 
 
 @dataclass
@@ -704,9 +700,9 @@ def build_revision(
     return Revision(output, drawing, save_drawing(drawing, store), buf.getvalue())
 
 
-def send_revision(rev: Revision, token: str, store: Store | None = None) -> str:
-    """Upload a revision to its drawing's folder in the reMarkable Cloud and
-    return the cloud path.
+def send_revision(rev: Revision, via: Transport | str, store: Store | None = None) -> str:
+    """Upload a revision to its drawing's folder in the transport ``via`` (a
+    string is a reMarkable Cloud token) and return the path there.
 
     The folder is made on the first round. The drawing is saved again with the
     path, which the next round reads. The notebook this round read moves to the
@@ -715,7 +711,7 @@ def send_revision(rev: Revision, token: str, store: Store | None = None) -> str:
     "<name> r00 skiss" so it sorts first. Notebooks anywhere else are the
     user's and stay put.
     """
-    d, store = rev.drawing, store or FileStore()
+    d, store, t = rev.drawing, store or FileStore(), transport.of(via)
     folder = drawing_folder(d.name, d.area)
     inboxes = {RMINK_FOLDER, folder.rpartition("/")[0]}  # rmink and rmink/<area>
     read = d.sketch.document
@@ -727,10 +723,10 @@ def send_revision(rev: Revision, token: str, store: Store | None = None) -> str:
         # The sketch has the drawing's name; rmapi finds entries by name, so
         # free it before making the folder.
         renamed = f"{parent}/{archived_name}"
-        cloud.mv(token, read, renamed)
+        t.mv(read, renamed)
         read = renamed
-    entries = make_folders(token, folder)
-    sent_as = f"{folder}/{cloud.put(rev.path, token, folder=folder, name=revision_title(d))}"
+    entries = make_folders(t, folder)
+    sent_as = f"{folder}/{t.put(rev.path, folder=folder, name=revision_title(d))}"
     d.sketch.sent_as = sent_as
     store.save(d)
     store.link(sent_as, d.name)
@@ -739,18 +735,19 @@ def send_revision(rev: Revision, token: str, store: Store | None = None) -> str:
         archive = f"{folder}/{ARCHIVE}"
         try:
             if not any(e.folder and e.name == ARCHIVE for e in entries):
-                cloud.mkdir(token, archive)
-            store.link(_move_into(token, read, archive, archived_name), d.name)
+                t.mkdir(archive)
+            store.link(_move_into(t, read, archive, archived_name), d.name)
         except cloud.CloudError as e:
             log.warning("Could not move %s to %s: %s", read, archive, e)
     return sent_as
 
 
-def _move_into(token: str, src: str, folder: str, name: str, attempts: int = 9) -> str:
+def _move_into(via: Transport | str, src: str, folder: str, name: str, attempts: int = 9) -> str:
+    t = transport.of(via)
     for n in range(1, attempts + 1):
         dst = f"{folder}/{name}" + (f"_{n}" if n > 1 else "")
         try:
-            cloud.mv(token, src, dst)
+            t.mv(src, dst)
             return dst
         except cloud.CloudExistsError:
             continue
@@ -763,26 +760,28 @@ def drawing_from_json(data: str | dict) -> Drawing:
     return Drawing.model_validate(data)
 
 
-def move_to_area(drawing: Drawing, area: str, token: str, store: Store | None = None) -> str:
+def move_to_area(
+    drawing: Drawing, area: str, via: Transport | str, store: Store | None = None
+) -> str:
     """Move a drawing's folder, with its revisions and Tidigare, into
     rmink/<area>/ and save it with its new paths. Returns the new folder."""
-    store = store or FileStore()
+    store, t = store or FileStore(), transport.of(via)
     old = drawing_folder(drawing.name, drawing.area)
     moved = drawing.model_copy(deep=True)
     moved.area = area
     new = drawing_folder(moved.name, area)
     if old == new:
         return new
-    make_folders(token, new.rpartition("/")[0])
-    cloud.mv(token, old, new)
+    make_folders(t, new.rpartition("/")[0])
+    t.mv(old, new)
     for attr in ("sent_as", "document"):
         path = getattr(moved.sketch, attr)
         if path.startswith(old + "/"):
             setattr(moved.sketch, attr, new + path[len(old) :])
     store.save(moved)
-    for e in cloud.ls(token, new):
+    for e in t.ls(new):
         if e.folder and e.name == ARCHIVE:
-            for old_rev in cloud.ls(token, f"{new}/{ARCHIVE}"):
+            for old_rev in t.ls(f"{new}/{ARCHIVE}"):
                 store.link(f"{new}/{ARCHIVE}/{old_rev.name}", moved.name)
         elif not e.folder:
             store.link(f"{new}/{e.name}", moved.name)
@@ -793,13 +792,13 @@ class NewMarksError(cloud.CloudError):
     """The current revision has marks a round has not read yet."""
 
 
-def upgrade(drawing: Drawing, token: str, store: Store | None = None) -> str:
+def upgrade(drawing: Drawing, via: Transport | str, store: Store | None = None) -> str:
     """Send a drawing again drawn the current way (:func:`resend`), first
     filing it under rmink/Bygg/ if it was made before areas. Refuses, before changing
     anything, when the current revision has marks a round has not read.
     Returns the cloud path of the new revision."""
-    device = get_device(drawing.sketch.device)
-    pages = read_rmdoc(cloud.get(token, drawing.sketch.sent_as), device).pages
+    device, t = get_device(drawing.sketch.device), transport.of(via)
+    pages = read_rmdoc(t.get(drawing.sketch.sent_as), device).pages
     page = pages[0]
     if (extra := drawing.sketch.remarks_page) and len(pages) >= extra:
         page = _with_remarks(page, pages[extra - 1])
@@ -807,12 +806,12 @@ def upgrade(drawing: Drawing, token: str, store: Store | None = None) -> str:
     if any(s.id not in written for s in page.strokes):
         raise NewMarksError(f"{drawing.name} har nya markeringar på plattan. Kör nästa varv först.")
     if not drawing.area:
-        move_to_area(drawing, BYGG, token, store)
+        move_to_area(drawing, BYGG, t, store)
         drawing = (store or FileStore()).load(drawing.name) or drawing
-    return resend(drawing, token, store)
+    return resend(drawing, t, store)
 
 
-def resend(drawing: Drawing, token: str, store: Store | None = None) -> str:
+def resend(drawing: Drawing, via: Transport | str, store: Store | None = None) -> str:
     """Send the drawing again as its next revision, drawn the way rmink draws
     now (fitted to the page, room to answer); the current one moves to
     Tidigare, where the sketch and earlier revisions are. Run it when the
@@ -824,4 +823,4 @@ def resend(drawing: Drawing, token: str, store: Store | None = None) -> str:
     d.log.append(f"r{d.revision}: omritad, ingen ändring i innehållet")
     with tempfile.TemporaryDirectory() as tmp:
         rev = build_revision(d, Path(tmp) / f"{revision_title(d)}.rmdoc", store=store)
-        return send_revision(rev, token, store)
+        return send_revision(rev, via, store)

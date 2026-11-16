@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rmink-exempel"
+version = "0.1.0"
+description = "An example rmink plugin: one of each kind of part a package can bring"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = ["rmink>=2.26"]
+
+# One table per kind of part. The name on the left is what the user types
+# (a transport's scheme, a file suffix, a format, a command); the value is
+# where rmink finds it. Nothing here is imported until it is used.
+
+[project.entry-points."rmink.transports"]
+zip = "rmink_exempel:open_zip"
+
+[project.entry-points."rmink.packs"]
+exempel = "rmink_exempel"
+
+[project.entry-points."rmink.importers"]
+geojson = "rmink_exempel:load_geojson"
+
+[project.entry-points."rmink.exporters"]
+geojson = "rmink_exempel:export_geojson"
+
+[project.entry-points."rmink.commands"]
+exempel = "rmink_exempel:app"
+
+[project.entry-points."rmink.mcp_tools"]
+exempel = "rmink_exempel:register"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rmink_exempel"]

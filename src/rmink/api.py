@@ -20,7 +20,7 @@ from rmink.extract.tone import device_tone
 from rmink.extract.vector import extract_vector
 from rmink.geometry.order import enforce_budget, reading_order
 from rmink.geometry.transform import Fit, Placement, place
-from rmink.ingest import RasterSource, Source, VectorSource, load
+from rmink.ingest import RasterSource, Source, VectorSource, load, plugin_suffixes
 from rmink.model import Document, Page, Stroke
 from rmink.options import ConvertOptions, ConvertResult, FillMode, Mode, PageStats, Shading
 from rmink.package.rmdoc import RmdocPage, UuidFactory, write_rmdoc
@@ -237,7 +237,8 @@ def render(
     (``rm_pages`` is empty) and draws the images straight from the lines, for
     previews."""
     device = get_device(opts.device)
-    if opts.mode == Mode.vector and any(p.suffix.lower() not in (".pdf", ".svg") for p in inputs):
+    vector = {".pdf", ".svg"} | plugin_suffixes()
+    if opts.mode == Mode.vector and any(p.suffix.lower() not in vector for p in inputs):
         raise ValueError("--mode vector only works for PDF and SVG inputs")
 
     sources: list[Source] = []

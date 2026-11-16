@@ -1,0 +1,17 @@
+# [[group]] tables as in rmink's skola.toml: a folder under rmink/Skola/ and
+# the topics workbooks are written for.
+
+[[group]]
+id = "kartor"
+title = "Kartor och skala"
+area = "Geografi"
+folder = "SO"
+description = "Läsa kartor: väderstreck, skala och kartans tecken."
+
+[[group.topic]]
+id = "skala"
+title = "Skala på kartan"
+grades = [4, 5, 6]
+brief = """Vad skalan 1:50 000 betyder, att räkna om en sträcka på kartan till \
+verklig sträcka och tvärtom. Börja med 1:100 och ett rum, gå sedan till orienteringskartan. \
+Typiskt fel: att tro att en större siffra i skalan ger en större bild."""

@@ -18,3 +18,11 @@ def examples(tmp_path_factory) -> dict[str, Path]:
     make_examples.make_pdf(paths["pdf"])
     make_examples.make_handwriting_photo(paths["photo"])
     return paths
+
+
+@pytest.fixture(autouse=True)
+def _own_setup_stays_out(monkeypatch):
+    """Tests never see the plugins, packs or transport of the person running them."""
+    monkeypatch.delenv("RMINK_TRANSPORT", raising=False)
+    monkeypatch.setenv("RMINK_NO_PLUGINS", "1")
+    monkeypatch.setattr("rmink.transport.config_path", lambda: Path("no-such-config.toml"))

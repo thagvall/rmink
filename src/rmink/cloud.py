@@ -30,10 +30,16 @@ import tomllib
 import zipfile
 from collections.abc import Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass
 from pathlib import Path
 
 from rmink import blob_cache
+from rmink.transport import Entry
+from rmink.transport.errors import AuthError as CloudAuthError
+from rmink.transport.errors import ExistsError as CloudExistsError
+from rmink.transport.errors import NotFoundError as CloudNotFoundError
+from rmink.transport.errors import TransportError as CloudError
+
+__all__ = ["CloudAuthError", "CloudError", "CloudExistsError", "CloudNotFoundError", "Entry"]
 
 log = logging.getLogger(__name__)
 
@@ -46,22 +52,6 @@ _TIMEOUT_S = 90
 # more parallel requests, once.
 _COLD_TIMEOUT_S = 270
 _COLD_CONCURRENT = "6"
-
-
-class CloudError(Exception):
-    """rmapi failed; the message is safe to show to the user."""
-
-
-class CloudAuthError(CloudError):
-    """The device token is missing, revoked or expired."""
-
-
-class CloudExistsError(CloudError):
-    """A document with the same name is already in the target folder."""
-
-
-class CloudNotFoundError(CloudError):
-    """The path does not exist in the user's cloud."""
 
 
 def token_path() -> Path:
@@ -241,12 +231,6 @@ def _missing(proc: subprocess.CompletedProcess) -> bool:
     # rmapi says "directory doesn't exist", or "entry 'X' doesnt exist" for a
     # missing folder on the way.
     return "no matches for" in output or re.search(r"doesn'?t exist", output) is not None
-
-
-@dataclass(frozen=True)
-class Entry:
-    name: str
-    folder: bool
 
 
 def ls(device_token: str, path: str = "/") -> list[Entry]:

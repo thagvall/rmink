@@ -75,4 +75,32 @@ def load(path: Path, mode: str, pages: str | None = None) -> list[Source]:
         from rmink.ingest.image import load_image
 
         return [load_image(path)]
+    if loader := _plugin_loader(suffix):
+        try:
+            sources = list(loader(path, mode, pages))
+        except Exception as e:
+            raise ValueError(f"The importer for {suffix} could not read {path.name}: {e}") from e
+        if not sources or not all(isinstance(x, (VectorSource, RasterSource)) for x in sources):
+            raise ValueError(f"The importer for {suffix} returned no pages for {path.name}")
+        return sources
     raise ValueError(f"Unsupported input type: {path.name}")
+
+
+BUILTIN_SUFFIXES = IMAGE_SUFFIXES | {".pdf", ".svg"}
+
+
+def _plugin_loader(suffix: str):
+    from rmink import plugins
+
+    if suffix in BUILTIN_SUFFIXES or not suffix:
+        return None
+    return plugins.load("rmink.importers", suffix[1:]) or plugins.load("rmink.importers", suffix)
+
+
+def plugin_suffixes() -> set[str]:
+    """The file types plugins read (entry point group ``rmink.importers``, each
+    named after its suffix: ``load(path, mode, pages) -> list[Source]``)."""
+    from rmink import plugins
+
+    found = {"." + name.lower().lstrip(".") for name in plugins.found("rmink.importers")}
+    return found - BUILTIN_SUFFIXES
