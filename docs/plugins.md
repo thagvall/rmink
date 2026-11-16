@@ -56,7 +56,7 @@ The interface lists folders, hands out a notebook as `.rmdoc` (system software 3
 - **Two notebooks can have one name** on the tablet; rmink reads the one changed last.
 - Files over 100 MB are refused, as the interface does.
 
-Measured on an rm2: an upload lands in the folder listed last, and the tablet names it after the name inside the archive, which rmink sets. The interface is documented by its users, not by reMarkable, and may change with the tablet's software.
+Measured on an rm2: an upload lands in the folder listed last, and the tablet names it after the name inside the archive, which rmink sets. A drawing went two rounds there over the cable: sketch up, r01 back with handwriting, r02 up. The interface is documented by its users, not by reMarkable, and may change with the tablet's software.
 
 The hosted web app only sends through the cloud. Transports are for the CLI and the MCP server, which run on your own computer.
 

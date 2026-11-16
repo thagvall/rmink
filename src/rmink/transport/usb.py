@@ -184,7 +184,7 @@ class UsbTransport:
         if self._find(entries, name, folder=True) is None:
             raise TransportError(
                 f'The USB interface cannot make folders. Make the folder "{path}" on the '
-                "tablet and run this again."
+                "tablet first."
             )
 
     def mv(self, src: str, dst: str) -> None:
