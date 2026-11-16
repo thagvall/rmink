@@ -25,6 +25,9 @@ SUPPORT = "https://buy.stripe.com/7sY4gy4b1aQo0iI0SB1sQ00"
 RMAPI = "https://github.com/ddvk/rmapi"
 CONNECT = "https://my.remarkable.com/device/browser/connect"
 MCP_ADD = "claude mcp add rmink -- uvx --from 'rmink[mcp]' rmink mcp"
+USB_USE = "uvx rmink transport use usb"
+PLUGIN_DOCS = f"{GITHUB}/blob/main/docs/plugins.md"
+PLUGIN_EXAMPLE = f"{GITHUB}/tree/main/examples/rmink-plugin-exempel"
 
 FONTS = """<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -107,7 +110,22 @@ TEXT = {
         "claude_h": "rmink in your own Claude",
         "claude_p": "Sketches, drawings and workbooks run in your own Claude, on your own Claude account. "
                     "Add rmink as an MCP server in Claude Code or Claude Desktop and ask.",
-        "claude_note": "You also need rmapi to reach your tablet, and you run a few commands in a terminal.",
+        "claude_note": "To reach your tablet you need rmapi and a reMarkable subscription, or just the USB "
+                       "cable. You run a few commands in a terminal.",
+        "open_eyebrow": "Open at both ends",
+        "usb_h": "No subscription? Use the cable",
+        "usb_p": "Sketches, drawings and workbooks have to reach your tablet and come back. That goes "
+                 "through the reMarkable Cloud, or over the USB cable: plug the tablet in, turn on its USB "
+                 "web interface and tell rmink once.",
+        "usb_note": "Over the cable rmink cannot make or move folders on the tablet. You make them there, "
+                    "and rmink names the one it needs. This is for rmink in your Claude and on the command "
+                    "line; the tool in the browser sends through the cloud or gives you a file.",
+        "plugin_h": "Bring your own parts",
+        "plugin_p": "Other packages can add to rmink: another way to reach the tablet, file formats in and "
+                    "out, commands, and tools for Claude. Content packs add symbols, materials, rules and "
+                    "workbook topics as plain text files, with no code.",
+        "plugin_docs": "How to write a plugin", "plugin_example": "See the example",
+        "foot_open": "Without the cloud, and plugins",
         "free_h": "Free, and it stays that way",
         "free_p": "rmink is open source under AGPL-3.0. If it saves you time, you are welcome to support it with 100 kr.",
         "source": "Source code", "support": "Support rmink · 100 kr",
@@ -167,7 +185,22 @@ TEXT = {
         "claude_h": "rmink i din egen Claude",
         "claude_p": "Skisser, ritningar och arbetsböcker körs i din egen Claude, på ditt eget Claude-konto. "
                     "Lägg till rmink som MCP-server i Claude Code eller Claude Desktop och fråga på.",
-        "claude_note": "Du behöver också rmapi för att nå plattan, och du kör några kommandon i en terminal.",
+        "claude_note": "För att nå plattan behöver du rmapi och en reMarkable-prenumeration, eller bara "
+                       "USB-kabeln. Du kör några kommandon i en terminal.",
+        "open_eyebrow": "Öppet åt båda håll",
+        "usb_h": "Ingen prenumeration? Ta kabeln",
+        "usb_p": "Skisser, ritningar och arbetsböcker ska till plattan och tillbaka. Det går genom "
+                 "reMarkable Cloud, eller över USB-kabeln: sätt i plattan, slå på dess USB-gränssnitt och "
+                 "säg till rmink en gång.",
+        "usb_note": "Över kabeln kan rmink inte skapa eller flytta mappar på plattan. Dem gör du där, och "
+                    "rmink säger vilken som behövs. Det här gäller rmink i din Claude och på "
+                    "kommandoraden; verktyget i webbläsaren skickar via molnet eller ger dig en fil.",
+        "plugin_h": "Ta med egna delar",
+        "plugin_p": "Andra paket kan bygga ut rmink: ett annat sätt att nå plattan, filformat in och ut, "
+                    "kommandon och verktyg för Claude. Innehållspaket lägger till symboler, varuslag, regler "
+                    "och moment för arbetsböcker som vanliga textfiler, utan kod.",
+        "plugin_docs": "Så skriver du ett plugin", "plugin_example": "Se exemplet",
+        "foot_open": "Utan molnet, och plugin",
         "free_h": "Gratis, och det förblir så",
         "free_p": "rmink är öppen källkod under AGPL-3.0. Om det sparar dig tid får du gärna stötta med 100 kr.",
         "source": "Källkod", "support": "Stöd rmink · 100 kr",
@@ -236,6 +269,7 @@ def footer(t: dict) -> str:
       <li><a href="/app">{t["foot_image"]}</a></li>
       <li><a href="{t["sketch"]}">{t["foot_sketch"]}</a></li>
       <li><a href="{t["home"]}#claude">{t["claude_h"]}</a></li>
+      <li><a href="{t["home"]}#open">{t["foot_open"]}</a></li>
     </ul></div>
     <div><b>{t["foot_for"]}</b><ul>
       <li><a href="/skola">rmink skola</a></li>
@@ -356,6 +390,25 @@ def home(lang: str) -> str:
   </ol>
 </div></section>
 
+<section id="open"><div class="wrap split">
+  <div class="prose">
+    <span class="eyebrow">{t["open_eyebrow"]}</span>
+    <h2>{t["usb_h"]}</h2>
+    <p>{t["usb_p"]}</p>
+    {cmd(t, USB_USE)}
+    <p class="note">{t["usb_note"]}</p>
+  </div>
+  <div class="prose">
+    <span class="eyebrow">&nbsp;</span>
+    <h2>{t["plugin_h"]}</h2>
+    <p>{t["plugin_p"]}</p>
+    <div class="actions">
+      <a class="btn small" href="{PLUGIN_DOCS}" rel="noopener">{t["plugin_docs"]}</a>
+      <a class="btn small" href="{PLUGIN_EXAMPLE}" rel="noopener">{t["plugin_example"]}</a>
+    </div>
+  </div>
+</div></section>
+
 <section id="claude"><div class="wrap split">
   <div class="prose">
     <h2>{t["claude_h"]}</h2>
@@ -379,7 +432,7 @@ def home(lang: str) -> str:
     )
 
 
-def get_started(t: dict, prompt: str, example: str) -> str:
+def get_started(t: dict, prompt: str, example: str, usb: str) -> str:
     return f"""<section id="kom-igang"><div class="wrap split">
   <div class="prose">
     <span class="eyebrow">{t["claude_tag"]}</span>
@@ -396,6 +449,9 @@ def get_started(t: dict, prompt: str, example: str) -> str:
     <li><h3>Koppla plattan</h3><p>Hämta en engångskod på
     <a href="{CONNECT}" rel="noopener">my.remarkable.com</a> och ge den till Claude.</p></li>
     <li><h3>{prompt}</h3>{cmd(t, example)}</li>
+    <li class="alt"><h3>Ingen prenumeration? Ta kabeln</h3><p>Hoppa över steg 2 och 3. Sätt i plattan med
+    USB-kabeln, slå på USB-gränssnittet under Inställningar → Lagring och kör:</p>{cmd(t, USB_USE)}
+    <p class="note">{usb}</p></li>
   </ol>
 </div></section>
 """
@@ -471,7 +527,12 @@ def skola() -> str:
   <div class="facts-list">{rows}</div>
 </div></section>
 """
-        + get_started(TEXT["sv"], "Be om en arbetsbok", "Gör en arbetsbok i Plus och minus för årskurs 3")
+        + get_started(
+            TEXT["sv"], "Be om en arbetsbok", "Gör en arbetsbok i Plus och minus för årskurs 3",
+            "Över kabeln kan rmink inte skapa mappar: du gör arbetsbokens mapp på plattan, och rmink säger "
+            "vilken som saknas. Ritningar har gått hela varv den vägen på reMarkable 2; arbetsböcker går "
+            "samma väg men är inte provade över kabeln än.",
+        )
     )
     return vertical(
         path="/skola",
@@ -508,7 +569,12 @@ def bygg() -> str:
   <p style="margin-top:20px"><a href="/sketch/sv">Prova den interaktiva demon →</a></p>
 </div></section>
 """
-        + get_started(TEXT["sv"], "Rita rent en skiss", "Rita rent skissen Garage i mappen rmink på min reMarkable")
+        + get_started(
+            TEXT["sv"], "Rita rent en skiss", "Rita rent skissen Garage i mappen rmink på min reMarkable",
+            "Över kabeln kan rmink inte skapa eller flytta mappar: gör en mapp för ritningen i rmink på "
+            "plattan och lägg skissen där. Revisionerna hamnar bredvid varandra i stället för i Tidigare. "
+            "Provat i fyra varv på reMarkable 2.",
+        )
     )
     return vertical(
         path="/bygg",

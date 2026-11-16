@@ -177,3 +177,6 @@ footer b { color: var(--ink); }
 #video-dialog::backdrop { background: rgb(0 0 0 / .78); }
 #video-dialog .close { display: block; margin: 0 0 8px auto; background: rgb(255 255 255 / .16); color: #fff; border: 0; border-radius: 999px; width: 44px; height: 44px; font-size: 24px; line-height: 1; cursor: pointer; }
 #video-dialog video { display: block; width: 100%; aspect-ratio: 4 / 5; background: #000; border-radius: 12px; }
+/* An alternative to the numbered steps, not a step of its own. */
+.steps li.alt { counter-increment: none; border-top: 1px solid var(--line); padding-top: 20px; }
+.steps li.alt::before { content: none; }

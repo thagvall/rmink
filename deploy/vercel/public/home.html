@@ -149,12 +149,31 @@
   </ol>
 </div></section>
 
+<section id="open"><div class="wrap split">
+  <div class="prose">
+    <span class="eyebrow">Open at both ends</span>
+    <h2>No subscription? Use the cable</h2>
+    <p>Sketches, drawings and workbooks have to reach your tablet and come back. That goes through the reMarkable Cloud, or over the USB cable: plug the tablet in, turn on its USB web interface and tell rmink once.</p>
+    <div class="cmd"><code>uvx rmink transport use usb</code><button type="button" data-copy="uvx rmink transport use usb" data-done="Copied">Copy</button></div>
+    <p class="note">Over the cable rmink cannot make or move folders on the tablet. You make them there, and rmink names the one it needs. This is for rmink in your Claude and on the command line; the tool in the browser sends through the cloud or gives you a file.</p>
+  </div>
+  <div class="prose">
+    <span class="eyebrow">&nbsp;</span>
+    <h2>Bring your own parts</h2>
+    <p>Other packages can add to rmink: another way to reach the tablet, file formats in and out, commands, and tools for Claude. Content packs add symbols, materials, rules and workbook topics as plain text files, with no code.</p>
+    <div class="actions">
+      <a class="btn small" href="https://github.com/thagvall/rmink/blob/main/docs/plugins.md" rel="noopener">How to write a plugin</a>
+      <a class="btn small" href="https://github.com/thagvall/rmink/tree/main/examples/rmink-plugin-exempel" rel="noopener">See the example</a>
+    </div>
+  </div>
+</div></section>
+
 <section id="claude"><div class="wrap split">
   <div class="prose">
     <h2>rmink in your own Claude</h2>
     <p>Sketches, drawings and workbooks run in your own Claude, on your own Claude account. Add rmink as an MCP server in Claude Code or Claude Desktop and ask.</p>
     <div class="cmd"><code>claude mcp add rmink -- uvx --from &#x27;rmink[mcp]&#x27; rmink mcp</code><button type="button" data-copy="claude mcp add rmink -- uvx --from &#x27;rmink[mcp]&#x27; rmink mcp" data-done="Copied">Copy</button></div>
-    <p class="note">You also need rmapi to reach your tablet, and you run a few commands in a terminal.</p>
+    <p class="note">To reach your tablet you need rmapi and a reMarkable subscription, or just the USB cable. You run a few commands in a terminal.</p>
   </div>
   <div class="prose">
     <h2>Free, and it stays that way</h2>
@@ -172,6 +191,7 @@
       <li><a href="/app">Image to ink</a></li>
       <li><a href="/sketch">Sketch to drawing</a></li>
       <li><a href="/#claude">rmink in your own Claude</a></li>
+      <li><a href="/#open">Without the cloud, and plugins</a></li>
     </ul></div>
     <div><b>rmink for</b><ul>
       <li><a href="/skola">rmink skola</a></li>

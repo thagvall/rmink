@@ -149,12 +149,31 @@
   </ol>
 </div></section>
 
+<section id="open"><div class="wrap split">
+  <div class="prose">
+    <span class="eyebrow">Öppet åt båda håll</span>
+    <h2>Ingen prenumeration? Ta kabeln</h2>
+    <p>Skisser, ritningar och arbetsböcker ska till plattan och tillbaka. Det går genom reMarkable Cloud, eller över USB-kabeln: sätt i plattan, slå på dess USB-gränssnitt och säg till rmink en gång.</p>
+    <div class="cmd"><code>uvx rmink transport use usb</code><button type="button" data-copy="uvx rmink transport use usb" data-done="Kopierat">Kopiera</button></div>
+    <p class="note">Över kabeln kan rmink inte skapa eller flytta mappar på plattan. Dem gör du där, och rmink säger vilken som behövs. Det här gäller rmink i din Claude och på kommandoraden; verktyget i webbläsaren skickar via molnet eller ger dig en fil.</p>
+  </div>
+  <div class="prose">
+    <span class="eyebrow">&nbsp;</span>
+    <h2>Ta med egna delar</h2>
+    <p>Andra paket kan bygga ut rmink: ett annat sätt att nå plattan, filformat in och ut, kommandon och verktyg för Claude. Innehållspaket lägger till symboler, varuslag, regler och moment för arbetsböcker som vanliga textfiler, utan kod.</p>
+    <div class="actions">
+      <a class="btn small" href="https://github.com/thagvall/rmink/blob/main/docs/plugins.md" rel="noopener">Så skriver du ett plugin</a>
+      <a class="btn small" href="https://github.com/thagvall/rmink/tree/main/examples/rmink-plugin-exempel" rel="noopener">Se exemplet</a>
+    </div>
+  </div>
+</div></section>
+
 <section id="claude"><div class="wrap split">
   <div class="prose">
     <h2>rmink i din egen Claude</h2>
     <p>Skisser, ritningar och arbetsböcker körs i din egen Claude, på ditt eget Claude-konto. Lägg till rmink som MCP-server i Claude Code eller Claude Desktop och fråga på.</p>
     <div class="cmd"><code>claude mcp add rmink -- uvx --from &#x27;rmink[mcp]&#x27; rmink mcp</code><button type="button" data-copy="claude mcp add rmink -- uvx --from &#x27;rmink[mcp]&#x27; rmink mcp" data-done="Kopierat">Kopiera</button></div>
-    <p class="note">Du behöver också rmapi för att nå plattan, och du kör några kommandon i en terminal.</p>
+    <p class="note">För att nå plattan behöver du rmapi och en reMarkable-prenumeration, eller bara USB-kabeln. Du kör några kommandon i en terminal.</p>
   </div>
   <div class="prose">
     <h2>Gratis, och det förblir så</h2>
@@ -172,6 +191,7 @@
       <li><a href="/app">Bild till bläck</a></li>
       <li><a href="/sketch/sv">Skiss till ritning</a></li>
       <li><a href="/sv#claude">rmink i din egen Claude</a></li>
+      <li><a href="/sv#open">Utan molnet, och plugin</a></li>
     </ul></div>
     <div><b>rmink för</b><ul>
       <li><a href="/skola">rmink skola</a></li>
