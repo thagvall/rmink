@@ -108,7 +108,7 @@ def trace(grid: np.ndarray) -> list[tuple[list[tuple[int, int]], tuple[int, int]
 
 
 def main(landskap: Path, lakes: Path, out: Path) -> None:
-    features = json.loads(landskap.read_text())["features"]
+    features = json.loads(landskap.read_text(encoding="utf-8"))["features"]
     rings = {}
     for i, f in enumerate(features, 1):
         rings[i] = [
@@ -127,7 +127,7 @@ def main(landskap: Path, lakes: Path, out: Path) -> None:
 
     # The source is clipped at the shore, so the big lakes read as sea: give
     # their water to the nearest landskap. (The lake is then drawn on top.)
-    lake_features = json.loads(lakes.read_text())["features"]
+    lake_features = json.loads(lakes.read_text(encoding="utf-8"))["features"]
     water = Image.new("1", (w, h), 0)
     pen = ImageDraw.Draw(water)
     for name in LAKES:

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.26.1 — 2026-11-16
+
+- Fix: on Windows the map of Sweden was read in the system's encoding, so landskap and lakes with å, ä or ö in their names were not found. 2.26.0 was tagged but never published; this is the first release with what is listed under it.
+
 ## 2.26.0 — 2026-11-16
 
 - rmink works without reMarkable Cloud. A transport is where notebooks are left and fetched: the cloud as before, or a folder on the computer (`rmink transport use folder:PATH`, or `--via folder:PATH` for one command). Drawing rounds, workbooks and sheets file their revisions there with the same `rmink/...` paths. Carrying the files between the folder and the tablet is up to the user.

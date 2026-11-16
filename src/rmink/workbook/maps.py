@@ -115,7 +115,8 @@ def _anchor(rings: list[np.ndarray]) -> tuple[float, float]:
 
 @lru_cache(maxsize=1)
 def sverige() -> Sverige:
-    data = json.loads(resources.files("rmink.workbook.data").joinpath("sverige.json").read_text())
+    file = resources.files("rmink.workbook.data").joinpath("sverige.json")
+    data = json.loads(file.read_text(encoding="utf-8"))
     arcs = [np.array(a).reshape(-1, 2) for a in data["arcs"]]
     sides = [tuple(s) for s in data["sides"]]
     landskap = {}
