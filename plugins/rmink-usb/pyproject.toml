@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rmink-usb"
+version = "0.1.0"
+description = "rmink transport over the reMarkable USB web interface: no cloud subscription needed"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = ["rmink>=2.26"]
+
+[project.urls]
+Homepage = "https://github.com/thagvall/rmink/tree/main/plugins/rmink-usb"
+
+[project.entry-points."rmink.transports"]
+usb = "rmink_usb:open_usb"
+
+[project.entry-points."rmink.commands"]
+usb = "rmink_usb:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rmink_usb"]

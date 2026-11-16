@@ -39,6 +39,8 @@ rmink transport ls /rmink
 
 **The folder is a handover point, not a connection to the tablet.** rmink puts `Altan r02.rmdoc` in the folder and expects to find the notebook you wrote on there again under the same name. What carries files between the folder and the tablet is up to you: the USB web interface (<http://10.11.99.1>), a sync tool, a server of your own, or a transport plugin written for it.
 
+[`plugins/rmink-usb`](../plugins/rmink-usb) is such a plugin for the USB web interface (`--via usb`). The interface cannot make or move folders, so the rmink folders are made on the tablet by hand; see its README. Listing, fetching and uploading are tried on an rm2; a full round over USB is not.
+
 The hosted web app only sends through the cloud. Transports are for the CLI and the MCP server, which run on your own computer.
 
 ### Writing a transport
