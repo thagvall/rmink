@@ -1,0 +1,15 @@
+{
+  "voice": "alma",
+  "videos": "rmink-ops-sv-*.mp4",
+  "say": {"rmink": "är-em-ink", "Open PDF": "Åpen PDF"},
+  "lines": [
+    [0.5, "Ritningen ut på bygget, och in i Open PDF Studio."],
+    [4.9, "Garaget på A tre, i skala ett till tjugofem. En vanlig PDF med lager."],
+    [11.9, "Arket läggs på plattan, liggande som på papper. Tryck på en ruta för att gå närmare."],
+    [19.5, "Skriv direkt på ritningen. Ett streck längs väggen, ett kryss, och en rad till den som ritar."],
+    [31.9, "rmink hämtar bläcket, och varje streck hamnar där det skrevs."],
+    [36.3, "Bläcket får ett eget lager. Öppna filen i Open PDF Studio. Tänd och släck pennan, mängderna ligger kvar."],
+    [46.9, "Strecket blev en mätning. Två tusen sexhundrasju millimeter. Krysset räknas som ett stycke."],
+    [54.6, "Rita på plattan. Mät i Open PDF Studio."]
+  ]
+}

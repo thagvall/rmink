@@ -1,0 +1,29 @@
+{
+  "voice": "alma",
+  "videos": "rmink-promo-sv.mp4",
+  "say": {"USB": "u-äss-be", "rmink": "är-em-ink", "Claude": "Klåd", "reMarkable": "rimarkabel", "Paper": "Pejper", "vercel": "vörsell"},
+  "lines": [
+    [0.7, "Dina handskrivna anteckningar, som riktigt reMarkable-bläck."],
+    [6.1, "Inte en bild bakom anteckningarna. Riktiga pennstreck du kan redigera."],
+    [12.7, "Släpp in ett foto."],
+    [14.9, "Se bläcket direkt."],
+    [17.3, "Välj din platta."],
+    [19.9, "Ladda ner anteckningsboken."],
+    [23.1, "Ladda upp till plattan via USB."],
+    [28.3, "Eller dra in den i reMarkable-appen."],
+    [33.1, "Sudda."],
+    [36.3, "Flytta."],
+    [39.9, "Färga om, på Paper Pro."],
+    [42.3, "Precis som dina egna pennstreck."],
+    [45.1, "Funkar med ansikten också."],
+    [50.7, "Ändra storlek."],
+    [53.3, "Sudda."],
+    [55.5, "Rita vidare."],
+    [59.1, "Behåll skuggorna."],
+    [65.1, "Välj stil, penna och tjocklek."],
+    [68.9, "Eller be Claude. Gör om det här till en anteckningsbok för min Paper Pro."],
+    [80.9, "Foton, skisser och logotyper. Alla reMarkable-plattor."],
+    [85.1, "Gratis och öppen källkod. Fungerar även med Claude."],
+    [90.3, "Prova gratis, på rmink punkt vercel punkt app. Gillar du det? Stöd med hundra kronor."]
+  ]
+}

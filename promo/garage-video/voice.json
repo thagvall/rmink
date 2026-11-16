@@ -1,0 +1,17 @@
+{
+  "voice": "alma",
+  "videos": "rmink-garage-sv-*.mp4",
+  "say": {"rmink": "är-em-ink", "Claude": "Klåd"},
+  "lines": [
+    [0.6, "Garaget ska stå här. Men hur tjock ska bottenplattan vara?"],
+    [4.5, "Rita för hand, och skriv frågan på sidan. Sex gånger fyra och en halv meter. Hur tjock, och vilka alternativ finns?"],
+    [13.3, "En mening till Claude räcker."],
+    [16.8, "Claude slår upp bottenplattor, räknar U-värde och vikt, och ritar fyra alternativ."],
+    [21.8, "Ren ritning, och nya frågor."],
+    [25.2, "Bottenplattan har fått en egen sida. Fyra alternativ, A till D. Med lager, tjocklek, U-värde och vikt."],
+    [40.5, "Svara med pennan. Isolerat, uppvärmt till fem grader, alternativ B. Och tio meter till tomtgränsen."],
+    [49.7, "B står på ritningen, och två nya frågor väntar."],
+    [54.4, "Konstruktören bestämmer tjocklek och armering."],
+    [57.6, "Skissa du. rmink ritar rent."]
+  ]
+}

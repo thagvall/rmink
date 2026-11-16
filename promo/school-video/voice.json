@@ -1,0 +1,18 @@
+{
+  "voice": "alma",
+  "videos": "rmink-skola-sv-*.mp4",
+  "say": {"rmink": "är-em-ink", "Claude": "Klåd", "reMarkable": "rimarkabel"},
+  "lines": [
+    [0.4, "Arbetsböcker på din reMarkable. Eleven skriver, rmink rättar."],
+    [4.9, "Matte, svenska och engelska. Färdiga moment för årskurs ett till nio."],
+    [13.3, "Textuppgifterna handlar om elevens vardag. rmink rättar både svar och metod."],
+    [19.9, "Välj ämne, moment och årskurs. Claude skriver provet, och rmink skickar det till plattan."],
+    [27.3, "Eleven skriver för hand. Kryssa i rutor och skriv svar. Inga tangentbord."],
+    [34.9, "Skicka in med ett tryck. Plattan synkar, och rmink hämtar sidorna."],
+    [41.3, "Svaren blir text och rättas. Varje svar mot facit."],
+    [47.3, "Resultatet samlas sist. Poäng totalt och per fråga."],
+    [52.3, "När svaret är fel förklarar en kort kommentar. Facit visar rätt svar."],
+    [58.3, "Tänd facit. Det ligger i ett dolt lager."],
+    [63.8, "Skriv för hand. rmink rättar."]
+  ]
+}

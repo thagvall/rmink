@@ -1,0 +1,17 @@
+{
+  "voice": "alma",
+  "videos": "rmink-bygg-real-sv-*.mp4",
+  "say": {"rmink": "är-em-ink"},
+  "lines": [
+    [0.4, "Ett garage, från handskiss till revision åtta. På riktigt."],
+    [4.9, "Skissa för hand. Sex gånger fyra och en halv meter, och en fråga."],
+    [9.9, "rmink ritar rent, med mått och frågor. Bottenplattan får egna alternativ."],
+    [15.3, "Fyra uppbyggnader av bottenplattan. Lager, tjocklek, U-värde, vikt och kostnad."],
+    [23.3, "Välj med pennan. Isolerat, uppvärmt till fem grader, alternativ B."],
+    [30.3, "B står på ritningen med alla lager. Loggen säger vad som ändrats, och nya frågor kommer."],
+    [37.3, "Varje varv blir en ny revision. De äldre ligger kvar."],
+    [43.3, "Nya frågor, nya svar. Nockhöjd och avstånd, besvarat för hand."],
+    [49.9, "Revision åtta. Nockhöjd fyra och en halv meter, och fem meter till tomtgränsen."],
+    [56.3, "Skissa du. rmink ritar rent."]
+  ]
+}

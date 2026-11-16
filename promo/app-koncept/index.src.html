@@ -1,0 +1,342 @@
+<title>rmink i fickan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: a working phone on the left, a margin note about the current screen on the right, the reasoning below. */
+:root {
+  --bg: #e6e8eb; --surface: #f6f6f3; --raised: #ffffff; --ink: #15171b; --muted: #5a5f68; --line: #cdd0d6;
+  --accent: #2b5fd9; --accent-ink: #ffffff; --accent-soft: #dfe7fb;
+  --ok: #1c7f47; --bad: #b83a2a; --key: #8a5a00; --key-soft: #f6e9c8; --phone: #0f1013;
+  --display: "Space Grotesk", "Avenir Next", system-ui, sans-serif;
+  --body: "Inter", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --hand: "Caveat", "Bradley Hand", cursive;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #131418; --surface: #1c1e23; --raised: #24272d; --ink: #eceef2; --muted: #9ba1ab; --line: #343840;
+  --accent: #86a8ff; --accent-ink: #0b1022; --accent-soft: #1f2a4a;
+  --ok: #5fce90; --bad: #ff8f7d; --key: #e3b75c; --key-soft: #3a2f14; --phone: #000000; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #131418; --surface: #1c1e23; --raised: #24272d; --ink: #eceef2; --muted: #9ba1ab; --line: #343840;
+  --accent: #86a8ff; --accent-ink: #0b1022; --accent-soft: #1f2a4a;
+  --ok: #5fce90; --bad: #ff8f7d; --key: #e3b75c; --key-soft: #3a2f14; --phone: #000000; color-scheme: dark }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body); padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1060px; margin: 0 auto; display: grid; gap: 40px; }
+h1, h2, h3 { font-family: var(--display); letter-spacing: -.02em; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.05; }
+h2 { font-size: 24px; }
+h3 { font-size: 16px; }
+p { margin: 0; }
+.eyebrow { font: 600 12px/1 var(--body); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 17px; color: var(--muted); max-width: 62ch; }
+header { display: grid; gap: 12px; }
+.badge { display: inline-block; font: 600 12px/1 var(--body); padding: 6px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+
+.demo { display: grid; grid-template-columns: minmax(0, 372px) minmax(0, 1fr); gap: 36px; align-items: start; }
+@media (max-width: 800px) { .demo { grid-template-columns: minmax(0, 1fr); } }
+.phone { background: var(--phone); border-radius: 46px; padding: 11px; width: 100%; max-width: 372px; margin: 0 auto; }
+.screen { background: var(--surface); border-radius: 36px; height: 720px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.status { display: flex; justify-content: space-between; padding: 12px 26px 4px; font: 600 13px/1 var(--body); }
+.view { flex: 1; overflow-y: auto; padding: 14px 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.tabs { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); background: var(--raised); padding: 6px 6px 14px; }
+.tabs button { background: none; border: 0; color: var(--muted); font: 600 11px/1.2 var(--body); padding: 8px 2px; border-radius: 10px; cursor: pointer; }
+.tabs button[aria-current="true"] { color: var(--accent); background: var(--accent-soft); }
+.view h2 { font-size: 22px; line-height: 1.12; }
+.view .sub { color: var(--muted); font-size: 13.5px; }
+.back { background: none; border: 0; color: var(--accent); font: 600 14px var(--body); padding: 0; cursor: pointer; text-align: left; align-self: flex-start; }
+.btn { border: 0; border-radius: 14px; padding: 14px 16px; font: 600 15px var(--body); cursor: pointer; background: var(--accent); color: var(--accent-ink); width: 100%; }
+.btn.ghost { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+.btn.quiet { background: var(--raised); color: var(--ink); border: 1px solid var(--line); }
+button:focus-visible, .row:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.push { margin-top: auto; display: grid; gap: 8px; }
+.list { display: grid; gap: 8px; }
+.row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: var(--raised); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; font: inherit; color: inherit; cursor: pointer; }
+.row .grow { flex: 1; min-width: 0; }
+.row b { display: block; font-weight: 600; }
+.row small { color: var(--muted); font-size: 12.5px; }
+.row[aria-pressed="true"], .row[aria-checked="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.pill { font: 600 11px/1 var(--body); padding: 5px 8px; border-radius: 999px; white-space: nowrap; background: var(--accent-soft); color: var(--accent); }
+.pill.ok { background: transparent; color: var(--ok); border: 1px solid var(--ok); }
+.pill.bad { background: transparent; color: var(--bad); border: 1px solid var(--bad); }
+.pill.key { background: var(--key-soft); color: var(--key); }
+.pill.dim { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--bg); border-radius: 12px; padding: 3px; gap: 3px; }
+.seg button { border: 0; background: none; padding: 9px 4px; border-radius: 9px; font: 600 13px var(--body); color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--raised); color: var(--ink); }
+.label { font: 600 12px/1 var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.code { font: 600 26px/1 ui-monospace, Menlo, monospace; letter-spacing: .28em; text-align: center; background: var(--raised); border: 1px solid var(--line); border-radius: 14px; padding: 16px 8px; }
+.logo { font: 700 44px/1 var(--display); letter-spacing: -.04em; }
+.logo span { color: var(--accent); }
+.hand { font: 600 26px/1.1 var(--hand); }
+.tablet { background: #dedcd5; border-radius: 12px; padding: 8px 8px 8px 16px; border-left: 0; position: relative; }
+.tablet::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 9px; background: #5d5f63; border-radius: 12px 0 0 12px; }
+.tablet.land { padding: 14px 8px 8px; }
+.tablet.land::before { width: auto; right: 0; bottom: auto; height: 8px; border-radius: 12px 12px 0 0; }
+.tablet img { display: block; width: 100%; border-radius: 3px; filter: grayscale(1) contrast(.96); }
+.tablet.color img { filter: none; }
+.steps { display: grid; gap: 0; }
+.step { display: grid; grid-template-columns: 22px 1fr; gap: 10px; padding-bottom: 14px; position: relative; }
+.step::before { content: ""; position: absolute; left: 10px; top: 20px; bottom: 0; width: 2px; background: var(--line); }
+.step:last-child::before { display: none; }
+.dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); background: var(--surface); display: grid; place-items: center; font: 700 12px var(--body); color: var(--accent-ink); }
+.step.done .dot { background: var(--ok); border-color: var(--ok); }
+.step.now .dot { border-color: var(--accent); }
+.step b { font-weight: 600; }
+.step small { color: var(--muted); display: block; }
+.notice { background: var(--raised); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; display: grid; gap: 4px; }
+.notice.key { background: var(--key-soft); border-color: transparent; color: var(--key); }
+.banner { position: absolute; left: 10px; right: 10px; top: 10px; background: var(--raised); border: 1px solid var(--line); border-radius: 18px; padding: 12px 14px; box-shadow: 0 10px 30px rgb(0 0 0 / .25); z-index: 3; animation: drop .35s ease-out; }
+@keyframes drop { from { transform: translateY(-30px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .banner { animation: none; } }
+.score { font: 700 40px/1 var(--display); font-variant-numeric: tabular-nums; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.shot { height: 150px; border-radius: 14px; border: 1px dashed var(--line); display: grid; place-items: center; color: var(--muted); font-size: 13px; text-align: center; padding: 10px; background: var(--raised); }
+.field { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 12px; font: inherit; color: inherit; background: var(--raised); }
+
+.aside { display: grid; gap: 22px; align-content: start; }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; display: grid; gap: 10px; }
+.note p { color: var(--muted); max-width: 60ch; }
+.jump { display: grid; gap: 4px; }
+.jump button { text-align: left; background: none; border: 0; padding: 7px 10px; border-radius: 9px; font: 500 14px var(--body); color: var(--ink); cursor: pointer; display: flex; gap: 10px; align-items: baseline; }
+.jump button[aria-current="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.jump .n { font: 600 12px var(--body); color: var(--muted); font-variant-numeric: tabular-nums; min-width: 1.4em; }
+section { display: grid; gap: 16px; }
+.flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 720px) { .flow { grid-template-columns: minmax(0, 1fr); } }
+.node { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 6px; align-content: start; }
+.node p { color: var(--muted); font-size: 14px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+.cols ul { margin: 0; padding-left: 18px; color: var(--muted); display: grid; gap: 4px; font-size: 14px; }
+.foot { color: var(--muted); font-size: 13px; max-width: 70ch; }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Konceptskiss · november 2026</span>
+    <h1>rmink i fickan</h1>
+    <p class="lede">Telefonen är fjärrkontrollen, plattan är pappret. Föräldern väljer läxa i appen, barnet skriver för hand på sin reMarkable, och appen säger till när det är inlämnat och rättat. Ingen dator behövs.</p>
+    <div><span class="badge">Klickbar skiss med exempeldata. Inget skickas någonstans.</span></div>
+  </header>
+
+  <div class="demo">
+    <div class="phone" aria-label="Appskiss">
+      <div class="screen">
+        <div class="status"><span>09:41</span><span>rmink</span></div>
+        <div class="view" id="view"></div>
+        <nav class="tabs" id="tabs" hidden></nav>
+        <div id="banner"></div>
+      </div>
+    </div>
+    <div class="aside">
+      <div class="note" id="note"></div>
+      <div class="note">
+        <h3>Hoppa i flödet</h3>
+        <div class="jump" id="jump"></div>
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <h2>Så hänger det ihop</h2>
+    <div class="flow">
+      <div class="node"><span class="eyebrow">1 · Telefonen</span><h3>Välj och skicka</h3><p>Appen håller plattans nyckel i telefonens säkra lagring och visar bibliotek, status och resultat.</p></div>
+      <div class="node"><span class="eyebrow">2 · rmink-servern</span><h3>Bygger och läser</h3><p>Samma motor som i dag: gör arbetsboken, läser kryss och bläck, rättar och gör nästa varv. Sparar ingenting.</p></div>
+      <div class="node"><span class="eyebrow">3 · reMarkable Cloud</span><h3>Synkar</h3><p>Dokumentet går via användarens eget konto hos reMarkable, precis som när man skickar från webben i dag.</p></div>
+      <div class="node"><span class="eyebrow">4 · Plattan</span><h3>Penna och papper</h3><p>Barnet skriver för hand. Rätt, fel och facit kommer tillbaka som nästa version av samma dokument.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Gratis, och vad som kräver egen nyckel</h2>
+    <div class="cols">
+      <div class="node"><span class="pill ok">Gratis utan AI</span><ul><li>Färdiga läxor ur biblioteket (8 områden, 65 ämnen)</li><li>Flerval och kryss rättas av rmink själv</li><li>Skicka PDF, bilder och foton till plattan</li><li>Statuslistor och ark i Bygg</li></ul></div>
+      <div class="node"><span class="pill key">Egen Claude-nyckel</span><ul><li>Skapa en helt ny läxa från en mening</li><li>Fota veckobrevet och få en läxa av det</li><li>Läsa fri handstil och rätta textsvar</li><li>Skiss till ren ritning</li></ul></div>
+      <div class="node"><span class="pill dim">Stannar på telefonen</span><ul><li>Kopplingen till reMarkable-kontot</li><li>Barnens namn och årskurs</li><li>Appen frågar själv molnet om något är inlämnat</li></ul></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Samma motor, fler branscher</h2>
+    <p class="lede">Varje rmink är en katalog med mallar och ett flöde: mall ut, penna på, läsa av, nästa varv. Nya områden kan läggas till utan ny appversion.</p>
+    <div class="cols">
+      <div class="node"><h3>Hantverkare</h3><p>Egenkontroller per moment, signatur med penna, PDF till kunden.</p></div>
+      <div class="node"><h3>Körkort och jägarexamen</h3><p>Teoriprov med flerval som rättas helt utan AI.</p></div>
+      <div class="node"><h3>Språk och SFI</h3><p>Glosor, skrivövningar och bokstäver för nybörjare.</p></div>
+      <div class="node"><h3>Restaurang, vård, lantbruk</h3><p>Dagliga kontrollistor: temperaturer, ronder, tillsyn.</p></div>
+      <div class="node"><h3>Förening och idrott</h3><p>Träningsdagbok, matchprotokoll, närvaro.</p></div>
+      <div class="node"><h3>Seniorer</h3><p>Korsord och minnesträning på e-papper som en anhörig skickar.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Vägen dit</h2>
+    <div class="cols">
+      <div class="node"><span class="eyebrow">Steg 0</span><h3>Pröva på webben</h3><p>Samma flöde som en mobilsida på rmink.vercel.app. En testfamilj klarar ett helt läxvarv utan dator.</p></div>
+      <div class="node"><span class="eyebrow">Steg 1</span><h3>iPhone-app</h3><p>Onboarding, bibliotek, kamera och dela-till-plattan. Notis när läxan är inlämnad.</p></div>
+      <div class="node"><span class="eyebrow">Steg 2</span><h3>Bredda</h3><p>Skapa egna läxor, veckoschema, resultat över tid, Bygg med foton och fler branscher.</p></div>
+    </div>
+    <p class="foot">Plattsidorna i skissen är riktiga rmink-sidor. Namn, poäng och svar i appen är exempel. rmink är gratis och öppen källkod, och inte knutet till reMarkable AS.</p>
+  </section>
+</div>
+
+<script>
+const CATALOG = {{CATALOG}};
+const IMG = { skola: "{{IMG_SKOLA}}", bygg: "{{IMG_BYGG}}" };
+const KIDS = [{ name: "Alva", grade: 3, tablet: "Alvas reMarkable 2" }, { name: "Elias", grade: 6, tablet: "Elias Paper Pro" }];
+const DEVICES = [["rm2", "reMarkable 2", "Testad"], ["pro", "reMarkable Paper Pro", "Beta"], ["move", "Paper Pro Move", "Beta"], ["pure", "reMarkable Paper Pure", "Beta"]];
+const S = { screen: "welcome", device: "rm2", connected: false, mods: { skola: true, bygg: false, skicka: true }, kid: 0, group: 0, topic: 0, mode: "ovning", n: 4, flerval: true, stage: 0, round: 1, banner: false };
+
+const TAGS = { finns: ["Finns i rmink i dag", "ok"], nytt: ["Nytt i appen", ""], nyckel: ["Kräver egen Claude-nyckel", "key"] };
+const NOTES = {
+  welcome: ["Start", "nytt", "Första gången appen öppnas. Löftet ska gå att förstå på en mening: plattan är pappret, telefonen styr."],
+  device: ["Välj platta", "finns", "rmink känner redan till de fyra modellerna och deras skärmmått. reMarkable 2 är den som är testad hela vägen."],
+  connect: ["Koppla molnet", "finns", "Samma engångskod som webbappen använder i dag. Skillnaden är att kopplingen sparas i telefonens säkra lagring i stället för i webbläsaren."],
+  modules: ["Välj rmink", "nytt", "Varje bransch är en modul. Man slår på det man behöver och kan lägga till fler senare. De gråa finns inte än."],
+  home: ["Hem", "nytt", "En överblick per barn och platta: vad som ligger på plattan nu och vad som väntar på rättning."],
+  library: ["Läxbiblioteket", "finns", "De åtta områdena och deras ämnen är rminks riktiga katalog. Listan filtreras på barnets årskurs."],
+  group: ["Ämnen i området", "finns", "Varje ämne har en färdig beskrivning som styr vad läxan innehåller. Här visas de som passar årskursen."],
+  compose: ["Ställ in och skicka", "finns", "Övning ger facit direkt och nya försök. Prov visar facit först efter rättning. Flerval kan rättas helt utan AI."],
+  status: ["Läxan är på väg", "nytt", "Appen frågar molnet om barnet har skrivit något nytt. I skissen hoppar du fram i tiden med knappen."],
+  result: ["Rättat", "finns", "Poäng, rätt och fel per fråga, och en förklaring där det gick snett. Nästa version av dokumentet ligger redan på plattan."],
+  tablet: ["Det här ser barnet", "finns", "En riktig rmink-sida från en reMarkable 2: handskrivna svar, kryss i flerval och facit i blått på ett eget lager."],
+  create: ["Skapa ny läxa", "nyckel", "Här skriver en AI-modell läxan. För att rmink ska kunna förbli gratis använder appen förälderns egen Claude-nyckel."],
+  photo: ["Fota och få en läxa", "nyckel", "Telefonens kamera är det som datorn saknar. Veckobrevet eller glosläxan blir en arbetsbok på plattan."],
+  bygg: ["rmink Bygg", "finns", "Arket med bläck och mätning är riktigt. Nytt i appen är att foton från telefonen fästs på punkterna från plattan."],
+  skicka: ["Skicka till plattan", "finns", "Det rmink började som: bilder och PDF blir bläck på plattan. I appen går det från vilken annan app som helst via Dela."],
+};
+const JUMP = [["welcome", "Start"], ["device", "Välj platta"], ["connect", "Koppla molnet"], ["modules", "Välj rmink"], ["home", "Hem"], ["library", "Läxbiblioteket"], ["compose", "Ställ in och skicka"], ["status", "Läxan är på väg"], ["result", "Rättat"], ["tablet", "Det här ser barnet"], ["create", "Skapa ny läxa"], ["photo", "Fota och få en läxa"], ["bygg", "rmink Bygg"], ["skicka", "Skicka till plattan"]];
+const TABS = [["home", "Hem"], ["library", "Skola"], ["bygg", "Bygg"], ["skicka", "Skicka"]];
+const TAB_OF = { home: "home", library: "library", group: "library", compose: "library", status: "library", result: "library", tablet: "library", create: "library", photo: "library", bygg: "bygg", skicka: "skicka" };
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const kid = () => KIDS[S.kid];
+const group = () => CATALOG[S.group];
+const topics = (g) => g.topics.filter((t) => t.grades.includes(kid().grade));
+const topic = () => topics(group())[S.topic] || group().topics[0];
+const docName = () => `${topic().title} r0${S.round}`;
+const go = (to, extra = "") => `data-go="${to}" ${extra}`;
+const QUESTIONS = [["7 + ? = 10", "3", true], ["Vilka par är hundrakamrater?", "A, B, E", true], ["45 + ? = 100", "55", true], ["Elias har 24 kr och köper 3 glassar för 7 kr styck. Hur mycket har han kvar?", "17 kr", false]];
+
+const V = {
+  welcome: () => `<div style="margin-top:70px;display:grid;gap:14px"><div class="logo">rm<span>ink</span></div>
+    <h2>Plattan är pappret.<br>Telefonen är fjärrkontrollen.</h2>
+    <p class="sub">Skicka läxor, ritningar och papper till din reMarkable. Få tillbaka det som skrivits för hand, läst och rättat.</p></div>
+    <div class="push"><button class="btn" ${go("device")}>Kom igång</button><p class="sub" style="text-align:center">Gratis. Öppen källkod.</p></div>`,
+  device: () => `<button class="back" ${go("welcome")}>‹ Tillbaka</button><h2>Vilken platta har du?</h2>
+    <div class="list" role="radiogroup">${DEVICES.map(([id, name, st]) => `<button class="row" role="radio" aria-checked="${S.device === id}" data-set="device" data-val="${id}"><span class="grow"><b>${name}</b></span><span class="pill ${st === "Testad" ? "ok" : "dim"}">${st}</span></button>`).join("")}</div>
+    <p class="sub">Du kan lägga till fler plattor senare, till exempel en per barn.</p>
+    <div class="push"><button class="btn" ${go("connect")}>Fortsätt</button></div>`,
+  connect: () => `<button class="back" ${go("device")}>‹ Tillbaka</button><h2>Koppla din platta</h2>
+    <div class="steps"><div class="step done"><span class="dot">1</span><div><b>Öppna my.remarkable.com</b><small>Appen öppnar sidan åt dig och du loggar in.</small></div></div>
+    <div class="step ${S.connected ? "done" : "now"}"><span class="dot">2</span><div><b>Skriv engångskoden här</b><small>Åtta tecken som gäller i fem minuter.</small></div></div></div>
+    <div class="code" aria-label="Engångskod, exempel">kwtp mvra</div>
+    ${S.connected ? `<div class="notice"><b>Ansluten</b><span class="sub">${esc(kid().tablet)} · mappen rmink skapad</span></div>` : `<p class="sub">Kopplingen sparas bara på den här telefonen.</p>`}
+    <div class="push">${S.connected ? `<button class="btn" ${go("modules")}>Fortsätt</button>` : `<button class="btn" data-act="connect">Koppla</button>`}</div>`,
+  modules: () => `<button class="back" ${go("connect")}>‹ Tillbaka</button><h2>Vilka rmink vill du ha?</h2>
+    <div class="list">${[["skola", "rmink Skola", "Läxor som rättas, åk 1 till 9"], ["bygg", "rmink Bygg", "Ritningar, ark och fältrundor"], ["skicka", "rmink Skicka", "Papper, PDF och foton till plattan"]].map(([id, t, d]) => `<button class="row" aria-pressed="${S.mods[id]}" data-toggle="${id}"><span class="grow"><b>${t}</b><small>${d}</small></span><span class="pill ${S.mods[id] ? "" : "dim"}">${S.mods[id] ? "På" : "Av"}</span></button>`).join("")}</div>
+    <span class="label">På väg</span><div class="chips">${["Egenkontroll", "Körkort", "Musik", "Förening", "Seniorer"].map((c) => `<span class="pill dim">${c}</span>`).join("")}</div>
+    <div class="push"><button class="btn" ${go("home")}>Klar</button></div>`,
+  home: () => `<span class="label">${esc(kid().tablet)} · ansluten</span><h2>Hej! Vad ska ${esc(kid().name)} göra i dag?</h2>
+    ${kidSwitch()}
+    <div class="notice"><span class="label">På plattan nu</span><b>${S.stage ? esc(docName()) : "Ingenting än"}</b><span class="sub">${S.stage === 0 ? "Skicka en läxa från biblioteket." : S.stage === 1 ? "Skickad. Väntar på att " + esc(kid().name) + " skriver." : S.stage === 2 ? "Inlämnad. Redo att rättas." : "Rättad: 3 av 4 p."}</span>${S.stage ? `<button class="btn quiet" ${go(S.stage === 3 ? "result" : "status")} style="margin-top:8px">Öppna</button>` : ""}</div>
+    <div class="list"><button class="row" ${go("library")}><span class="grow"><b>Läxbiblioteket</b><small>65 färdiga ämnen</small></span><span>›</span></button>
+    <button class="row" ${go("create")}><span class="grow"><b>Skapa ny läxa</b><small>Skriv vad den ska handla om</small></span><span class="pill key">Nyckel</span></button>
+    <button class="row" ${go("photo")}><span class="grow"><b>Fota veckobrevet</b><small>Läxa av det skolan skickat hem</small></span><span class="pill key">Nyckel</span></button></div>`,
+  library: () => `<h2>Läxbiblioteket</h2>${kidSwitch()}
+    <div class="list">${CATALOG.map((g, i) => !topics(g).length ? "" : `<button class="row" ${go("group", `data-group="${i}"`)}><span class="grow"><b>${esc(g.title)}</b><small>${esc(g.area)} · ${topics(g).length} ämnen för åk ${kid().grade}</small></span><span>›</span></button>`).join("")}</div>`,
+  group: () => `<button class="back" ${go("library")}>‹ Biblioteket</button><h2>${esc(group().title)}</h2><p class="sub">${esc(group().description)}</p>
+    <div class="list">${topics(group()).map((t, i) => `<button class="row" ${go("compose", `data-topic="${i}"`)}><span class="grow"><b>${esc(t.title)}</b><small>Åk ${t.grades[0]} till ${t.grades[t.grades.length - 1]}</small></span><span>›</span></button>`).join("") || `<p class="sub">Inga ämnen för åk ${kid().grade} här. Byt barn eller område.</p>`}</div>`,
+  compose: () => `<button class="back" ${go("group")}>‹ ${esc(group().title)}</button><h2>${esc(topic().title)}</h2><p class="sub">Till ${esc(kid().name)}, åk ${kid().grade}</p>
+    <span class="label">Typ</span><div class="seg">${[["ovning", "Övning"], ["prov", "Prov"]].map(([v, t]) => `<button aria-pressed="${S.mode === v}" data-set="mode" data-val="${v}">${t}</button>`).join("")}</div>
+    <p class="sub">${S.mode === "ovning" ? "Facit finns på ett dolt lager och fel svar får ett nytt försök." : "Inget facit förrän läxan är rättad."}</p>
+    <span class="label">Antal frågor</span><div class="seg">${[4, 8, 12].map((v) => `<button aria-pressed="${S.n === v}" data-set="n" data-val="${v}">${v}</button>`).join("")}</div>
+    <button class="row" aria-pressed="${S.flerval}" data-flip="flerval"><span class="grow"><b>Bara flerval</b><small>Rättas av rmink utan AI</small></span><span class="pill ${S.flerval ? "ok" : "dim"}">${S.flerval ? "På" : "Av"}</span></button>
+    ${S.flerval ? "" : `<div class="notice key"><b>Handskrivna svar läses av Claude</b><span>Kräver din egen nyckel.</span></div>`}
+    <div class="push"><button class="btn" data-act="send">Skicka till plattan</button></div>`,
+  status: () => `<button class="back" ${go("home")}>‹ Hem</button><h2>${esc(docName())}</h2><p class="sub">rmink / Skola / ${esc(group().folder)} / ${esc(group().title)}</p>
+    <div class="steps">
+      <div class="step done"><span class="dot">✓</span><div><b>Skickad från telefonen</b><small>${S.n} frågor, ${S.mode === "ovning" ? "övning" : "prov"}</small></div></div>
+      <div class="step done"><span class="dot">✓</span><div><b>På plattan</b><small>${esc(kid().tablet)} har synkat</small></div></div>
+      <div class="step ${S.stage >= 2 ? "done" : "now"}"><span class="dot">${S.stage >= 2 ? "✓" : ""}</span><div><b>${S.stage >= 2 ? esc(kid().name) + " har lämnat in" : esc(kid().name) + " skriver"}</b><small>${S.stage >= 2 ? "4 av 4 frågor har svar" : "Appen kollar när du öppnar den"}</small></div></div>
+      <div class="step ${S.stage >= 2 ? "now" : ""}"><span class="dot"></span><div><b>Rätta</b><small>Nästa version skickas till plattan</small></div></div>
+    </div>
+    <div class="push">${S.stage >= 2 ? `<button class="btn" data-act="grade">Rätta nu</button>` : `<button class="btn ghost" data-act="handin">Hoppa fram: ${esc(kid().name)} lämnar in</button>`}</div>`,
+  result: () => `<button class="back" ${go("home")}>‹ Hem</button><span class="label">${esc(topic().title)} r0${S.round + 1}</span>
+    <div style="display:flex;align-items:baseline;gap:10px"><span class="score">3 av 4 p</span><span class="pill bad">1 att kolla</span></div>
+    <div class="list">${QUESTIONS.map(([q, a, ok], i) => `<div class="row" style="cursor:default;align-items:flex-start"><span class="grow"><b>${i + 1}. ${esc(q)}</b><small>${esc(kid().name)} svarade: ${esc(a)}${ok ? "" : ". Rätt svar: 3 kr. Bara en glass räknades, men Elias köpte tre."}</small></span><span class="pill ${ok ? "ok" : "bad"}">${ok ? "Rätt" : "Fel"}</span></div>`).join("")}</div>
+    <div class="push"><button class="btn" ${go("tablet")}>Visa hur det ser ut på plattan</button><button class="btn quiet" ${go("library")}>Välj nästa läxa</button></div>`,
+  tablet: () => `<button class="back" ${go("result")}>‹ Resultat</button><h2>På ${esc(kid().name)}s platta</h2>
+    <div class="tablet color"><img src="${IMG.skola}" alt="Riktig rmink-sida på reMarkable 2: handskrivna svar, kryss i flerval och facit i blått."></div>
+    <p class="sub">Riktig sida ur arbetsboken Plus och minus. Handstilen har lästs, kryssen har rättats och facit ligger på ett lager som går att tända och släcka.</p>`,
+  create: () => `<button class="back" ${go("home")}>‹ Hem</button><h2>Skapa ny läxa</h2>
+    <label class="label" for="want">Vad ska den handla om?</label><textarea class="field" id="want" rows="3">Klockan: halv, kvart över och kvart i. Blanda analog och digital tid.</textarea>
+    <div class="chips">${["Glosor kapitel 4", "Veckans stavning", "Gångertabell 6 till 8"].map((c) => `<span class="pill dim">${c}</span>`).join("")}</div>
+    <div class="notice key"><b>Kräver egen Claude-nyckel</b><span>rmink är gratis. Det som en AI-modell skriver går på ditt eget Claude-konto.</span></div>
+    <div class="push"><button class="btn" data-act="key">Lägg till nyckel</button></div>`,
+  photo: () => `<button class="back" ${go("home")}>‹ Hem</button><h2>Fota veckobrevet</h2>
+    <div class="shot">Kameran öppnas här.<br>Fota veckobrevet, glosläxan eller en sida i boken.</div>
+    <div class="notice"><span class="label">Exempel på vad som hittas</span><b>Glosor v. 46: 12 ord om väder</b><span class="sub">Förslag: övning med 12 frågor, engelska till svenska och tvärtom.</span></div>
+    <div class="notice key"><b>Kräver egen Claude-nyckel</b><span>Bilden läses av Claude på ditt konto.</span></div>
+    <div class="push"><button class="btn" data-act="key">Lägg till nyckel</button></div>`,
+  bygg: () => `<span class="label">rmink Bygg</span><h2>Garage, fältrunda</h2>
+    <div class="tablet land color"><img src="${IMG.bygg}" alt="Riktigt A3-ark av ett garage med handskriven anteckning, ett kryss och en mätning från plattan."></div>
+    <div class="list">
+      <div class="row" style="cursor:default"><span class="grow"><b>Längd 1: 2 607 mm</b><small>Streck längs väggen, skala 1:25</small></span><span class="pill ok">Mätt</span></div>
+      <div class="row" style="cursor:default"><span class="grow"><b>Punkt 1: "något om titelblocket"</b><small>Lägg till foto från telefonen</small></span><span class="pill">+ Foto</span></div>
+      <div class="row" style="cursor:default"><span class="grow"><b>Bottenplatta: alternativ B valt</b><small>Svar skrivet på plattan</small></span><span class="pill ok">Klar</span></div>
+    </div>
+    <div class="push"><button class="btn quiet" data-act="share">Dela PDF med bläck och mängder</button></div>`,
+  skicka: () => `<span class="label">rmink Skicka</span><h2>Vad som helst till plattan</h2>
+    <div class="list">
+      <button class="row" data-act="share"><span class="grow"><b>Fota ett papper</b><small>Blir bläck som går att sudda och skriva vidare på</small></span><span>›</span></button>
+      <button class="row" data-act="share"><span class="grow"><b>Välj PDF eller bild</b><small>Från Filer eller Bilder</small></span><span>›</span></button>
+      <div class="row" style="cursor:default"><span class="grow"><b>Dela från andra appar</b><small>Dela › rmink › ${esc(kid().tablet)}</small></span><span class="pill">Nytt</span></div>
+    </div>
+    <span class="label">Senast skickat</span>
+    <div class="list"><div class="row" style="cursor:default"><span class="grow"><b>Matsedel v. 46.pdf</b><small>I går · rmink / Skicka</small></span><span class="pill ok">På plattan</span></div>
+    <div class="row" style="cursor:default"><span class="grow"><b>Foto 2026-11-10 17.42</b><small>Teckning, stil: blyerts</small></span><span class="pill ok">På plattan</span></div></div>`,
+};
+function kidSwitch() { return `<div class="seg">${KIDS.map((k, i) => `<button aria-pressed="${S.kid === i}" data-set="kid" data-val="${i}">${k.name}, åk ${k.grade}</button>`).join("")}</div>`; }
+
+const view = document.getElementById("view"), tabs = document.getElementById("tabs"), note = document.getElementById("note"), jump = document.getElementById("jump"), banner = document.getElementById("banner");
+let toast = "";
+function render(keepScroll) {
+  const top = view.scrollTop;
+  view.innerHTML = V[S.screen]() + (toast ? `<div class="notice" role="status">${esc(toast)}</div>` : "");
+  view.scrollTop = keepScroll ? top : 0;
+  const tab = TAB_OF[S.screen];
+  tabs.hidden = !tab;
+  tabs.innerHTML = TABS.map(([id, t]) => `<button data-go="${id}" aria-current="${tab === id}">${t}</button>`).join("");
+  const [title, tag, text] = NOTES[S.screen];
+  note.innerHTML = `<span class="eyebrow">Du tittar på</span><h2>${title}</h2><div><span class="pill ${TAGS[tag][1]}">${TAGS[tag][0]}</span></div><p>${text}</p>`;
+  jump.innerHTML = JUMP.map(([id, t], i) => `<button data-go="${id}" aria-current="${id === S.screen}"><span class="n">${i + 1}</span>${t}</button>`).join("");
+  banner.innerHTML = S.banner ? `<div class="banner" role="status"><span class="label">rmink · nu</span><br><b>${esc(kid().name)} har lämnat in ${esc(topic().title)}</b><br><span class="sub">4 av 4 frågor har svar. Tryck på Rätta nu.</span></div>` : "";
+  toast = "";
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-go],[data-set],[data-toggle],[data-flip],[data-act]");
+  if (!b) return;
+  const d = b.dataset;
+  let keep = true;
+  if (d.group !== undefined) { S.group = +d.group; S.topic = 0; }
+  if (d.topic !== undefined) S.topic = +d.topic;
+  if (d.set) { S[d.set] = isNaN(+d.val) ? d.val : +d.val; if (d.set === "kid") S.topic = 0; }
+  if (d.toggle) S.mods[d.toggle] = !S.mods[d.toggle];
+  if (d.flip) S[d.flip] = !S[d.flip];
+  if (d.act === "connect") S.connected = true;
+  if (d.act === "send") { S.stage = 1; S.round = 1; S.screen = "status"; keep = false; }
+  if (d.act === "handin") { S.stage = 2; S.banner = true; setTimeout(() => { S.banner = false; render(true); }, 4200); }
+  if (d.act === "grade") { S.stage = 3; S.banner = false; S.screen = "result"; keep = false; }
+  if (d.act === "key") toast = "I appen: klistra in en nyckel från ditt Claude-konto. Den sparas bara på telefonen.";
+  if (d.act === "share") toast = "I appen öppnas kameran, filväljaren eller iOS delningsblad här.";
+  if (d.go) {
+    if (["status", "result", "tablet"].includes(d.go) && S.stage === 0) { S.stage = d.go === "status" ? 1 : 3; }
+    if (d.go === "status" && S.stage === 3) S.stage = 2;
+    if (!["welcome", "device", "connect"].includes(d.go)) S.connected = true;
+    S.screen = d.go; S.banner = false; keep = false;
+  }
+  render(keep);
+});
+render();
+</script>

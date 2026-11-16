@@ -1,0 +1,18 @@
+{
+  "voice": "alma",
+  "videos": "rmink-laxa-sv-*.mp4",
+  "say": { "rmink": "är-em-ink", "Claude": "Klåd" },
+  "lines": [
+    [0.6, "Tisdag kväll. Läxa i matte. Alva och pappa vid köksbordet."],
+    [5.8, "Pappa beställer en läxa. Han ber Claude på datorn. Läxan landar på plattan, som ett vanligt dokument."],
+    [12.8, "Alva svarar med pennan. Precis som på papper. Inget att klicka i, och inget facit än."],
+    [19.2, "Fråga fyra är klurig. Alva tänker, gissar och skriver sitt svar."],
+    [26.3, "Plattan synkar. En mening till Claude räcker."],
+    [30.6, "Claude läser handstilen. Rättar varje svar, skriver en kommentar och lägger in facit."],
+    [37.3, "Nästa version landar på plattan. Handstilen har blivit text. Tre rätt!"],
+    [43.3, "Fråga fyra blev fel. Elias köpte tre glassar, inte en."],
+    [47.5, "Tänd facit. Lagerknappen, sedan ögat på Facit. Nu syns hur det var tänkt."],
+    [53.5, "Alva rättar själv. Nu sitter det."],
+    [57.6, "Skriv för hand. rmink rättar."]
+  ]
+}

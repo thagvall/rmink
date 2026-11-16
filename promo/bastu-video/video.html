@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<title>rmink: bastun</title>
+<style>
+@font-face { font-family: "Caveat"; src: url("../out/assets/Caveat.ttf"); font-weight: 400 700; }
+:root { --warm: #ffd089; --ok: #2fbf71; --bad: #ff6b5e; --facit: #3f6fd8; --ai: #8fb0ff; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { overflow: hidden; background: #17140f; }
+body { position: relative; font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif; -webkit-font-smoothing: antialiased; }
+svg { position: absolute; inset: 0; }
+svg text { font-family: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif; }
+.mono { font-family: "SF Mono", Menlo, monospace !important; }
+.script { font-family: "Caveat", cursive !important; font-weight: 700; }
+#cap { position: absolute; color: #fff; }
+.beat { position: absolute; left: 0; width: 100%; opacity: 0; will-change: transform; }
+.chapter { font: 600 var(--fs-chapter)/1 "SF Mono", Menlo, monospace; color: var(--warm); letter-spacing: .04em; margin-bottom: .55em; }
+.title { font-size: var(--fs-title); font-weight: 800; letter-spacing: -.028em; line-height: 1.02; white-space: pre-line; }
+.body { font-size: var(--fs-body); line-height: 1.3; color: #d9d4c9; margin-top: .6em; white-space: pre-line; }
+#checks { margin-top: 1em; display: grid; gap: .45em; font-size: var(--fs-body); font-weight: 650; }
+#checks div { display: flex; gap: .55em; align-items: center; opacity: .22; }
+#checks i { width: 1.05em; height: 1.05em; border-radius: 50%; border: 3px solid #7f8bb0; flex: none; display: grid; place-items: center; font-size: .8em; font-style: normal; color: #0f1630; }
+#checks .on { opacity: 1; }
+#checks .done i { background: var(--ai); border-color: var(--ai); }
+#checks .done i::after { content: "✓"; font-weight: 900; }
+#capBack { position: absolute; left: 0; right: 0; top: 0; height: 330px; opacity: 0; background: linear-gradient(#2b1e15 88%, rgb(43 30 21 / 0)); }
+#rail { position: absolute; display: flex; gap: 6px; justify-content: center; left: 50%; transform: translateX(-50%); padding: 6px 10px; border-radius: 999px; background: rgb(12 10 8 / .72); }
+#rail div { font: 600 var(--fs-rail) "SF Mono", Menlo, monospace; color: rgb(255 255 255 / .42); padding: .32em .7em; border-radius: 999px; border: 2px solid transparent; white-space: nowrap; }
+#rail .done { color: rgb(255 255 255 / .82); }
+#rail .on { color: #17140f; background: var(--warm); }
+#tag { position: absolute; display: flex; gap: .7em; align-items: baseline; padding: .5em .8em; border-radius: 14px; background: rgb(12 10 8 / .78); color: #fff; opacity: 0; white-space: nowrap; }
+#tag .name { font: 600 var(--fs-tag) "SF Mono", Menlo, monospace; color: #d9d4c9; }
+#tag .score { font-size: calc(var(--fs-tag) * 1.7); font-weight: 800; letter-spacing: -.02em; color: var(--warm); transform-origin: left center; display: inline-block; }
+#end { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 26px; background: #f4f2ec; color: #1d1d1b; opacity: 0; }
+#end .big { font-size: calc(var(--fs-title) * 1.35); font-weight: 830; letter-spacing: -.035em; line-height: 1.02; }
+#end .big span { color: #2b5fd9; display: block; }
+#end .url { font: 650 var(--fs-body) "SF Mono", Menlo, monospace; color: #2b5fd9; }
+#end .small { font-size: calc(var(--fs-body) * .82); color: #6b6a65; }
+#scrim { position: absolute; inset: 0; opacity: 0; }
+</style>
+</head>
+<body>
+<svg id="s" xmlns="http://www.w3.org/2000/svg"></svg>
+<div id="scrim"></div>
+<div id="capBack"></div>
+<div id="cap"></div>
+<div id="tag"><span class="name"></span><span class="score"></span></div>
+<div id="rail"></div>
+<div id="end"><div class="big">Skissa du.<span>rmink ritar rent.</span></div><div class="url">rmink.vercel.app/bygg</div><div class="small">Gratis och öppen källkod. Med din egen Claude.</div></div>
+<script>
+const Q = new URLSearchParams(location.search);
+const W = +(Q.get("w") || 1920), H = +(Q.get("h") || 1080), LAND = W > H;
+Object.assign(document.body.style, { width: W + "px", height: H + "px" });
+const SVGNS = "http://www.w3.org/2000/svg";
+const s = document.getElementById("s");
+s.setAttribute("viewBox", `0 0 ${W} ${H}`); s.setAttribute("width", W); s.setAttribute("height", H);
+
+const L = LAND
+  ? { cap: [90, 0, 570], capY: 300, stage: [1330, 520], ts: 1.13, ls: 1.0, small: [1330, 780, .5], orb: [1330, 250],
+      fs: { chapter: 25, title: 76, body: 34, rail: 19, tag: 22 }, tag: [90, 690], railY: 1012, zoom: 1.5, zoomY: 500 }
+  : { cap: [70, 0, 940], capY: 66, stage: [540, 850], ts: .96, ls: .98, small: [540, 1050, .46], orb: [540, 620],
+      fs: { chapter: 23, title: 60, body: 30, rail: 15, tag: 19 }, tag: [70, 278], railY: 1290, zoom: 1.55, zoomY: 860 };
+const rs = document.documentElement.style;
+for (const [k, v] of Object.entries(L.fs)) rs.setProperty(`--fs-${k}`, v + "px");
+const cap = document.getElementById("cap");
+Object.assign(cap.style, { left: L.cap[0] + "px", top: L.capY + "px", width: L.cap[2] + "px" });
+document.getElementById("rail").style.top = L.railY + "px";
+const tag = document.getElementById("tag"), tagName = tag.children[0], tagScore = tag.children[1];
+Object.assign(tag.style, { left: L.tag[0] + "px", top: L.tag[1] + "px" });
+
+// Helpers. Everything is a pure function of t, so any frame can be rendered.
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const P = (t, a, b) => clamp((t - a) / (b - a));
+const eOut = (x) => 1 - Math.pow(1 - x, 3);
+const eIO = (x) => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const eBack = (x) => { const c = 1.9; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const mix = (a, b, x) => a + (b - a) * x;
+const fade = (t, a, b, f = .4) => Math.min(P(t, a, a + f), 1 - P(t, b - f, b));
+const el = (tag, attrs = {}, parent = s) => {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "text") e.textContent = v; else e.setAttribute(k, v);
+  }
+  parent.appendChild(e);
+  return e;
+};
+const group = (parent = s, attrs = {}) => el("g", attrs, parent);
+const set = (e, attrs) => { for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); };
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const wrap = (parent, text, x, y, width, size, attrs = {}) => {
+  const lines = []; let line = "";
+  for (const word of text.split(" ")) {
+    const next = line ? line + " " + word : word;
+    if (next.length * size * .5 > width && line) { lines.push(line); line = word; } else line = next;
+  }
+  lines.push(line);
+  return lines.map((l, i) => el("text", { x, y: y + i * size * 1.28, "font-size": size, text: l, ...attrs }, parent));
+};
+
+// ------------------------------------------------------------- timeline
+const T = { sketch: 4.5, ask: 13.5, ai: 17, r01: 23, ans: 27, r02: 33.5, meet: 38, mark: 42, r03: 49, ext: 54, end: 57.4 };
+window.DURATION = 60;
+const STEPS = [["Skiss", T.sketch], ["Rita rent", T.ask], ["AI ritar", T.ai], ["Frågor", T.r01], ["Svar", T.ans], ["Mötet", T.meet], ["Justering", T.mark], ["r03", T.r03], ["Bygget", T.ext]];
+const rail = document.getElementById("rail");
+const railEls = STEPS.map(([n]) => { const d = document.createElement("div"); d.textContent = n; rail.appendChild(d); return d; });
+
+const BEATS = [
+  [.5, 4.2, "Lördag på landet", "Bastun ska stå\nvid skogsbrynet.", "Kim sitter inne vid bordet, med plattan och en kopp kaffe."],
+  [T.sketch + .2, T.ask, "1 · Skiss", "Snabbskiss\nmed pennan.", "Väggar, dörrar, kamin och lave. Två mått räcker."],
+  [T.ask + .2, T.ai, "2 · Rita rent", "Kim ber Claude\nrita rent.", "Skissen synkar. En mening på datorn räcker."],
+  [T.r01 + .2, T.ans, "3 · Frågor", "Ren ritning,\noch två frågor.", "Det som saknas blir frågor, med en SVAR-rad per fråga."],
+  [T.ans + .2, T.r02, "4 · Svar", "Kim svarar\nmed pennan.", "Ved, och tolv meter till tomtgränsen."],
+  [T.r02 + .2, T.meet, "4 · Svar", "r02 är klar.", "Svaren är inritade. Ändringsloggen påminner om att en ny eldstad ska anmälas."],
+  [T.meet + .3, T.mark, "5 · Mötet", "Två veckor senare.", "Snickaren från byggfirman kommer förbi. Ritningen ligger på bordet."],
+  [T.mark + .2, T.r03, "6 · Justering", "Snickaren\nhittar en detalj.", "Bastudörren ska öppna utåt. En ring och ett ord på plattan räcker."],
+  [T.r03 + .2, T.ext, "7 · r03", "Nästa varv,\nmitt i mötet.", "Claude läser ringen och vänder dörren. Ändringen står i loggen."],
+  [T.ext + .3, T.end, "8 · Bygget", "Firman bygger\nefter r03.", "Samma ritning för beställaren och firman."],
+];
+const scrim = document.getElementById("scrim");
+scrim.style.background = LAND ? "linear-gradient(90deg, rgb(18 11 6 / .6) 28%, rgb(18 11 6 / 0) 44%)" : "linear-gradient(rgb(18 11 6 / .86) 24%, rgb(18 11 6 / 0) 34%)";
+const beatEls = BEATS.map(([, , c, t, b]) => {
+  const d = document.createElement("div"); d.className = "beat";
+  d.innerHTML = `<div class="chapter"></div><div class="title"></div><div class="body"></div>`;
+  d.children[0].textContent = c; d.children[1].textContent = t; d.children[2].textContent = b;
+  cap.appendChild(d); return d;
+});
+const aiBeat = document.createElement("div"); aiBeat.className = "beat";
+aiBeat.innerHTML = `<div class="chapter">2 · Rita rent</div><div class="title">Claude tolkar\nskissen.</div>`
+  + `<div id="checks"><div><i></i>Läser streck och mått</div><div><i></i>Rätar väggar och hörn</div><div><i></i>Kollar måtten</div><div><i></i>Skriver frågor</div></div>`;
+cap.appendChild(aiBeat);
+const checks = [...aiBeat.querySelectorAll("#checks div")];
+
+// ------------------------------------------------------------- backgrounds
+
+const defs = el("defs");
+const grad = (id, stops, attrs = {}, tag = "radialGradient") => {
+  const g = el(tag, { id, ...attrs }, defs);
+  stops.forEach(([o, c, a = 1]) => el("stop", { offset: o, "stop-color": c, "stop-opacity": a }, g));
+};
+grad("pool", [[0, "#ffcf8a", .55], [.5, "#e0914a", .16], [1, "#000", 0]]);
+grad("wood", [[0, "#3b2a1e"], [.5, "#2f2118"], [1, "#3a281c"]], { x1: 0, y1: 0, x2: 1, y2: 0 }, "linearGradient");
+grad("night", [[0, "#1b2c5e"], [1, "#090d1f"]]);
+grad("orb", [[0, "#ffffff"], [.3, "#c6d6ff"], [.62, "#6d8fff", .75], [1, "#6d8fff", 0]]);
+grad("cone", [[0, "#ffd089", .5], [1, "#ffd089", 0]], { x1: 0, y1: 0, x2: 0, y2: 1 }, "linearGradient");
+grad("dusk", [[0, "#1d2a55"], [.65, "#6a4a7a"], [1, "#e78f63"]], { x1: 0, y1: 0, x2: 0, y2: 1 }, "linearGradient");
+const blur = el("filter", { id: "soft", x: "-30%", y: "-30%", width: "160%", height: "160%" }, defs);
+el("feGaussianBlur", { stdDeviation: 22 }, blur);
+const shadow = el("filter", { id: "drop", x: "-20%", y: "-20%", width: "140%", height: "150%" }, defs);
+el("feDropShadow", { dx: 0, dy: 24, stdDeviation: 26, "flood-color": "#000", "flood-opacity": .55 }, shadow);
+
+const table = group();
+el("rect", { width: W, height: H, fill: "url(#wood)" }, table);
+for (let i = 0; i < 26; i++) {
+  const y = i * H / 26 + rnd() * 18;
+  el("path", { d: `M0 ${y} C${W * .3} ${y + rnd() * 26 - 13} ${W * .6} ${y + rnd() * 26 - 13} ${W} ${y + rnd() * 16 - 8}`, fill: "none", stroke: "#1f150e", "stroke-width": 1 + rnd() * 2, opacity: .32 }, table);
+}
+el("ellipse", { cx: L.stage[0], cy: L.stage[1], rx: W * .62, ry: H * .68, fill: "url(#pool)" }, table);
+
+// ------------------------------------------------------------- hands
+// Each hand's origin is the point that touches: the pen tip or the fingertip.
+function penHand(parent, sleeve, sleeve2, skin) {
+  const g = group(parent);
+  el("path", { d: "M92 74 C170 150 260 240 420 400", fill: "none", stroke: sleeve, "stroke-width": 92, "stroke-linecap": "round" }, g);
+  for (const d of [165, 235, 305]) {
+    el("path", { d: `M${60 + d} ${50 + d} l40 -42 M${60 + d} ${50 + d} l-40 42`, stroke: sleeve2, "stroke-width": 20, "stroke-linecap": "round" }, g);
+  }
+  el("path", { d: "M46 22 C74 -8 124 6 138 42 C150 74 124 112 90 112 C54 110 26 60 46 22Z", fill: skin }, g);
+  el("line", { x1: 3, y1: -4, x2: 148, y2: -128, stroke: "#3b3c3f", "stroke-width": 12, "stroke-linecap": "round" }, g);
+  el("line", { x1: 138, y1: -119, x2: 150, y2: -130, stroke: "#5a5c60", "stroke-width": 12, "stroke-linecap": "round" }, g);
+  el("path", { d: "M0 0 L9 -15 L20 -2 Z", fill: "#1d1d1b" }, g);
+  el("path", { d: "M34 12 C46 -6 66 -22 82 -14", fill: "none", stroke: skin, "stroke-width": 25, "stroke-linecap": "round" }, g);
+  el("path", { d: "M44 30 C56 14 78 -2 100 2", fill: "none", stroke: skin, "stroke-width": 25, "stroke-linecap": "round" }, g);
+  el("path", { d: "M58 46 C78 44 100 30 118 30", fill: "none", stroke: skin, "stroke-width": 23, "stroke-linecap": "round" }, g);
+  el("path", { d: "M66 -26 C80 -8 62 22 40 26", fill: "none", stroke: "#000", "stroke-opacity": .1, "stroke-width": 3 }, g);
+  return g;
+}
+function fingerHand(parent, sleeve, skin) {
+  const g = group(parent);
+  el("path", { d: "M104 130 C170 200 240 280 380 430", fill: "none", stroke: sleeve, "stroke-width": 104, "stroke-linecap": "round" }, g);
+  el("path", { d: "M58 72 C100 44 160 74 158 124 C154 166 108 186 76 158 C48 132 38 92 58 72Z", fill: skin }, g);
+  el("path", { d: "M2 2 L66 86", stroke: skin, "stroke-width": 27, "stroke-linecap": "round" }, g);
+  for (const [x, y, x2, y2] of [[96, 66, 66, 92], [126, 76, 88, 110], [146, 100, 104, 132]]) {
+    el("path", { d: `M${x} ${y} L${x2} ${y2}`, stroke: skin, "stroke-width": 27, "stroke-linecap": "round" }, g);
+    el("path", { d: `M${x + 8} ${y - 8} L${x2 + 2} ${y2 - 6}`, stroke: "#000", "stroke-opacity": .08, "stroke-width": 2 }, g);
+  }
+  return g;
+}
+
+// ------------------------------------------------------------- laptop
+const lap = group();
+el("rect", { x: -30, y: -30, width: 960, height: 620, rx: 26, fill: "#25262a", filter: "url(#drop)" }, lap);
+el("rect", { width: 900, height: 560, fill: "#f7f5f0", rx: 6 }, lap);
+el("rect", { width: 900, height: 58, fill: "#fff" }, lap);
+el("line", { x1: 0, y1: 58, x2: 900, y2: 58, stroke: "#e4e0d6", "stroke-width": 2 }, lap);
+el("text", { x: 30, y: 38, "font-size": 24, "font-weight": 720, fill: "#1d1d1b", text: "Claude" }, lap);
+el("text", { x: 870, y: 37, "font-size": 18, fill: "#8a887f", "text-anchor": "end", class: "mono", text: "rmink ansluten" }, lap);
+el("rect", { x: -70, y: 590, width: 1040, height: 150, rx: 22, fill: "#35363b" }, lap);
+for (let r = 0; r < 3; r++) for (let c = 0; c < 15; c++) {
+  el("rect", { x: -42 + c * 66, y: 606 + r * 38, width: 60, height: 32, rx: 6, fill: "#1f2024" }, lap);
+}
+const bubbles = group(lap);
+const chat = [
+  { from: "me", text: "Rita rent skissen Bastu." },
+  { from: "ai", text: "Klar! Bastu r01 ligger på plattan, med två frågor." },
+  { from: "me", text: "Snickaren har ritat på r02. Kör nästa varv." },
+  { from: "ai", text: "Klar! I r03 öppnar dörren utåt." },
+];
+const bub = chat.map(({ from, text }, i) => {
+  const g = group(bubbles);
+  const y = 96 + i * 0;
+  const me = from === "me";
+  const lines = [], width = 34;
+  let line = ""; for (const w of text.split(" ")) { if ((line + " " + w).length > width && line) { lines.push(line); line = w; } else line = line ? line + " " + w : w; } lines.push(line);
+  const h = lines.length * 40 + 30, bw = 640;
+  const x = me ? 900 - bw - 30 : 30;
+  el("rect", { x, y: 0, width: bw, height: h, rx: 20, fill: me ? "#2b5fd9" : "#ece8de" }, g);
+  const ts = lines.map((l, j) => el("text", { x: x + 26, y: 42 + j * 40, "font-size": 30, fill: me ? "#fff" : "#1d1d1b", text: l }, g));
+  return { g, h, text, lines, ts };
+});
+const lapFinger = fingerHand(lap, "#3f5f7a", "#e7b48f");
+
+const tab = group();
+// reMarkable 2: light grey frame, thin bezels, a darker metal spine down the left.
+// The screen is e-paper, so everything on it is shades of grey.
+const PAPER = "#ecebe6", INK = "#1d1d1b";
+grad("spine", [[0, "#3e4044"], [.45, "#6a6c70"], [1, "#4a4c50"]], { x1: 0, y1: 0, x2: 1, y2: 0 }, "linearGradient");
+el("rect", { x: -70, y: -24, width: 694, height: 848, rx: 16, fill: "#d6d4ce", filter: "url(#drop)" }, tab);
+el("path", { d: "M-40 -24 H-54 a16 16 0 0 0 -16 16 V808 a16 16 0 0 0 16 16 H-40 Z", fill: "url(#spine)" }, tab);
+el("rect", { x: -2, y: -2, width: 604, height: 804, fill: "#bdbbb5" }, tab);
+el("rect", { width: 600, height: 800, fill: PAPER }, tab);
+const pageG = group(tab);
+// Page pixels (1404 wide) to the 600-wide screen
+const K = 600 / 1404;
+const PAGES = ["r01", "r02", "r03"].map((r) => el("image", { href: `../out/bastu/${r}-p01.png`, width: 600, height: 800, style: "mix-blend-mode:multiply", opacity: 0 }, pageG));
+const ink = group(pageG, { transform: `scale(${K})`, fill: "none", stroke: INK, "stroke-linecap": "round", "stroke-linejoin": "round" });
+// A pen stroke revealed along its length
+const stroke = (parent, d, w = 6, dash = "") => {
+  const p = el("path", { d, "stroke-width": w }, parent);
+  const len = p.getTotalLength();
+  set(p, { "stroke-dasharray": len, "stroke-dashoffset": len });
+  return { draw(f) {
+    p.setAttribute("stroke-dashoffset", len * (1 - f));
+    const q = p.getPointAtLength(len * f); return { x: q.x * K, y: q.y * K };
+  } };
+};
+// Handwriting revealed from the left, with the pen on the leading edge
+let clipN = 0;
+const script = (parent, text, x, y, size) => {
+  const id = "ink" + clipN++, c = el("clipPath", { id }, defs);
+  const r = el("rect", { x: x - 6, y: y - size * 1.1, width: 0, height: size * 1.6 }, c);
+  const e = el("text", { x, y, "font-size": size, class: "script", fill: INK, stroke: "none", "clip-path": `url(#${id})`, text }, parent);
+  return { draw(f) {
+    const w = e.getComputedTextLength() + 12;
+    r.setAttribute("width", f * w);
+    return { x: (x + f * w) * K, y: (y - size * .3 + Math.sin(f * 40) * size * .3) * K };
+  } };
+};
+const sketchG = group(ink);
+const SKETCH = [
+  ["M262 318 C500 308 850 326 1138 312", .9], ["M1138 312 C1146 480 1130 700 1142 858", .55], ["M1142 858 C860 868 520 850 258 862", .8],
+  ["M258 862 C254 800 262 760 258 690", .25], ["M262 470 C256 420 266 360 262 318", .2],
+  ["M560 316 C566 380 556 420 562 468", .2], ["M560 642 C566 720 554 800 562 860", .25],
+  ["M562 468 L720 470", .15], ["M720 470 C722 560 650 640 560 642", .3],
+  ["M258 690 L128 690", .15], ["M128 690 C130 590 190 476 262 470", .3],
+  ["M600 350 L700 346 L706 440 L604 446 Z", .4], ["M960 316 C966 500 952 700 962 860", .35],
+].map(([d, dur]) => ({ s: stroke(sketchG, d), dur }));
+for (const [text, x, y, size, dur] of [["3600", 640, 286, 66, .45], ["2400", 1160, 606, 66, .45], ["bastu", 770, 610, 78, .45], ["omkl", 320, 440, 66, .35], ["kamin", 606, 412, 46, .4], ["lave", 985, 610, 58, .3]]) {
+  SKETCH.push({ s: script(sketchG, text, x, y, size), dur });
+}
+const ans1 = script(ink, "Ved", 175, 1320, 76), ans2 = script(ink, "12 m", 175, 1562, 76);
+const ring = stroke(ink, "M700 432 C775 428 826 490 822 552 C818 625 765 668 690 666 C620 664 580 610 584 540 C588 480 630 430 712 434", 7);
+const word = script(ink, "utåt", 852, 668, 92);
+const flash = el("rect", { width: 600, height: 800, fill: INK, opacity: 0 }, tab);
+
+const bar = group(tab);
+el("rect", { width: 46, height: 800, fill: PAPER }, bar);
+el("line", { x1: 46, y1: 0, x2: 46, y2: 800, stroke: INK, "stroke-width": 1.5 }, bar);
+const icon = (y, paths) => {
+  const g = group(bar, { transform: `translate(23 ${y})`, fill: "none", stroke: INK, "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" });
+  paths.forEach((d) => el("path", { d }, g));
+  return g;
+};
+const ICONS = [
+  [30, ["M-7 -7 L7 7 M7 -7 L-7 7", "M-11 0 a11 11 0 1 0 22 0 a11 11 0 1 0 -22 0"]],
+  [86, ["M-9 10 L-6 1 L5 -10 L11 -4 L0 7 Z", "M2 -7 L8 -1"]],
+  [132, ["M-8 -8 H8 M0 -8 V9 M-3 9 H3"]],
+  [178, ["M-9 3 L2 -8 L10 0 L-1 10 H-6 Z", "M-4 -2 L4 6"]],
+  [224, ["M-9 -5 V-9 H-5 M-1 -9 H3 M7 -9 H9 V-5 M9 -1 V3 M9 7 V9 H5 M1 9 H-3 M-7 9 H-9 V5 M-9 1 V-2"]],
+  [270, ["M-8 -2 C-2 -9 9 -6 9 4", "M-8 -9 V-2 H-1"]],
+  [316, ["M8 -2 C2 -9 -9 -6 -9 4", "M8 -9 V-2 H1"]],
+  [578, ["M-9 -9 H-2 V-2 H-9 Z M2 -9 H9 V-2 H2 Z M-9 2 H-2 V9 H-9 Z M2 2 H9 V9 H2 Z"]],
+  [624, ["M-9 -9 H1 L10 0 L0 10 L-9 1 Z", "M-4 -4 h.1"]],
+  [716, ["M0 5 V-9 M-5 -5 L0 -10 L5 -5", "M-9 1 V9 H9 V1"]],
+  [762, ["M-8 0 h.1 M0 0 h.1 M8 0 h.1"]],
+];
+ICONS.forEach(([y, d]) => icon(y, d));
+// "Three papers stacked on top of each other"
+icon(670, ["M0 -10 L10 -5 L0 0 L-10 -5 Z", "M-10 0 L0 5 L10 0", "M-10 5 L0 10 L10 5"]);
+
+const barMini = group(tab, { transform: "translate(23 30)", fill: PAPER, stroke: INK, "stroke-width": 2, "stroke-linecap": "round" });
+el("circle", { r: 12 }, barMini);
+el("path", { d: "M-5 -4 H5 M-5 0 H5 M-5 4 H5", fill: "none" }, barMini);
+const kimHand = penHand(tab, "#4f7a5a", "#e8e2d2", "#e7b48f");
+const snickHand = penHand(tab, "#e8792b", "#f6e6a6", "#d9a57f");
+const say = group(tab, { opacity: 0 });
+el("path", { d: "M-150 -44 C-176 -80 -60 -96 -20 -78 C40 -100 170 -84 156 -36 C176 6 70 42 20 34 L-30 78 L-26 34 C-110 44 -180 8 -150 -44Z", fill: "#fff", stroke: INK, "stroke-width": 3 }, say);
+el("text", { x: 0, y: -8, "text-anchor": "middle", "font-size": 38, class: "script", fill: INK, text: "Den ska öppna utåt!" }, say);
+
+// Table props for the meeting: a folding rule
+const tableProps = group();
+const ruleX = LAND ? 110 : 760, ruleY = LAND ? 860 : 130;
+el("path", { d: `M${ruleX} ${ruleY} l150 -70 l150 70 l-60 40`, fill: "none", stroke: "#e9b949", "stroke-width": 20, "stroke-linejoin": "miter" }, tableProps);
+for (let i = 1; i < 12; i++) el("line", { x1: ruleX + i * 12.5, y1: ruleY - i * 5.8 - 8, x2: ruleX + i * 12.5, y2: ruleY - i * 5.8 + 6, stroke: "#6e5412", "stroke-width": 1.5 }, tableProps);
+const mugX = LAND ? 480 : 90, mugY = LAND ? 880 : 1170;
+el("circle", { cx: mugX, cy: mugY, r: 62, fill: "#f1eee6" }, table);
+el("circle", { cx: mugX, cy: mugY, r: 62, fill: "none", stroke: "#2f5f8a", "stroke-width": 5 }, table);
+el("circle", { cx: mugX, cy: mugY, r: 47, fill: "#3a2415" }, table);
+el("path", { d: `M${mugX + 60} ${mugY - 13} h32 a12 12 0 0 1 0 26 h-32`, fill: "none", stroke: "#f1eee6", "stroke-width": 12 }, table);
+table.appendChild(tableProps);
+
+// ------------------------------------------------------------- the AI scene
+const night = group();
+el("rect", { width: W, height: H, fill: "url(#night)" }, night);
+for (let i = 0; i < 70; i++) el("circle", { cx: rnd() * W, cy: rnd() * H, r: .8 + rnd() * 1.8, fill: "#c9d6ff", opacity: .15 + rnd() * .5 }, night);
+const orbG = group(night, { transform: `translate(${L.orb[0]} ${L.orb[1]})` });
+const halo = el("circle", { r: 200, fill: "url(#orb)", opacity: .75 }, orbG);
+const rings = [0, 1, 2].map((i) => el("circle", { r: 110 + i * 44, fill: "none", stroke: "#a9c1ff", "stroke-width": 2.4, "stroke-dasharray": "14 26", opacity: .55 - i * .12 }, orbG));
+el("circle", { r: 62, fill: "#fff" }, orbG);
+el("text", { y: 12, "text-anchor": "middle", "font-size": 34, "font-weight": 800, fill: "#1a2a66", text: "AI" }, orbG);
+const orbLabel = el("text", { y: LAND ? -190 : -176, "text-anchor": "middle", "font-size": 24, fill: "#c9d6ff", class: "mono", text: "Claude" }, orbG);
+const motes = group(night);
+const MOTES = Array.from({ length: 74 }, () => ({ o: rnd(), a: rnd() * 2 - 1, b: rnd() * 2 - 1, r: 2 + rnd() * 4 }));
+const moteEls = MOTES.map((m) => el("circle", { r: m.r, fill: "#fff" }, motes));
+const flyDigits = ["3600", "2400", "bastu", "kamin"].map((d, i) => el("text", { x: 0, y: 0, "font-size": 58, class: "script", fill: "#fff", "text-anchor": "middle", text: d }, night));
+const docFly = group(night);
+el("rect", { x: -70, y: -92, width: 140, height: 184, rx: 4, fill: "#ecebe6" }, docFly);
+for (const y of [-60, -32, -4, 24, 52]) el("rect", { x: -48, y, width: 96, height: 9, rx: 3, fill: "#cfccc3" }, docFly);
+el("path", { d: "M-22 -6 L-6 12 L28 -28", fill: "none", stroke: "#1d1d1b", "stroke-width": 12, "stroke-linecap": "round", "stroke-linejoin": "round" }, docFly);
+
+
+// ------------------------------------------------------------- the cottage, seen from the front
+const k = group();
+const kin = group(k);
+el("rect", { x: -900, y: -700, width: 3800, height: 2600, fill: "#4b3322" }, kin);
+for (let y = -700, i = 0; y < 790; y += 62, i++) {
+  el("rect", { x: -900, y, width: 3800, height: 58, rx: 22, fill: i % 2 ? "#7a5536" : "#6f4c30" }, kin);
+  el("path", { d: `M-900 ${y + 18} C0 ${y + 12} 900 ${y + 26} 2900 ${y + 16}`, fill: "none", stroke: "#5b3e27", "stroke-width": 2, opacity: .6 }, kin);
+}
+// Window and the edge of the forest
+el("rect", { x: 1180, y: 110, width: 430, height: 440, fill: "#e7dcc6" }, kin);
+const skyDusk = el("rect", { x: 1200, y: 130, width: 390, height: 400, fill: "url(#dusk)" }, kin);
+const skyDay = el("rect", { x: 1200, y: 130, width: 390, height: 400, fill: "#c9dbe6", opacity: 0 }, kin);
+el("rect", { x: 1200, y: 452, width: 390, height: 78, fill: "#3b4a35" }, kin);
+for (const [x, h] of [[1222, 170], [1275, 230], [1330, 180], [1395, 250], [1455, 190], [1520, 240], [1572, 170]]) {
+  el("path", { d: `M${x} ${470 - h} L${x + 42} 474 H${x - 42} Z`, fill: "#1f3226" }, kin);
+}
+const stake = el("path", { d: "M1400 500 V462 M1452 496 V458 M1400 470 H1452", stroke: "#e9e2d2", "stroke-width": 4, fill: "none" }, kin);
+el("rect", { x: 1386, y: 130, width: 12, height: 400, fill: "#e7dcc6" }, kin);
+el("rect", { x: 1200, y: 322, width: 390, height: 12, fill: "#e7dcc6" }, kin);
+// Wood stove with a fire
+el("rect", { x: 232, y: -700, width: 56, height: 1040, fill: "#26262a" }, kin);
+el("rect", { x: 130, y: 340, width: 260, height: 400, rx: 12, fill: "#2c2c31" }, kin);
+el("rect", { x: 118, y: 326, width: 284, height: 26, rx: 6, fill: "#3a3a40" }, kin);
+el("rect", { x: 170, y: 410, width: 180, height: 210, rx: 12, fill: "#1a0f08" }, kin);
+const flames = [0, 1, 2].map((i) => el("path", { d: "M-46 0 C-60 -60 -14 -70 -8 -130 C24 -84 56 -60 44 0 Z", fill: ["#e8792b", "#f2b13d", "#ffe08a"][i] }, kin));
+const glow = el("circle", { cx: 260, cy: 520, r: 300, fill: "#ffa34d", opacity: .16, filter: "url(#soft)" }, kin);
+for (const [x, y] of [[440, 740], [496, 740], [552, 740], [468, 690], [524, 690], [496, 640]]) {
+  el("circle", { cx: x, cy: y, r: 27, fill: "#b98a5a" }, kin);
+  el("circle", { cx: x, cy: y, r: 14, fill: "none", stroke: "#8c6239", "stroke-width": 3 }, kin);
+}
+// People
+function person(x, o) {
+  const g = group(kin);
+  el("path", { d: `M${x - 150} 780 C${x - 150} 590 ${x - 88} 500 ${x} 500 C${x + 90} 500 ${x + 150} 590 ${x + 160} 780Z`, fill: o.shirt }, g);
+  if (o.vest) {
+    el("path", { d: `M${x - 118} 780 C${x - 110} 620 ${x - 70} 530 ${x - 34} 510 L${x} 610 L${x + 34} 510 C${x + 74} 530 ${x + 118} 620 ${x + 124} 780Z`, fill: "#e8792b" }, g);
+    for (const y of [670, 730]) el("rect", { x: x - 122, y, width: 248, height: 15, fill: "#f6e6a6" }, g);
+  }
+  el("rect", { x: x - 25, y: 430, width: 50, height: 90, rx: 20, fill: o.skin }, g);
+  const head = group(g);
+  el("circle", { cx: x, cy: 390, r: 82, fill: o.skin }, head);
+  el("path", { d: `M${x - 84} 400 C${x - 96} 296 ${x - 30} 284 ${x + 10} 290 C${x + 70} 288 ${x + 96} 340 ${x + 84} 402 C${x + 66} 356 ${x + 40} 338 ${x} 342 C${x - 44} 346 ${x - 64} 360 ${x - 84} 400Z`, fill: o.hair }, head);
+  if (o.cap) {
+    el("path", { d: `M${x - 84} 366 C${x - 84} 276 ${x + 84} 276 ${x + 84} 366Z`, fill: "#2f4258" }, head);
+    el("path", { d: `M${x - 112} 372 C${x - 60} 352 ${x} 356 ${x + 40} 366 L${x + 40} 378 C${x - 10} 368 ${x - 70} 372 ${x - 112} 384Z`, fill: "#22303f" }, head);
+  }
+  const eyes = [-30, 30].map((dx) => el("circle", { cx: x + dx - (o.look || 0), cy: 402, r: 7, fill: "#1d1d1b" }, head));
+  el("path", { d: `M${x - 22 - (o.look || 0)} 442 q22 14 44 0`, fill: "none", stroke: "#8f4a3a", "stroke-width": 5, "stroke-linecap": "round" }, head);
+  return { g, head, eyes, x };
+}
+const kim = person(720, { shirt: "#4f7a5a", skin: "#e7b48f", hair: "#6b6a68" });
+const snick = person(1120, { shirt: "#3b5068", skin: "#d9a57f", hair: "#3b2a1e", cap: true, vest: true, look: 10 });
+// Table and what is on it
+el("rect", { x: -900, y: 770, width: 3800, height: 40, fill: "#a87a4f" }, kin);
+el("rect", { x: -900, y: 810, width: 3800, height: 1000, fill: "#6b4a30" }, kin);
+el("rect", { x: 842, y: 756, width: 236, height: 16, rx: 4, fill: "#d6d4ce" }, kin);
+el("rect", { x: 842, y: 768, width: 236, height: 4, fill: "#55575b" }, kin);
+el("path", { d: "M556 762 h46 v-34 h-46 Z", fill: "#f1eee6" }, kin);
+el("path", { d: "M602 736 q22 0 22 12 q0 12 -22 10", fill: "none", stroke: "#f1eee6", "stroke-width": 6 }, kin);
+
+// ------------------------------------------------------------- the finished sauna
+const ext = group();
+grad("eve", [[0, "#233a63"], [.6, "#7a5a7c"], [1, "#eea06a"]], { x1: 0, y1: 0, x2: 0, y2: 1 }, "linearGradient");
+el("rect", { width: W, height: H, fill: "url(#eve)" }, ext);
+for (let i = 0; i < 26; i++) {
+  const x = i * W / 25 + rnd() * 30 - 15, h = H * (.3 + rnd() * .3), w = 70 + rnd() * 50, b = H * .8;
+  el("path", { d: `M${x} ${b - h} L${x + w} ${b} H${x - w} Z`, fill: "#16261d" }, ext);
+}
+el("rect", { y: H * .78, width: W, height: H * .22, fill: "#26382a" }, ext);
+const sau = group(ext, { transform: LAND ? `translate(1290 690) scale(1.05)` : `translate(540 960) scale(.92)` });
+el("ellipse", { cx: 0, cy: 170, rx: 420, ry: 26, fill: "#000", opacity: .28 }, sau);
+el("rect", { x: -310, y: -60, width: 620, height: 230, fill: "#7c4a2d" }, sau);
+for (let x = -300; x < 310; x += 28) el("line", { x1: x, y1: -60, x2: x, y2: 170, stroke: "#5f3620", "stroke-width": 3 }, sau);
+el("path", { d: "M-350 -52 L0 -210 L350 -52 Z", fill: "#7c4a2d" }, sau);
+el("path", { d: "M-372 -40 L0 -224 L372 -40 L352 -28 L0 -194 L-352 -28 Z", fill: "#2a2c30" }, sau);
+el("rect", { x: 150, y: -240, width: 46, height: 120, fill: "#3a3b40" }, sau);
+el("rect", { x: 140, y: -250, width: 66, height: 14, fill: "#26272b" }, sau);
+el("rect", { x: -214, y: -30, width: 112, height: 200, fill: "#4a2b1a" }, sau);
+el("rect", { x: -214, y: -30, width: 112, height: 200, fill: "none", stroke: "#e7dcc6", "stroke-width": 7 }, sau);
+el("circle", { cx: -124, cy: 76, r: 6, fill: "#e9b949" }, sau);
+el("rect", { x: 70, y: -18, width: 150, height: 92, fill: "#ffcb7a" }, sau);
+el("path", { d: "M145 -18 V74 M70 28 H220", stroke: "#e7dcc6", "stroke-width": 7 }, sau);
+el("rect", { x: 70, y: -18, width: 150, height: 92, fill: "none", stroke: "#e7dcc6", "stroke-width": 8 }, sau);
+el("circle", { cx: 145, cy: 40, r: 190, fill: "#ffcb7a", opacity: .14, filter: "url(#soft)" }, sau);
+const smoke = Array.from({ length: 9 }, () => el("circle", { r: 20, fill: "#d9dde3" }, sau));
+
+// ------------------------------------------------------------- render one frame
+const hold = (t, keys) => {
+  let p = keys[0][1];
+  for (let i = 0; i < keys.length - 1; i++) {
+    const [a, A] = keys[i], [b, Bb] = keys[i + 1];
+    if (t >= a) { const x = eIO(P(t, a, b)); p = { x: mix(A.x, Bb.x, x), y: mix(A.y, Bb.y, x), s: mix(A.s, Bb.s, x) }; }
+  }
+  return p;
+};
+const look = (px, py, s) => ({ x: L.stage[0] + (LAND ? 40 : 0) - (px - 300) * s, y: L.stage[1] - (py - 400) * s, s });
+function poseTablet(t) {
+  const [cx, cy] = L.stage, B = { x: cx, y: cy, s: L.ts };
+  const hide = { x: cx + (LAND ? 300 : 0), y: cy + 900, s: L.ts * .92 };
+  const small = { x: L.small[0], y: L.small[1], s: L.small[2] };
+  const R = look(300, 620, LAND ? 1.6 : 1.42), D = look(LAND ? 310 : 300, 215, LAND ? 1.7 : 1.45), O = look(300, 330, LAND ? 1.24 : 1.06);
+  return hold(t, [[T.sketch - 1.2, hide], [T.sketch - .2, B], [T.ask + .1, B], [T.ask + .9, small], [T.r01 - .6, small], [T.r01 + .4, B], [T.ans, B], [T.ans + .8, R], [T.r02 - .3, R], [T.r02 + .5, O], [T.mark - .8, O], [T.mark + .6, D], [T.r03, D], [T.r03 + .7, small], [T.r03 + 2.1, small], [T.r03 + 2.7, O], [T.end, O]]);
+}
+const inkAt = (t, list) => { let tip = null; for (const [o, a, b] of list) { const f = P(t, a, b); const q = o.draw(f); if (t >= a && t <= b) tip = q; } return tip; };
+
+function seek(t) {
+  // Cottage
+  const meeting = t > T.r02;
+  const on = meeting ? Math.min(P(t, T.meet - .4, T.meet + .2), 1 - P(t, T.mark - .7, T.mark - .1)) : 1 - P(t, T.sketch - .7, T.sketch + .1);
+  set(k, { opacity: on, display: on > 0 ? "inline" : "none" });
+  const base = LAND ? 1 : 1.25;
+  const zk = meeting ? (LAND ? mix(1.25, 1.45, P(t, T.meet, T.mark)) : mix(1.1, 1.2, P(t, T.meet, T.mark))) : base * mix(1, 2.4, eIO(P(t, LAND ? 1.2 : 2.4, T.sketch)));
+  const fx = meeting ? (LAND ? 800 : 920) : mix(LAND ? 700 : 760, 880, eIO(P(t, LAND ? 1.2 : 2.4, T.sketch)));
+  const fy = meeting ? (LAND ? 500 : 330) : mix(LAND ? 500 : 360, 740, eIO(P(t, LAND ? 1.2 : 2.4, T.sketch)));
+  set(kin, { transform: `translate(${W / 2} ${H / 2}) scale(${zk}) translate(${-fx} ${-fy})` });
+  set(snick.g, { display: meeting ? "inline" : "none" });
+  skyDay.setAttribute("opacity", meeting ? 1 : 0);
+  stake.setAttribute("opacity", 1);
+  flames.forEach((f, i) => set(f, { transform: `translate(${260 + Math.sin(t * 7 + i * 2) * 8 + (i - 1) * 26} 612) scale(${(1.1 - i * .25) * (1 + Math.sin(t * 11 + i * 3) * .1)} ${(1.15 - i * .28) * (1 + Math.sin(t * 13 + i) * .14)})` }));
+  glow.setAttribute("opacity", .14 + .05 * Math.sin(t * 9));
+  set(kim.head, { transform: `rotate(${Math.sin(t * 1.1) * 1.6 + (meeting ? 5 : 3)} 720 460)` });
+  set(snick.head, { transform: `rotate(${Math.sin(t * 1.4) * 2 - 4} 1120 460)` });
+  [[kim, .4], [snick, 1.5]].forEach(([p, a]) => p.eyes.forEach((e) => set(e, { r: (t + a) % 2.9 < .12 ? 1.5 : 7 })));
+
+  // Laptop: once to ask, once in the meeting
+  const lapA = eOut(P(t, T.ask, T.ask + .7)) * (1 - eIO(P(t, T.ai - .8, T.ai - .1)));
+  const lapB = eOut(P(t, T.r03, T.r03 + .6)) * (1 - eIO(P(t, T.r03 + 1.9, T.r03 + 2.5)));
+  const lapShown = Math.max(lapA, lapB);
+  const ls = L.ls * (LAND ? .92 : .86);
+  set(lap, { transform: `translate(${L.stage[0] - 450 * ls} ${mix(H + 200, LAND ? 70 : 520, lapShown)}) scale(${ls})`, display: lapShown > .001 ? "inline" : "none" });
+  const layout = (list) => {
+    let y = 86;
+    for (const [i, a, b] of list) {
+      const m = bub[i], onn = P(t, a, a + .25);
+      set(m.g, { transform: `translate(0 ${y + (1 - eOut(onn)) * 20})`, opacity: onn });
+      if (chat[i].from === "me") {
+        const shown = Math.floor(P(t, a, b) * m.text.length);
+        let used = 0;
+        m.ts.forEach((tx, j) => { const l = m.lines[j]; tx.textContent = l.slice(0, Math.max(0, shown - used)); used += l.length + 1; });
+      }
+      y += m.h + 22;
+    }
+  };
+  bub.forEach((m) => m.g.setAttribute("opacity", 0));
+  const first = t < T.r01;
+  if (first) layout([[0, T.ask + .5, T.ask + 1.6], [1, T.ask + 2.4, T.ask + 2.5]]);
+  else layout([[2, T.r03 + .3, T.r03 + 1.1], [3, T.r03 + 1.5, T.r03 + 1.6]]);
+  const press = first ? T.ask + 1.9 : T.r03 + 1.25;
+  const lf = fade(t, press - .7, press + .5, .3), dip = Math.exp(-Math.pow((t - press) * 7, 2));
+  set(lapFinger, { transform: `translate(${880 - dip * 4} ${655 + dip * 6 + (1 - lf) * 300}) scale(${1 - dip * .02})`, opacity: lf > 0 ? 1 : 0 });
+
+  // Tablet
+  const pose = poseTablet(t);
+  const shown = t >= T.sketch - 1.2 && t < T.end + .4 && !(t > T.meet + .4 && t < T.mark - .9);
+  set(tab, { transform: `translate(${pose.x} ${pose.y}) scale(${pose.s}) translate(-300 -400)`, display: shown ? "inline" : "none" });
+  const r3 = T.r03 + 2.4;
+  const page = t < T.r01 - .6 ? -1 : t < T.r02 ? 0 : t < r3 ? 1 : 2;
+  PAGES.forEach((p, i) => p.setAttribute("opacity", i === page ? 1 : 0));
+  const blink = (a) => Math.abs(t - a) < .07 ? .9 : 0;
+  flash.setAttribute("opacity", Math.max(blink(T.r01 - .6), blink(T.r02), blink(r3)));
+  // The toolbar is open for sketching and collapsed to read a full page
+  const open = page < 0;
+  set(bar, { display: open ? "inline" : "none" });
+  set(barMini, { display: open ? "none" : "inline" });
+  sketchG.setAttribute("display", page < 0 ? "inline" : "none");
+
+  // Sketching: strokes one after another
+  let at = T.sketch + .5;
+  const sk = SKETCH.map(({ s, dur }) => { const a = at; at += dur * .92 + .14; return [s, a, a + dur * .92]; });
+  const sTip = page < 0 ? inkAt(t, sk) : null;
+  if (page >= 0) sk.forEach(([s]) => s.draw(1));
+  const skEnd = at;
+  const aTip = inkAt(t, [[ans1, T.ans + 1.4, T.ans + 2.4], [ans2, T.ans + 3.4, T.ans + 4.6]]);
+  const ansOn = t >= T.ans && t < T.r02;
+  const mTip = inkAt(t, [[ring, T.mark + 3, T.mark + 4.2], [word, T.mark + 4.4, T.mark + 5.4]]);
+  const mOn = t >= T.mark && t < r3;
+  [ans1, ans2].forEach((o) => o.draw(ansOn ? (o === ans1 ? P(t, T.ans + 1.4, T.ans + 2.4) : P(t, T.ans + 3.4, T.ans + 4.6)) : 0));
+  ring.draw(mOn ? P(t, T.mark + 3, T.mark + 4.2) : 0);
+  word.draw(mOn ? P(t, T.mark + 4.4, T.mark + 5.4) : 0);
+
+  // Kim's hand
+  const rest = { x: 400, y: 640 };
+  const kIn = Math.max(Math.min(P(t, T.sketch, T.sketch + .5), 1 - P(t, skEnd + .1, skEnd + .6)), Math.min(P(t, T.ans + .6, T.ans + 1.2), 1 - P(t, T.ans + 4.8, T.ans + 5.4)));
+  const kTip = sTip || aTip;
+  const kp = kTip || (t < T.ans ? rest : { x: 120, y: 660 });
+  set(kimHand, { transform: `translate(${kp.x + (1 - eOut(kIn)) * 420} ${kp.y + (1 - eOut(kIn)) * 340 + (kTip ? 0 : -6)}) scale(${t < T.ans ? .82 : .62})`, display: kIn > 0 ? "inline" : "none" });
+  // The carpenter's hand
+  const sIn = Math.min(P(t, T.mark + 2.2, T.mark + 2.9), 1 - P(t, T.mark + 5.6, T.mark + 6.2));
+  const sp = mTip || (t < T.mark + 4 ? { x: 300, y: 175 } : { x: 460, y: 285 });
+  set(snickHand, { transform: `translate(${sp.x + (1 - eOut(sIn)) * 360} ${sp.y + (1 - eOut(sIn)) * 320 + (mTip ? 0 : -6)}) scale(.58)`, display: sIn > 0 ? "inline" : "none" });
+  set(say, { transform: `translate(440 92) scale(${.66 * eBack(P(t, T.mark + .9, T.mark + 1.25))})`, opacity: fade(t, T.mark + .9, T.mark + 4, .2) });
+
+  // Name beside the device
+  tagName.textContent = page <= 0 ? "Bastu r01" : page === 1 ? "Bastu r02" : "Bastu r03";
+  tagScore.textContent = page === 0 ? "2 frågor" : "";
+  tagScore.style.transform = `scale(${eBack(P(t, T.r01, T.r01 + .4))})`;
+  tag.style.opacity = Math.max(fade(t, T.r01, T.meet - .1), fade(t, T.mark, T.ext));
+
+  // Folding rule on the table once the carpenter has come
+  tableProps.setAttribute("opacity", t > T.meet ? 1 : 0);
+
+  // The AI scene
+  const nA = P(t, T.ai - .9, T.ai - .1), nB = 1 - P(t, T.r01 - .7, T.r01);
+  const nightOn = Math.min(nA, nB);
+  set(night, { opacity: nightOn, display: nightOn > 0 ? "inline" : "none" });
+  rings.forEach((r, i) => r.setAttribute("transform", `rotate(${(i % 2 ? -1 : 1) * t * (28 + i * 12)})`));
+  halo.setAttribute("r", 200 + Math.sin(t * 3) * 14);
+  const [ox, oy] = L.orb, [sx, sy] = L.small;
+  MOTES.forEach((m, i) => {
+    const onn = ((t - T.ai) * .55 + m.o) % 1;
+    const x = mix(sx + m.a * 120, ox + m.b * 30, onn) + Math.sin(onn * 6 + i) * 34 * (1 - onn);
+    const y = mix(sy - 120, oy, eIO(onn));
+    set(moteEls[i], { cx: x, cy: y, opacity: fade(t, T.ai, T.ai + 3.2, .5) * Math.sin(onn * Math.PI) });
+  });
+  flyDigits.forEach((d, i) => {
+    const a = T.ai + .2 + i * .45, f = eIO(P(t, a, a + 1.5));
+    const c = mix(sx + (i - 1.5) * 90, ox, f), y = mix(sy - 140, oy, f);
+    set(d, { x: c + Math.sin(f * 5) * 28 * (1 - f), y, opacity: t >= a ? 1 - P(f, .78, 1) : 0, "font-size": 62 * (1 - f * .6) });
+  });
+  const back = eIO(P(t, T.r01 - 1.8, T.r01 - .6));
+  set(docFly, { transform: `translate(${mix(ox, sx, back)} ${mix(oy, sy, back)}) scale(${mix(.4, 1, Math.min(back * 3, 1))}) rotate(${(1 - back) * -8})`, opacity: t >= T.r01 - 1.9 ? 1 - P(back, .86, 1) : 0 });
+  const CK = [T.ai + .4, T.ai + 1.7, T.ai + 2.8, T.ai + 3.8];
+  checks.forEach((c, i) => { c.classList.toggle("on", t >= CK[i] - .1); c.classList.toggle("done", t >= CK[i] + .9); });
+  aiBeat.style.opacity = fade(t, T.ai + .1, T.r01 - .3, .35);
+  aiBeat.style.transform = `translateY(${(1 - eOut(P(t, T.ai + .1, T.ai + .6))) * 26}px)`;
+
+  // The finished sauna
+  const eo = P(t, T.ext - .5, T.ext + .2);
+  set(ext, { opacity: eo, display: eo > 0 ? "inline" : "none" });
+  smoke.forEach((c, i) => {
+    const u = ((t * .22 + i / 9) % 1);
+    set(c, { cx: 173 + Math.sin(u * 7 + i) * 26 * u + u * 90, cy: -262 - u * 420, r: 14 + u * 46, opacity: .4 * Math.sin(u * Math.PI) });
+  });
+
+  scrim.style.opacity = Math.max(on, eo);
+  document.getElementById("capBack").style.opacity = LAND ? 0 : Math.min(P(t, T.ans, T.ans + .6), 1 - P(t, T.r02 + .1, T.r02 + .6));
+
+  // Captions and rail
+  BEATS.forEach(([a, b], i) => {
+    beatEls[i].style.opacity = fade(t, a, b, .35);
+    beatEls[i].style.transform = `translateY(${(1 - eOut(P(t, a, a + .5))) * 26}px)`;
+  });
+  STEPS.forEach(([, a], i) => {
+    const next = i < STEPS.length - 1 ? STEPS[i + 1][1] : T.end;
+    railEls[i].className = t >= a && t < next ? "on" : t >= next ? "done" : "";
+  });
+  rail.style.opacity = P(t, T.sketch, T.sketch + .5) * (1 - P(t, T.end - .1, T.end + .3));
+
+  // End
+  const end = P(t, T.end, T.end + .55);
+  const e = document.getElementById("end");
+  e.style.opacity = end;
+  e.style.transform = `scale(${mix(1.04, 1, eOut(end))})`;
+}
+window.seek = seek;
+// Draw order: table, night sky, laptop, tablet, then the two full-frame scenes.
+s.appendChild(table); s.appendChild(night); s.appendChild(lap); s.appendChild(tab); s.appendChild(k); s.appendChild(ext);
+Promise.all([document.fonts.load('700 40px "Caveat"'), ...PAGES.map((p) => new Promise((ok) => { const i = new Image(); i.onload = ok; i.onerror = ok; i.src = p.getAttribute("href"); }))]).then(() => document.fonts.ready).then(() => { seek(0); window.ready = true; });
+</script>
+</body>
+</html>

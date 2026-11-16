@@ -1,0 +1,18 @@
+{
+  "voice": "alma",
+  "videos": "rmink-bastu-ops-sv-*.mp4",
+  "say": {"Claude": "Klåd", "Open PDF": "Åpen PDF"},
+  "lines": [
+    [0.6, "Bastubygget börjar med en skiss. Tre gånger två meter."],
+    [4.8, "En handskiss på plattan. Lavar, aggregat, lampa, ventilation och glasdörr. Med egna ord och mått."],
+    [13.3, "En mening till Claude räcker."],
+    [16.8, "Claude tolkar skissen. Rätar väggar och hörn, kollar måtten och skriver frågor."],
+    [22.3, "Skissen är nu en digital ritning, med fyra frågor."],
+    [25.8, "Svara med pennan. Fönstrets mått, frånluft och härdat glas."],
+    [31.8, "Svaren ritas in. Efter tio varv är ritningen klar."],
+    [35.8, "Sedan blir ritningen en PDF. A tre, i skala ett till tjugo."],
+    [40.8, "Öppna den i Open PDF Studio. Väggar, text, mått och symboler ligger på egna lager. Släck dem ett i taget, så står väggarna kvar."],
+    [50.8, "Skalan följer med. Gaveln mäts till två tusen en millimeter."],
+    [56.4, "Skissa för hand. Öppna i Open PDF Studio."]
+  ]
+}

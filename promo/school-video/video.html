@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<title>rmink skola</title>
+<style>
+@font-face { font-family: "Caveat"; src: url("../out/assets/Caveat.ttf"); font-weight: 400 700; }
+:root {
+  --paper: #f4f2ec; --ink: #1d1d1b; --muted: #6b6a65; --accent: #2b5fd9;
+  --ok: #1f9d55; --bad: #d3352c; --facit: #3f6fd8; --line: #dcd8cd;
+  --math: #2b5fd9; --sv: #d9622b; --en: #7a3fd1;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { overflow: hidden; }
+body {
+  position: relative; background: var(--paper); color: var(--ink);
+  font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.scene { position: absolute; inset: 0; opacity: 0; }
+.hand { font-family: "Caveat", cursive; font-weight: 650; color: #1d1d1b; }
+
+/* Captions */
+.cap { position: absolute; }
+.beat { position: absolute; left: 0; top: 0; width: 100%; opacity: 0; }
+.chapter { font: 600 var(--fs-chapter)/1 "SF Mono", Menlo, monospace; color: var(--accent); letter-spacing: .04em; margin-bottom: var(--gap-s); }
+.title { font-size: var(--fs-title); font-weight: 780; letter-spacing: -0.025em; line-height: 1.04; }
+.body { font-size: var(--fs-body); line-height: 1.32; color: #3e3d39; margin-top: var(--gap-s); }
+.steps { margin-top: var(--gap-m); display: grid; gap: calc(var(--gap-s) * .8); }
+.step { font-size: var(--fs-chip); font-weight: 650; display: flex; gap: .6em; align-items: center; opacity: .25; }
+.step .dot { width: 1.25em; height: 1.25em; border-radius: 50%; border: 3px solid #c9c5b9; flex: none; display: grid; place-items: center;
+  font-size: .8em; color: #fff; }
+.step.on { opacity: 1; }
+.step.done .dot { background: var(--ok); border-color: var(--ok); }
+.step.done .dot::after { content: "✓"; font-weight: 900; }
+
+/* Stage, devices */
+.stage { position: absolute; }
+.dev { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.dev .lbl { font: 600 var(--fs-label) "SF Mono", Menlo, monospace; color: var(--muted); white-space: nowrap; }
+.tablet { background: #262624; border-radius: 26px; padding: 16px 15px 22px; box-shadow: 0 30px 60px rgb(0 0 0 / .25), inset 0 0 0 2px #3a3a37; }
+.screen { background: #fbfaf6; border-radius: 6px; overflow: hidden; position: relative; }
+.bar { display: flex; justify-content: space-between; gap: 10px; padding: 0 12px; height: 30px; align-items: center;
+  font: 500 15px "SF Mono", Menlo, monospace; color: #55544f; background: #fff; border-bottom: 1px solid #e6e3da; white-space: nowrap; overflow: hidden; }
+.bar .sync { color: #8f8d86; }
+.viewport { position: relative; overflow: hidden; }
+.page { position: absolute; left: 0; top: 0; width: 600px; height: 800px; transform-origin: 0 0; background: #fbfaf6; padding: 34px 36px; }
+.phone { background: #1b1b1a; border-radius: 44px; padding: 13px 11px 16px; box-shadow: 0 30px 60px rgb(0 0 0 / .25); }
+.pscreen { border-radius: 32px; overflow: hidden; background: #f6f5f1; position: relative; }
+.app { position: absolute; left: 0; top: 0; width: 360px; height: 740px; transform-origin: 0 0; padding: 18px 16px; }
+
+/* Workbook page */
+.pg-head { display: flex; justify-content: space-between; font: 500 12px "SF Mono", Menlo, monospace; color: #8a887f; }
+.pg-sec { font-size: 28px; font-weight: 750; margin-top: 12px; letter-spacing: -.01em; }
+.pg-text { font-size: 15px; line-height: 1.4; color: #4a4943; margin-top: 6px; }
+.q { position: relative; border: 1.4px solid #b9b6ad; border-radius: 4px; margin-top: 11px; padding: 8px 12px 6px; }
+.q .pr { font-size: 16.5px; line-height: 1.3; padding-right: 70px; }
+.q.fig { padding-right: 128px; }
+.q.fig .pr { padding-right: 0; }
+.q .ctx { font-size: 14.5px; font-style: italic; color: #5b5a54; margin-bottom: 2px; }
+.q .art { position: absolute; right: 12px; top: 36px; width: 104px; height: 92px; }
+.art * { fill: none; stroke: #2a2a28; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.art .g { fill: #dedad0; }
+.art .d { fill: #8d8a80; stroke: none; }
+.art text { fill: #2a2a28; stroke: none; font: 700 15px -apple-system, sans-serif; }
+.q .pr b { font-weight: 750; }
+.q .lines { position: relative; height: 58px; margin-top: 2px;
+  background: repeating-linear-gradient(to bottom, transparent 0 28px, #cfccc3 28px 29px); }
+.q .hand { position: absolute; left: 10px; top: -6px; font-size: 40px; line-height: 1; white-space: nowrap; }
+.q .typed { position: absolute; left: 8px; top: 2px; font-size: 22px; color: #1d1d1b; opacity: 0; white-space: nowrap; }
+.q .verdict { position: absolute; right: 8px; top: 8px; font: 750 14px -apple-system, sans-serif; padding: .3em .75em; border-radius: 999px;
+  opacity: 0; transform: scale(.4); }
+.verdict.ok { color: #fff; background: var(--ok); }
+.verdict.bad { color: #fff; background: var(--bad); }
+.q .comment { font-size: 14.5px; color: var(--bad); font-style: italic; margin-top: 2px; opacity: 0; height: 0; }
+.choice { display: flex; align-items: center; gap: 10px; font-size: 17px; margin-top: 6px; position: relative; }
+.choice .sq { width: 22px; height: 22px; border: 1.5px solid #8d8a80; border-radius: 3px; position: relative; flex: none; }
+.choice .sq svg { position: absolute; inset: -6px; width: 34px; height: 34px; overflow: visible; }
+.choice .sq path { fill: none; stroke: #1d1d1b; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; }
+.facit { display: flex; gap: 10px; align-items: baseline; margin: 2px 0 0 2px; height: 18px; }
+.facit .lab { font-size: 10px; color: #b4b1a8; }
+.facit .ink { font: 600 15px "SF Mono", Menlo, monospace; letter-spacing: .04em; color: var(--facit); clip-path: inset(0 100% 0 0); white-space: nowrap; }
+.pg-foot { position: absolute; left: 36px; right: 36px; bottom: 24px; display: flex; justify-content: space-between; font: 600 12px "SF Mono", Menlo, monospace; color: var(--accent); }
+
+/* Cover */
+.cv-strip { height: 10px; border-radius: 3px; }
+.cv-title { font-size: 44px; font-weight: 800; letter-spacing: -.03em; margin-top: 70px; line-height: 1.02; }
+.cv-sub { font-size: 16px; color: #5b5a54; margin-top: 10px; }
+.cv-mode { display: inline-block; margin-top: 18px; font: 700 13px -apple-system, sans-serif; color: var(--bad); border: 2px solid var(--bad); border-radius: 6px; padding: .2em .6em; }
+.toc { margin-top: 50px; border-top: 1.4px solid #b9b6ad; }
+.toc div { display: flex; justify-content: space-between; font-size: 17px; padding: 12px 0; border-bottom: 1px solid #dedbd2; color: var(--accent); }
+.toc div span:last-child { color: #8a887f; font-family: "SF Mono", Menlo, monospace; font-size: 14px; }
+.cv-how { margin-top: 40px; font-size: 13px; color: #6b6a65; line-height: 1.5; }
+
+/* Results */
+.rs-score { display: flex; align-items: center; gap: 26px; margin-top: 22px; }
+.ring { width: 120px; height: 120px; flex: none; }
+.ring circle { fill: none; stroke-width: 12; }
+.rs-big { font-size: 34px; font-weight: 800; letter-spacing: -.02em; }
+.rs-pct { font-size: 16px; color: #5b5a54; margin-top: 4px; }
+.rs-row { border-top: 1px solid #dedbd2; padding: 13px 0; display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: start; opacity: 0; }
+.rs-row .n { font-weight: 750; color: var(--accent); font-size: 15px; }
+.rs-row .t { font-size: 14px; line-height: 1.35; }
+.rs-row .t small { display: block; color: #6b6a65; font-size: 13px; margin-top: 2px; }
+.rs-row .p { font: 700 13px "SF Mono", Menlo, monospace; }
+
+/* App (rounds page) */
+.a-top { display: flex; justify-content: space-between; align-items: center; font: 600 13px "SF Mono", Menlo, monospace; color: #6b6a65; }
+.a-top b { font: 800 25px -apple-system, sans-serif; color: var(--ink); letter-spacing: -.02em; }
+.card { background: #fff; border-radius: 14px; padding: 14px; margin-top: 14px; box-shadow: 0 1px 0 rgb(0 0 0 / .06), 0 0 0 1px #e8e6df; }
+.card h4 { font-size: 19px; font-weight: 780; }
+.field { margin-top: 10px; }
+.field label { display: block; font-size: 13.5px; font-weight: 650; color: #6b6a65; margin-bottom: 4px; }
+.sel { border: 1.5px solid #d6d3ca; border-radius: 9px; padding: 10px 12px; font-size: 16.5px; display: flex; justify-content: space-between; color: #9a978e; background: #fbfaf7; }
+.sel.set { color: var(--ink); border-color: var(--accent); background: #fff; }
+.sel::after { content: "⌄"; color: #9a978e; }
+.btn { margin-top: 14px; background: var(--accent); color: #fff; text-align: center; font-weight: 750; font-size: 18px; padding: 14px; border-radius: 12px; position: relative; overflow: hidden; }
+.status { margin-top: 12px; font-size: 15.5px; color: #4a4943; min-height: 38px; line-height: 1.4; }
+.status b { color: var(--ok); }
+.spin { display: inline-block; width: 12px; height: 12px; border: 2px solid #c9c5b9; border-top-color: var(--accent); border-radius: 50%; vertical-align: -1px; margin-right: 6px; }
+.group-head { font: 700 13px "SF Mono", Menlo, monospace; color: #8a887f; margin-top: 18px; letter-spacing: .03em; }
+.kind { font-size: 12.5px; font-weight: 700; color: #6b6a65; background: #efede6; border-radius: 99px; padding: .15em .6em; margin-left: 6px; }
+.muted { color: #6b6a65; font-size: 15px; margin-top: 4px; }
+.score { color: var(--ok); font-weight: 750; }
+
+.tap { position: absolute; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgb(43 95 217 / .35); pointer-events: none; opacity: 0; }
+.pen { position: absolute; width: 60px; height: 60px; pointer-events: none; opacity: 0; }
+
+/* Subjects */
+.mini .page { padding: 30px 32px; }
+.chips { position: absolute; display: flex; flex-direction: column; gap: 14px; }
+.chiprow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.chiprow .subj { font-weight: 800; font-size: var(--fs-chip); width: 7.2em; }
+.chip { font-size: calc(var(--fs-chip) * .82); font-weight: 650; background: #fff; border: 2px solid; border-radius: 999px; padding: .3em .85em; opacity: 0; white-space: nowrap; }
+.grades { display: flex; gap: 6px; margin-top: 6px; }
+.grades span { width: 1.9em; height: 1.9em; display: grid; place-items: center; border-radius: 50%; background: #fff; border: 2px solid #d6d3ca;
+  font: 700 calc(var(--fs-chip) * .72) "SF Mono", Menlo, monospace; opacity: 0; }
+
+/* Layers panel */
+.layers { position: absolute; right: 14px; top: 44px; width: 210px; background: #fff; border-radius: 10px; box-shadow: 0 10px 30px rgb(0 0 0 / .2), 0 0 0 1px #e1ded5;
+  padding: 10px 12px; font-size: 14px; opacity: 0; }
+.layers h5 { font-size: 12px; color: #8a887f; font-weight: 700; margin-bottom: 6px; }
+.layers .row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 1px solid #eeece6; }
+.tog { width: 38px; height: 22px; border-radius: 99px; background: #d6d3ca; position: relative; }
+.tog i { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / .3); }
+.tog.on { background: var(--ok); }
+
+/* End */
+.end { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: var(--gap-m); }
+.end .big { font-size: calc(var(--fs-title) * 1.25); font-weight: 820; letter-spacing: -0.035em; line-height: 1.02; }
+.end .url { font: 650 var(--fs-body) "SF Mono", Menlo, monospace; color: var(--accent); }
+.end .small { font-size: var(--fs-chip); color: var(--muted); }
+.end .subjects { display: flex; justify-content: center; gap: 14px; }
+.end .subjects span { font-weight: 750; font-size: var(--fs-chip); color: #fff; border-radius: 999px; padding: .35em 1em; }
+
+#rail { position: absolute; display: flex; gap: 10px; justify-content: center; }
+#rail div { font: 600 var(--fs-rail) "SF Mono", Menlo, monospace; color: #a3a097; padding: .35em .75em; border-radius: 999px; border: 2px solid transparent; white-space: nowrap; }
+#rail div.on { color: var(--accent); border-color: var(--accent); background: #fff; }
+#rail div.done { color: var(--ink); }
+#bg { position: absolute; inset: 0; pointer-events: none; }
+</style>
+</head>
+<body>
+<svg id="bg"></svg>
+<div id="rail"></div>
+<script>
+const Q = new URLSearchParams(location.search);
+const LANG = Q.get("lang") === "en" ? "en" : "sv";
+const W = +(Q.get("w") || 1920), H = +(Q.get("h") || 1080);
+const LAND = W > H;
+document.documentElement.lang = LANG;
+Object.assign(document.body.style, { width: W + "px", height: H + "px" });
+document.body.classList.add(LAND ? "wide" : "tall");
+
+const L = LAND ? {
+  cap: [110, 190, 600, 720], stage: [740, 36, 1120, 950], rail: [0, 1004, 1920, 50],
+  fs: { chapter: 26, title: 72, body: 34, chip: 27, label: 20, rail: 20 }, gap: { s: 16, m: 30 },
+} : {
+  cap: [70, 56, 940, 360], stage: [40, 420, 1000, 840], rail: [0, 1282, 1080, 50],
+  fs: { chapter: 24, title: 58, body: 29, chip: 25, label: 19, rail: 16 }, gap: { s: 12, m: 22 },
+};
+const rs = document.documentElement.style;
+for (const [k, v] of Object.entries(L.fs)) rs.setProperty(`--fs-${k}`, v + "px");
+for (const [k, v] of Object.entries(L.gap)) rs.setProperty(`--gap-${k}`, v + "px");
+const place = (el, [x, y, w, h]) => Object.assign(el.style, { left: x + "px", top: y + "px", width: w + "px", height: h + "px" });
+
+const TX = {
+  sv: {
+    ch: ["Ämnen", "Skapa", "Skriva", "Skicka in", "Rättat", "Resultat", "Fel svar", "Facit"],
+    intro_t: "rmink skola", intro_b: "Arbetsböcker på din reMarkable. Claude skriver dem, eleven svarar för hand, rmink rättar.",
+    subj_t: "Matte, svenska\noch engelska", subj_b: "Färdiga moment för årskurs 1–9, varje grupp i sin egen mapp på plattan.",
+    math: "Matematik", sv: "Svenska", en: "Engelska", grade: "Årskurs",
+    g_math: ["Plus och minus", "Bråk och division", "Procent", "Multiplikation", "Geometri"], g_sv: ["Grammatik", "Stavning"], g_en: ["Glosor"],
+    wp_t: "Matte med\nvardagen i", wp_b: "Textuppgifterna handlar om sådant eleven känner igen. Eleven visar sin uträkning, och rmink rättar både svar och metod.",
+    wp_wb: "Multiplikation åk 4", wp_sec: "2 · Textuppgifter", wp_how: "Läs uppgiften noga och visa hur du räknar.",
+    wp_q: "Klass 4B ska baka bullar till skolavslutningen. Ett recept ger 16 bullar. De är 23 elever och 2 lärare, och alla ska få 2 bullar. Hur många satser behöver de baka?",
+    wp_a: ["23 + 2 = 25", "25 · 2 = 50 bullar", "3 satser = 48, för lite", "Svar: 4 satser"],
+    wp_next: "Mira har 120 kr. Hon köper 3 biobiljetter för 35 kr styck. Hur mycket har hon kvar?",
+    create_t: "Välj ämne,\nmoment och årskurs", create_b: "På rmink.vercel.app/rounds, i mobilen eller datorn. Claude skriver provet och rmink skickar det till plattan.",
+    write_t: "Eleven skriver\nför hand", write_b: "Kryssa i flervalsrutor och skriv i svarsrutorna. Inga tangentbord, inga skärmar att klicka i.",
+    send_t: "Skicka in\nmed ett tryck", send_b: "Plattan synkar. Tryck Kör nästa varv så hämtar rmink sidorna.",
+    s1: "Hämtar sidorna från reMarkable", s2: "Läser 4 rutor med handstil", s3: "Rättar mot facit", s4: "Skickar r02 till plattan",
+    graded_t: "Svaren blir text\noch rättas", graded_b: "Claude skriver av exakt det eleven skrev och rättar varje svar mot facit.",
+    wrong_t: "När svaret\när fel", wrong_b: "rmink rättar inte stavningen åt eleven. Svaret markeras Fel, en kort kommentar förklarar och facit visar rätt svar.",
+    res_t: "Resultatet\nsamlat", res_b: "En resultatsida sist i provet: poäng totalt och per fråga. Varje rad länkar till frågan.",
+    facit_t: "Tänd facit", facit_b: "Facit ligger i ett dolt lager. Vid prov kommer det efter rättningen, vid övning finns det från början.",
+    end_t: "Skriv för hand.\nrmink rättar.", end_s: "Gratis och öppen källkod",
+    // workbook content
+    wb: "Stavning åk 3", sec1: "1 · Dubbla bokstäver", sec1_t: "Kort vokal: två konsonanter (katt). Lång vokal: en (tak).",
+    x1: "Det är varmt ute och glassbilen tutar.", x2: "Mormors nya husdjur spinner i soffan.", x3: "Det öser ner, men inne är det torrt.", x4: "I juni stod hela klassen på scenen.",
+    q1: "Vilket ord passar? Jag vill ha en ... med jordgubbssmak.", q1k: "Välj ett", q1a: "glas", q1b: "glass",
+    q2: "Ett djur som säger mjau: en k _ _ _.", q3: "Det skyddar huset mot regn: ett t _ _.", q4: "Ng eller nk? Vi sjö _ _ en sång.",
+    a2: "katt", a3: "tak", a3w: "takk", a4: "sjöng",
+    f1: "B: GLASS – KORT A, TVÅ S", f2: "KATT – KORT A, TVÅ T", f3: "TAK – LÅNGT A, ETT K", f4: "SJÖNG – NG-LJUD",
+    ok: "Rätt", bad: "Fel", c3: "Långt a: bara ett k, tak.",
+    toc: "Innehåll", toc1: "Dubbla bokstäver", toc2: "Ng-ljudet och j-ljudet", toc3: "Rätta texten", res: "Resultat",
+    mode_test: "PROV", cover_sub: "Svenska · Stavning · 4 frågor", how: "Skriv svaren i rutorna. Kryssa i rutan för det alternativ du väljer.",
+    back: "<< Innehåll", next: "Nästa >>", page: "sida",
+    rs_big: "4 av 4 poäng", rs_pct: "100 %", ans: "Svar",
+    new_wb: "Ny arbetsbok", f_skola: "Skola", f_mom: "Moment", f_grade: "Årskurs", f_facit: "Facit",
+    v_skola: "Svenska: Stavning", v_mom: "Blanda alla moment", v_grade: "3", v_facit: "Prov: facit efter rättningen",
+    b_create: "Skapa arbetsbok", writing: "Claude skriver provet…", sent: "Skickad till", run: "Kör nästa varv",
+    card_meta: "Prov · 4 av 4 frågor besvarade", card_done: "r02 · 4 av 4 p", head: "SKOLA · SVENSKA · STAVNING",
+    layers: "Lager", layer1: "Lager 1",
+    mini1: ["Bråk åk 5", "Förkorta så långt det går: 6/8 =", "3/4"],
+    mini2: ["Grammatik åk 4", "Skriv i dåtid: Hon springer hem.", "sprang"],
+    mini3: ["Geometri åk 6", "Omkretsen av en kvadrat med sidan 5 cm:", "20 cm"], mini3k: "math",
+    synced: "synkad",
+  },
+  en: {
+    ch: ["Subjects", "Create", "Write", "Hand in", "Marked", "Results", "Mistakes", "Answers"],
+    intro_t: "rmink school", intro_b: "Workbooks on your reMarkable. Claude writes them, the pupil answers by hand, rmink marks them.",
+    subj_t: "Maths, Swedish\nand English", subj_b: "Ready-made topics for years 1–9, each group in its own folder on the tablet.",
+    math: "Maths", sv: "Swedish", en: "English", grade: "Year",
+    g_math: ["Addition", "Fractions", "Percent", "Multiplication", "Geometry"], g_sv: ["Grammar", "Spelling"], g_en: ["Vocabulary"],
+    wp_t: "Maths from\neveryday life", wp_b: "Word problems are about things pupils know. The pupil shows the working, and rmink marks both the answer and the method.",
+    wp_wb: "Multiplication, year 4", wp_sec: "2 · Word problems", wp_how: "Read the problem carefully and show how you work it out.",
+    wp_q: "Class 4B are baking buns for the end of term. One batch makes 16 buns. There are 23 pupils and 2 teachers, and everyone gets 2 buns. How many batches do they need?",
+    wp_a: ["23 + 2 = 25", "25 · 2 = 50 buns", "3 batches = 48, too few", "Answer: 4 batches"],
+    wp_next: "Mira has 120 kr. She buys 3 cinema tickets at 35 kr each. How much is left?",
+    create_t: "Pick subject,\ntopic and year", create_b: "At rmink.vercel.app/rounds, on your phone or computer. Claude writes the test and rmink sends it to the tablet.",
+    write_t: "The pupil writes\nby hand", write_b: "Tick the multiple-choice boxes and write in the answer boxes. No keyboards, no screens to tap.",
+    send_t: "Hand it in\nwith one tap", send_b: "The tablet syncs. Tap Run next round and rmink fetches the pages.",
+    s1: "Fetching the pages from reMarkable", s2: "Reading 4 handwritten boxes", s3: "Marking against the answers", s4: "Sending r02 to the tablet",
+    graded_t: "Answers become\ntext and get marked", graded_b: "Claude copies exactly what the pupil wrote and marks every answer against the key.",
+    wrong_t: "When an answer\nis wrong", wrong_b: "rmink never fixes the spelling for the pupil. The answer is marked Wrong, a short comment explains and the key shows the right answer.",
+    res_t: "All results\nin one place", res_b: "A results page at the end: the score in total and per question. Every row links to its question.",
+    facit_t: "Show the answers", facit_b: "The answers sit on a hidden layer. In a test they arrive after marking, in practice they are there from the start.",
+    end_t: "Write by hand.\nrmink marks it.", end_s: "Free and open source",
+    wb: "Spelling, year 3", sec1: "1 · Double letters", sec1_t: "Short vowel: two consonants (katt). Long vowel: one (tak).",
+    x1: "It is hot and the ice-cream van is here.", x2: "Grandma's new pet purrs on the sofa.", x3: "It is pouring, but inside it is dry.", x4: "In June the whole class was on stage.",
+    q1: "Which word fits? Jag vill ha en ... med jordgubbssmak.", q1k: "Choose one", q1a: "glas", q1b: "glass",
+    q2: "An animal that says miaow: en k _ _ _.", q3: "It keeps the rain off the house: ett t _ _.", q4: "ng or nk? Vi sjö _ _ en sång.",
+    a2: "katt", a3: "tak", a3w: "takk", a4: "sjöng",
+    f1: "B: GLASS – SHORT A, TWO S", f2: "KATT – SHORT A, TWO T", f3: "TAK – LONG A, ONE K", f4: "SJÖNG – NG SOUND",
+    ok: "Right", bad: "Wrong", c3: "Long a: only one k, tak.",
+    toc: "Contents", toc1: "Double letters", toc2: "The ng and j sounds", toc3: "Correct the text", res: "Results",
+    mode_test: "TEST", cover_sub: "Swedish · Spelling · 4 questions", how: "Write your answers in the boxes. Tick the box of the choice you pick.",
+    back: "<< Contents", next: "Next >>", page: "page",
+    rs_big: "4 of 4 points", rs_pct: "100 %", ans: "Answer",
+    new_wb: "New workbook", f_skola: "School", f_mom: "Topic", f_grade: "Year", f_facit: "Answers",
+    v_skola: "Swedish: Spelling", v_mom: "Mix all topics", v_grade: "3", v_facit: "Test: answers after marking",
+    b_create: "Create workbook", writing: "Claude is writing the test…", sent: "Sent to", run: "Run next round",
+    card_meta: "Test · 4 of 4 questions answered", card_done: "r02 · 4 of 4 p", head: "SCHOOL · SWEDISH · SPELLING",
+    layers: "Layers", layer1: "Layer 1",
+    mini1: ["Fractions, year 5", "Simplify as far as you can: 6/8 =", "3/4"],
+    mini2: ["Grammar, year 4", "Past tense: Hon springer hem.", "sprang"],
+    mini3: ["Vocabulary, year 5", "Write the number in words: 14", "fourteen"], mini3k: "en",
+    synced: "synced",
+  },
+};
+const T = TX[LANG];
+
+/* ---------- helpers ---------- */
+const NS = "http://www.w3.org/2000/svg";
+function h(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; }
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = x => (x < 0.5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2);
+const out3 = x => 1 - (1 - x) ** 3;
+const back = x => { const c = 1.7; return 1 + (c + 1) * (x - 1) ** 3 + c * (x - 1) ** 2; };
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const ramp = (t, a, b) => ease(prog(t, a, b));
+const pop = (t, a, d = 0.45) => back(prog(t, a, a + d));
+const lerp = (a, b, p) => a + (b - a) * p;
+const win = (t, a, b, f = 0.4) => Math.min(ramp(t, a, a + f), 1 - ramp(t, b - f, b));
+const reveal = (el, p) => (el.style.clipPath = `inset(-20% ${(1 - p) * 110 - 10}% -30% -5%)`);
+
+/* Background: slow drifting ruled paper lines */
+const bg = document.getElementById("bg");
+bg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+for (let i = 0; i < 6; i++) {
+  const c = document.createElementNS(NS, "circle");
+  c.setAttribute("r", 220 + i * 60); c.setAttribute("fill", ["#2b5fd9", "#d9622b", "#7a3fd1"][i % 3]); c.setAttribute("opacity", ".045");
+  bg.appendChild(c); c._i = i;
+}
+function bgAt(t) {
+  [...bg.children].forEach(c => {
+    const i = c._i;
+    c.setAttribute("cx", W * (0.15 + 0.7 * ((i * 0.37 + t * 0.006 * (i % 2 ? 1 : -1)) % 1 + 1) % 1));
+    c.setAttribute("cy", H * (0.2 + 0.6 * (0.5 + 0.5 * Math.sin(t * 0.12 + i * 1.7))));
+  });
+}
+
+/* Devices. A tablet's page is 600x800 design px scaled to the screen. */
+const TAB_AR = 600 / 800;
+function tablet(parent, screenW, bar) {
+  const s = screenW / 600;
+  const d = h(`<div class="dev"><div class="tablet"><div class="screen"><div class="bar"><span class="doc"></span><span class="sync"></span></div><div class="viewport"></div></div></div><div class="lbl"></div></div>`);
+  d.querySelector(".screen").style.width = screenW + "px";
+  const vp = d.querySelector(".viewport");
+  vp.style.height = 800 * s + "px";
+  d.querySelector(".doc").textContent = bar;
+  parent.appendChild(d);
+  const pages = [];
+  const add = html => { const p = h(`<div class="page">${html}</div>`); p.style.transform = `scale(${s})`; vp.appendChild(p); pages.push(p); return p; };
+  return { d, vp, s, add, pages, doc: d.querySelector(".doc"), sync: d.querySelector(".sync"), lbl: d.querySelector(".lbl"),
+    w: screenW + 30, h: 800 * s + 30 + 38 };
+}
+function phone(parent, screenW) {
+  const s = screenW / 360;
+  const d = h(`<div class="dev"><div class="phone"><div class="pscreen"><div class="app"></div></div></div></div>`);
+  const ps = d.querySelector(".pscreen");
+  ps.style.width = screenW + "px"; ps.style.height = 740 * s + "px";
+  const app = d.querySelector(".app"); app.style.transform = `scale(${s})`;
+  parent.appendChild(d);
+  return { d, app, s, w: screenW + 22, h: 740 * s + 29 };
+}
+// Place a device's box (w,h) at stage-relative x,y.
+const at = (dev, x, y) => Object.assign(dev.d.style, { left: x + "px", top: y + "px" });
+function tapAt(layer, x, y) { const t = h(`<div class="tap"></div>`); Object.assign(t.style, { left: x + "px", top: y + "px" }); layer.appendChild(t); return t; }
+function tapAnim(el, t, a) {
+  const p = prog(t, a, a + 0.55);
+  el.style.opacity = p > 0 && p < 1 ? 1 - p : 0;
+  el.style.transform = `scale(${0.4 + p * 1.4})`;
+}
+// Center of element `e` inside `root` in root px (after transforms).
+function centerIn(e, root) {
+  const a = e.getBoundingClientRect(), b = root.getBoundingClientRect();
+  return [a.left - b.left + a.width / 2, a.top - b.top + a.height / 2];
+}
+
+/* Figures drawn like a workbook illustration: plain ink, grey fills. */
+const ART = {
+  glass: `<path class="g" d="M38 46 L52 88 L66 46 Z"/><path d="M42 58 L60 52 M45 68 L58 63 M48 78 L55 75"/><circle class="g" cx="44" cy="36" r="12"/><circle cx="60" cy="34" r="12"/><circle class="g" cx="52" cy="20" r="11"/><path d="M50 9 Q54 4 58 7"/>`,
+  katt: `<ellipse class="g" cx="50" cy="66" rx="24" ry="20"/><circle cx="50" cy="34" r="15"/><path d="M38 26 L36 12 L46 21 M62 26 L64 12 L54 21"/><circle class="d" cx="44" cy="33" r="2"/><circle class="d" cx="56" cy="33" r="2"/><path d="M47 40 Q50 43 53 40 M30 37 L42 38 M30 42 L42 41 M70 37 L58 38 M70 42 L58 41"/><path d="M74 72 Q96 66 88 46"/>`,
+  tak: `<path class="g" d="M18 46 L52 18 L86 46 Z"/><rect x="26" y="46" width="52" height="40"/><rect x="45" y="62" width="14" height="24"/><path d="M14 8 L10 16 M30 4 L26 12 M74 4 L70 12 M90 10 L86 18 M58 2 L54 10"/>`,
+  sang: `<path d="M8 30 H96 M8 42 H96 M8 54 H96 M8 66 H96 M8 78 H96" style="stroke-width:1.2;stroke:#9c998f"/><ellipse class="d" cx="34" cy="72" rx="8" ry="6" transform="rotate(-20 34 72)"/><path d="M41 70 V30"/><ellipse class="d" cx="66" cy="60" rx="8" ry="6" transform="rotate(-20 66 60)"/><path d="M73 58 V20 Q82 26 86 36"/>`,
+  bullar: `<rect class="g" x="2" y="10" width="128" height="104" rx="6"/>` + [0, 1, 2, 3].map(r => [0, 1, 2, 3].map(c => `<circle cx="${22 + c * 29}" cy="${30 + r * 24}" r="10" style="fill:#fbfaf6"/><path d="M${17 + c * 29} ${29 + r * 24} q5 -5 10 0"/>`).join("")).join("") + `<text x="66" y="134" text-anchor="middle">${LANG === "sv" ? "16 st" : "16 buns"}</text>`,
+  brak: `<circle class="g" cx="60" cy="60" r="50"/>` + [0, 1, 2, 3, 4, 5, 6, 7].map(i => { const a1 = (i * 45 - 90) * Math.PI / 180, a2 = ((i + 1) * 45 - 90) * Math.PI / 180;
+    return `<path d="M60 60 L${60 + 50 * Math.cos(a1)} ${60 + 50 * Math.sin(a1)} A50 50 0 0 1 ${60 + 50 * Math.cos(a2)} ${60 + 50 * Math.sin(a2)} Z" style="fill:${i < 6 ? "#8d8a80" : "#fbfaf6"}"/>`; }).join(""),
+  spring: `<circle cx="64" cy="18" r="10"/><path d="M60 30 L50 62 M56 40 L76 50 M56 40 L36 46 M50 62 L70 80 L74 98 M50 62 L34 82 L18 84"/><path d="M8 40 H24 M4 54 H20 M10 68 H26" style="stroke:#9c998f"/>`,
+  kvadrat: `<rect class="g" x="20" y="10" width="80" height="80"/><text x="48" y="108">5 cm</text><text x="104" y="56">5 cm</text>`,
+};
+const art = (k, vb = "0 0 104 92") => `<svg class="art" viewBox="${vb}">${ART[k]}</svg>`;
+
+/* Workbook pages */
+const subjColor = { math: "var(--math)", sv: "var(--sv)", en: "var(--en)" };
+function coverHTML() {
+  return `<div class="cv-strip" style="background:var(--sv)"></div>
+    <div class="cv-title">${T.wb}</div><div class="cv-sub">${T.cover_sub}</div><div class="cv-mode">${T.mode_test}</div>
+    <div class="toc"><div><span>1 · ${T.toc1}</span><span>2</span></div><div><span>2 · ${T.toc2}</span><span>3</span></div>
+    <div><span>3 · ${T.toc3}</span><span>4</span></div><div class="toc-res" style="opacity:0"><span>${T.res}</span><span>5</span></div></div>
+    <div class="cv-how">${T.how}</div>`;
+}
+function qBox(n, prompt, kind, ctx = "", fig = "") {
+  const body = kind === "choice"
+    ? `<div class="choice"><div class="sq"></div>A&nbsp; ${T.q1a}</div>
+       <div class="choice"><div class="sq"><svg viewBox="0 0 34 34"><path pathLength="1" d="M6 7 C 13 14, 20 21, 28 28"/><path pathLength="1" d="M28 6 C 21 13, 14 21, 7 29"/></svg></div>B&nbsp; ${T.q1b}</div>`
+    : `<div class="lines"><span class="hand"></span><span class="typed"></span></div>`;
+  return `<div class="q${fig ? " fig" : ""}" data-n="${n}">${fig ? art(fig) : ""}${ctx ? `<div class="ctx">${ctx}</div>` : ""}<div class="pr"><b>${n}.</b> ${prompt}${kind === "choice" ? ` <i style="color:#8a887f">(${T.q1k})</i>` : ""}</div>${body}
+    <div class="verdict"></div><div class="comment"></div></div>
+    <div class="facit"><span class="lab">Facit</span><span class="ink"></span></div>`;
+}
+function questionsHTML() {
+  return `<div class="pg-head"><span>${T.wb}</span><span>2</span></div>
+    <div class="pg-sec">${T.sec1}</div><div class="pg-text">${T.sec1_t}</div>
+    ${qBox(1, T.q1, "choice", T.x1, "glass")}${qBox(2, T.q2, "", T.x2, "katt")}${qBox(3, T.q3, "", T.x3, "tak")}${qBox(4, T.q4, "", T.x4, "sang")}
+    <div class="pg-foot"><span>${T.back}</span><span>${T.next}</span></div>`;
+}
+// Fill the boxes of a question page; returns handles per question.
+function wire(page, wrong = false) {
+  const qs = [...page.querySelectorAll(".q")].map(q => ({
+    q, hand: q.querySelector(".hand"), typed: q.querySelector(".typed"), verdict: q.querySelector(".verdict"),
+    comment: q.querySelector(".comment"), cross: [...q.querySelectorAll("path")],
+  }));
+  const fac = [...page.querySelectorAll(".facit .ink")];
+  [T.f1, T.f2, T.f3, T.f4].forEach((x, i) => (fac[i].textContent = x));
+  [null, T.a2, wrong ? T.a3w : T.a3, T.a4].forEach((a, i) => { if (a) { qs[i].hand.textContent = a; qs[i].typed.textContent = a; } });
+  const verdicts = ["ok", "ok", wrong ? "bad" : "ok", "ok"];
+  qs.forEach((x, i) => { x.verdict.textContent = T[verdicts[i]]; x.verdict.classList.add(verdicts[i]); });
+  if (wrong) qs[2].comment.textContent = T.c3;
+  return { qs, fac };
+}
+function writeAt(w, t, a) {  // handwriting: cross at a, words after
+  w.qs[0].cross.forEach((p, i) => (p.style.strokeDashoffset = 1 - ramp(t, a + i * 0.35, a + 0.35 + i * 0.35)));
+  for (let i = 1; i < 4; i++) reveal(w.qs[i].hand, ramp(t, a + 0.8 + (i - 1) * 1.25, a + 1.8 + (i - 1) * 1.25));
+}
+function written(w) { writeAt(w, 1e3, 0); }
+// Camera on a whole tablet: grow it by Z and pan so page point fy sits mid-stage.
+function devCam(tb, Z, fy) {
+  const y0 = parseFloat(tb.d.style.top), stageH = tb.d.parentNode.offsetHeight;
+  const yd = 16 + 30 + fy * tb.s;
+  const free = stageH / 2 - y0 - yd * Z, lo = stageH - (y0 + tb.h * Z) - 10, hi = -y0 + 10;
+  const ty = lo <= hi ? clamp(free, lo, hi) : (lo + hi) / 2;
+  tb.d.style.transformOrigin = "50% 0";
+  tb.d.style.transform = `translateY(${ty}px) scale(${Z})`;
+  tb.z = Z;
+}
+// A stage that runs the full height, fading out at the edges, for the zoomed tablet.
+function tallStage(s) {
+  const top = LAND ? 0 : L.stage[1] - 40;
+  place(s.stage, [L.stage[0], top, L.stage[2], L.rail[1] - 6 - top]);
+  s.stage.style.overflow = "hidden";
+  s.stage.style.webkitMaskImage = s.stage.style.maskImage = "linear-gradient(to bottom, transparent 0, #000 50px, #000 calc(100% - 70px), transparent 100%)";
+}
+// Centre y of question i on its page, and a smooth path through a list of [time, y].
+const qy = (w, i) => w.qs[i].q.offsetTop + w.qs[i].q.offsetHeight / 2 + 12;
+function path(t, keys) {
+  if (t <= keys[0][0]) return keys[0][1];
+  for (let i = 1; i < keys.length; i++) if (t < keys[i][0]) return lerp(keys[i - 1][1], keys[i][1], ease(prog(t, keys[i - 1][0], keys[i][0])));
+  return keys[keys.length - 1][1];
+}
+function gradeAt(w, t, a, times = [0.9, 1.35, 1.8, 2.25], comment = 2.6) {  // handwriting becomes text, verdicts pop
+  for (let i = 1; i < 4; i++) {
+    const p = ramp(t, a + times[i] - 0.7, a + times[i] - 0.2);
+    w.qs[i].hand.style.opacity = 1 - p; w.qs[i].typed.style.opacity = p;
+  }
+  w.qs.forEach((x, i) => {
+    const p = pop(t, a + times[i]);
+    x.verdict.style.opacity = clamp(p * 2); x.verdict.style.transform = `scale(${lerp(0.4, 1, p)})`;
+  });
+  const c = ramp(t, a + comment, a + comment + 0.5);
+  w.qs[2].comment.style.opacity = c; w.qs[2].comment.style.height = 18 * c + "px";
+}
+function resultsHTML() {
+  const rows = [[T.q1, "B", "ok", 1], [T.q2, T.a2, "ok", 1], [T.q3, T.a3, "ok", 1], [T.q4, T.a4, "ok", 1]];
+  return `<div class="pg-head"><span>${T.wb}</span><span>5</span></div><div class="pg-sec" style="font-size:32px">${T.res}</div>
+    <div class="rs-score"><svg class="ring" viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" stroke="#e6e3da"/>
+      <circle class="arc" cx="60" cy="60" r="50" stroke="var(--ok)" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 60 60)"/>
+      <text x="60" y="69" text-anchor="middle" font-size="26" font-weight="800" class="pct">0 %</text></svg>
+      <div><div class="rs-big">${T.rs_big}</div><div class="rs-pct">${LANG === "sv" ? "Prov · rättat av rmink" : "Test · marked by rmink"}</div></div></div>
+    <div style="margin-top:22px">${rows.map(([q, a, v, p], i) => `<div class="rs-row"><span class="n">${i + 1}.</span>
+      <span class="t">${q}<small>${T.ans}: ${a} · <b style="color:${v === "ok" ? "var(--ok)" : "var(--bad)"}">${T[v]}</b>${v === "bad" ? ` – ${T.c3}` : ""}</small></span>
+      <span class="p" style="color:${v === "ok" ? "var(--ok)" : "var(--bad)"}">${p}/1 p</span></div>`).join("")}</div>
+    <div class="pg-foot"><span>${T.back}</span><span></span></div>`;
+}
+
+/* ---------- scenes ---------- */
+const scenes = [];
+function scene(start, len, chapter, build) {
+  const root = h(`<div class="scene"><div class="cap"></div><div class="stage"></div></div>`);
+  document.body.appendChild(root);
+  const cap = root.querySelector(".cap"), stage = root.querySelector(".stage");
+  place(cap, L.cap); place(stage, L.stage);
+  const s = { start, end: start + len, chapter, root, cap, stage, beats: [] };
+  s.update = build(s) || (() => {});
+  scenes.push(s);
+  return s.end;
+}
+function beat(s, at, html) { const b = h(`<div class="beat">${html}</div>`); s.cap.appendChild(b); s.beats.push({ at, el: b }); return b; }
+function beats(s, lt) {
+  s.beats.forEach((b, i) => {
+    const next = s.beats[i + 1] ? s.beats[i + 1].at : 1e9;
+    const p = i === 0 ? 1 - ramp(lt, next - 0.4, next) : win(lt, b.at, next, 0.4);
+    const inP = i === 0 ? out3(prog(lt, 0.05, 0.75)) : 1;
+    b.el.style.opacity = p * inP;
+    b.el.style.transform = `translateY(${(1 - inP) * 28}px)`;
+  });
+}
+const cap = (chapter, title, body, extra = "") =>
+  `${chapter ? `<div class="chapter">${chapter}</div>` : ""}<div class="title">${title.replace(/\n/g, "<br>")}</div>${body ? `<div class="body">${body}</div>` : ""}${extra}`;
+const chap = i => `${i + 1} · ${T.ch[i]}`;
+const [SX, SY, SW, SH] = L.stage;
+// Largest tablet screen width that fits a stage height.
+const tabW = (hAvail) => (hAvail - 30 - 38 - 38) * TAB_AR;
+
+function build() {
+  let t = 0;
+
+  // Intro: the cover slides in with a tilt.
+  t = scene(t, 4.5, -1, s => {
+    beat(s, 0, cap("", T.intro_t, T.intro_b));
+    const sw = Math.min(tabW(SH), SW * 0.62);
+    const tb = tablet(s.stage, sw, `${T.wb} r01`);
+    tb.add(coverHTML());
+    at(tb, (SW - tb.w) / 2, (SH - tb.h) / 2);
+    s.stage.style.perspective = "1800px";
+    return lt => {
+      beats(s, lt);
+      const p = out3(prog(lt, 0.1, 1.6));
+      tb.d.style.transform = `translateY(${(1 - p) * 120}px) rotateX(${(1 - p) * 18}deg) rotateZ(${(1 - p) * -4}deg) scale(${lerp(0.9, 1, p)})`;
+      tb.d.style.opacity = p;
+    };
+  });
+
+  // Subjects: three mini tablets fan in, then the groups and grades.
+  t = scene(t, 8.5, 0, s => {
+    beat(s, 0, cap(chap(0), T.subj_t, T.subj_b));
+    const minis = [["math", T.mini1], ["sv", T.mini2], [T.mini3k, T.mini3]];
+    const mw = Math.min((SW - 80) / 3 - 30, tabW(SH * 0.56));
+    const figs = ["brak", "spring", T.mini3k === "math" ? "kvadrat" : "glass"];
+    const devs = minis.map(([k, [title, q, a]], i) => {
+      const fig = figs[i];
+      const tb = tablet(s.stage, mw, title);
+      tb.d.classList.add("mini");
+      tb.add(`<div class="cv-strip" style="background:${subjColor[k]}"></div><div class="cv-title" style="font-size:40px;margin-top:40px">${title}</div>
+        <div class="cv-sub" style="font-size:20px;color:${subjColor[k]};font-weight:700">${T[k]}</div>
+        <div class="q" style="margin-top:60px"><div class="pr" style="font-size:22px;padding-right:0"><b>1.</b> ${q}</div>
+        <div class="lines" style="height:110px;background:repeating-linear-gradient(to bottom,transparent 0 53px,#cfccc3 53px 54px)"><span class="hand" style="font-size:60px">${a}</span></div></div>
+        ${art(fig, i === 0 ? "0 0 120 120" : "0 0 120 112").replace('class="art"', 'class="art" style="position:static;display:block;margin:40px auto 0;width:260px;height:240px"')}`);
+      return tb;
+    });
+    const gap = (SW - devs.length * devs[0].w) / (devs.length + 1);
+    devs.forEach((d, i) => at(d, gap + i * (d.w + gap), 0));
+    const chips = h(`<div class="chips"></div>`);
+    const rows = [["math", T.g_math], ["sv", T.g_sv], ["en", T.g_en]];
+    rows.forEach(([k, gs]) => {
+      const r = h(`<div class="chiprow"><span class="subj" style="color:${subjColor[k]}">${T[k]}</span></div>`);
+      gs.forEach(g => r.appendChild(h(`<span class="chip" style="border-color:${subjColor[k]}">${g}</span>`)));
+      chips.appendChild(r);
+    });
+    const gr = h(`<div class="chiprow"><span class="subj">${T.grade}</span><div class="grades">${[1,2,3,4,5,6,7,8,9].map(n => `<span>${n}</span>`).join("")}</div></div>`);
+    chips.appendChild(gr);
+    s.stage.appendChild(chips);
+    Object.assign(chips.style, { left: gap + "px", top: devs[0].h + 40 + "px", width: SW - 2 * gap + "px" });
+    const allChips = [...chips.querySelectorAll(".chip")], grades = [...chips.querySelectorAll(".grades span")];
+    const hands = devs.map(d => d.vp.querySelector(".hand"));
+    return lt => {
+      beats(s, lt);
+      devs.forEach((d, i) => {
+        const p = pop(lt, 0.2 + i * 0.3, 0.8);
+        const rot = (i - 1) * 6 * (1 - p);
+        d.d.style.transform = `translateY(${(1 - p) * 200}px) rotate(${rot}deg) scale(${lerp(0.7, 1, p)})`;
+        d.d.style.opacity = clamp(p * 1.5);
+        // a gentle float once in place
+        if (p >= 1) d.d.style.transform = `translateY(${Math.sin(lt * 1.3 + i) * 5}px)`;
+        reveal(hands[i], ramp(lt, 1.6 + i * 0.5, 2.6 + i * 0.5));
+      });
+      allChips.forEach((c, i) => { const p = pop(lt, 3.6 + i * 0.16); c.style.opacity = clamp(p * 2); c.style.transform = `scale(${lerp(0.5, 1, p)})`; });
+      grades.forEach((g, i) => { const p = pop(lt, 5.4 + i * 0.09); g.style.opacity = clamp(p * 2); g.style.transform = `scale(${lerp(0.3, 1, p)})`;
+        g.style.borderColor = lt > 5.4 + i * 0.09 ? "var(--accent)" : ""; });
+    };
+  });
+
+  // A word problem: everyday maths, the working written by hand, marked right.
+  t = scene(t, 6.5, 0, s => {
+    beat(s, 0, cap(chap(0), T.wp_t, T.wp_b));
+    tallStage(s);
+    const tw = Math.min(tabW(SH), SW * 0.72);
+    const tb = tablet(s.stage, tw, `${T.wp_wb} r01 · ${T.page} 3`);
+    const pg = tb.add(`<div class="cv-strip" style="background:var(--math)"></div>
+      <div class="pg-head" style="margin-top:12px"><span>${T.wp_wb}</span><span>3</span></div>
+      <div class="pg-sec">${T.wp_sec}</div><div class="pg-text">${T.wp_how}</div>
+      <div class="q wp"><div class="pr" style="font-size:18.5px;line-height:1.38;padding-right:140px"><b>5.</b> ${T.wp_q}</div>
+        <div class="lines" style="height:176px;background:repeating-linear-gradient(to bottom,transparent 0 43px,#cfccc3 43px 44px)">
+          ${T.wp_a.map((a, i) => `<span class="hand" style="top:${i * 44 - 2}px;font-size:40px">${a}</span>`).join("")}</div>
+        <div class="verdict ok">${T.ok}</div>${art("bullar", "0 0 132 140").replace('class="art"', 'class="art" style="width:124px;height:132px;top:40px;right:14px"')}</div>
+      <div class="q" style="opacity:.55"><div class="pr" style="font-size:16.5px"><b>6.</b> ${T.wp_next}</div><div class="lines" style="height:96px"></div></div>
+      <div class="pg-foot"><span>${T.back}</span><span>${T.next}</span></div>`);
+    at(tb, (SW - tb.w) / 2, (s.stage.offsetHeight - tb.h) / 2);
+    const ZMAX = Math.min(1.6, (SW - 40) / tb.w);
+    const q = pg.querySelector(".q.wp"), hands = [...q.querySelectorAll(".hand")], verdict = q.querySelector(".verdict");
+    const pen = h(`<svg class="pen" viewBox="0 0 60 60"><path d="M8 52 L14 36 L44 6 L54 16 L24 46 Z" fill="#2a2a28"/><path d="M8 52 L14 36 L24 46 Z" fill="#c9c5b9"/></svg>`);
+    tb.vp.appendChild(pen);
+    const A = [1.0, 1.9, 2.8, 3.8];
+    return lt => {
+      beats(s, lt);
+      tb.d.style.opacity = out3(prog(lt, 0, 0.6));
+      const fy = q.offsetTop + 60 + 120 * ramp(lt, 1.0, 3.8);
+      devCam(tb, 1 + (ZMAX - 1) * ramp(lt, 0.2, 0.9), fy);
+      hands.forEach((e, i) => reveal(e, ramp(lt, A[i], A[i] + 0.8)));
+      const i = A.findIndex(a => lt >= a && lt <= a + 0.85);
+      if (i >= 0) {
+        const r = hands[i].getBoundingClientRect(), v = tb.vp.getBoundingClientRect(), k = tb.z || 1, p = prog(lt, A[i], A[i] + 0.8);
+        pen.style.left = (r.left - v.left + r.width * Math.min(p, 0.95)) / k - 6 + "px"; pen.style.top = (r.top - v.top + r.height * 0.6) / k - 52 + "px";
+        pen.style.opacity = 1;
+      } else pen.style.opacity = 0;
+      const vp = pop(lt, 4.9);
+      verdict.style.opacity = clamp(vp * 2); verdict.style.transform = `scale(${lerp(0.4, 1, vp)})`;
+    };
+  });
+
+  // Create: the form on the phone, then the test flies to the tablet.
+  t = scene(t, 7.5, 1, s => {
+    beat(s, 0, cap(chap(1), T.create_t, T.create_b));
+    const tw = Math.min(tabW(SH), SW * 0.5);
+    const tb = tablet(s.stage, tw, "Skola / Svenska / Stavning");
+    const folder = tb.add(`<div class="pg-head"><span>reMarkable</span><span></span></div><div class="pg-sec" style="font-size:30px">Stavning</div>
+      <div class="pg-text">rmink / Skola / Svenska / Stavning</div>
+      <div class="fl" style="margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:26px">
+        <div class="item" style="opacity:0"><div style="aspect-ratio:3/4;background:#fff;border:1.5px solid #c9c5b9;border-radius:4px;border-top:8px solid var(--sv);padding:14px;font-weight:800;font-size:20px">${T.wb}</div>
+        <div style="font-size:15px;margin-top:8px">${T.wb} r01</div></div></div>`);
+    tb.add(coverHTML());
+    const ph = phone(s.stage, Math.min(tw * 0.66, (SH - 30) * 360 / 740 - 10));
+    ph.app.innerHTML = `<div class="a-top"><b>rmink</b><span>/rounds</span></div>
+      <div class="card"><h4>${T.new_wb}</h4>
+        <div class="field"><label>${T.f_skola}</label><div class="sel" data-v="${T.v_skola}">–</div></div>
+        <div class="field"><label>${T.f_mom}</label><div class="sel" data-v="${T.v_mom}">–</div></div>
+        <div class="field"><label>${T.f_grade}</label><div class="sel" data-v="${T.v_grade}">–</div></div>
+        <div class="field"><label>${T.f_facit}</label><div class="sel" data-v="${T.v_facit}">–</div></div>
+        <div class="btn">${T.b_create}</div><div class="status"></div></div>`;
+    const totalW = ph.w + 50 + tb.w;
+    const x0 = (SW - totalW) / 2;
+    at(ph, x0, (SH - ph.h) / 2); at(tb, x0 + ph.w + 50, (SH - tb.h) / 2);
+    const sels = [...ph.app.querySelectorAll(".sel")], btn = ph.app.querySelector(".btn"), status = ph.app.querySelector(".status");
+    const tap = tapAt(ph.app, 0, 0); tap.style.width = tap.style.height = "40px";
+    const fly = h(`<div style="position:absolute;width:70px;height:90px;background:#fff;border-radius:6px;box-shadow:0 10px 30px rgb(0 0 0 / .25);border-top:8px solid var(--sv);opacity:0"></div>`);
+    s.stage.appendChild(fly);
+    const T0 = [0.9, 1.6, 2.3, 3.0], TB = 3.8, TS = 5.4;
+    return lt => {
+      beats(s, lt);
+      const pin = out3(prog(lt, 0, 0.8));
+      ph.d.style.transform = `translateX(${(1 - pin) * -80}px)`; ph.d.style.opacity = pin;
+      tb.d.style.opacity = out3(prog(lt, 0.3, 1.1));
+      const it = folder.querySelector(".item"), ip = pop(tb ? lt : 0, TS + 0.8, 0.5);
+      it.style.opacity = clamp(ip * 2); it.style.transform = `scale(${lerp(0.6, 1, ip)})`;
+      tb.pages[1].style.opacity = ramp(tb ? lt : 0, TS + 1.6, TS + 2.0);
+      tb.doc.textContent = lt > TS + 1.6 ? `${T.wb} r01` : "Skola / Svenska / Stavning";
+      sels.forEach((e, i) => {
+        const on = lt >= T0[i] + 0.15;
+        e.classList.toggle("set", on); e.firstChild.textContent = on ? e.dataset.v : "–";
+      });
+      // the tap moves to the current target
+      let target = null, ta = 0;
+      T0.forEach((a, i) => { if (lt >= a - 0.1) { target = sels[i]; ta = a; } });
+      if (lt >= TB - 0.1) { target = btn; ta = TB; }
+      if (target) {
+        const r = target.offsetTop + target.offsetHeight / 2 + target.offsetParent.offsetTop, c = target.offsetLeft + target.offsetWidth / 2 + target.offsetParent.offsetLeft;
+        tap.style.left = (target === btn ? c : c + 60) - 20 + "px"; tap.style.top = r - 20 + "px"; tapAnim(tap, lt, ta);
+      }
+      btn.style.transform = `scale(${lt > TB && lt < TB + 0.25 ? 0.96 : 1})`;
+      status.innerHTML = lt < TB + 0.1 ? "" : lt < TS ? `<span class="spin" style="transform:rotate(${lt * 400}deg)"></span>${T.writing}`
+        : `<b>✓</b> ${T.sent}<br><span style="font-family:SF Mono,Menlo,monospace;font-size:11.5px">rmink/Skola/${LANG === "sv" ? "Svenska/Stavning" : "Svenska/Stavning"}/</span>`;
+      // the document flies from phone to tablet
+      const fp = ramp(lt, TS, TS + 0.9);
+      const ax = x0 + ph.w / 2 - 35, ay = (SH - ph.h) / 2 + ph.h * 0.55, bx = x0 + ph.w + 50 + tb.w / 2 - 35, by = (SH - 90) / 2;
+      fly.style.opacity = fp > 0 && fp < 1 ? 1 : 0;
+      fly.style.left = lerp(ax, bx, fp) + "px"; fly.style.top = lerp(ay, by, fp) - Math.sin(fp * Math.PI) * 140 + "px";
+      fly.style.transform = `rotate(${fp * 14 - 7}deg) scale(${1 - fp * 0.2})`;
+    };
+  });
+
+  // Write: zoomed on the question page, handwriting appears.
+  t = scene(t, 7.5, 2, s => {
+    beat(s, 0, cap(chap(2), T.write_t, T.write_b));
+    const tw = Math.min(tabW(SH), SW * 0.72);
+    tallStage(s);
+    const tb = tablet(s.stage, tw, `${T.wb} r01 · ${T.page} 2`);
+    const pg = tb.add(questionsHTML());
+    const w = wire(pg);
+    at(tb, (SW - tb.w) / 2, (s.stage.offsetHeight - tb.h) / 2);
+    const ZMAX = Math.min(1.6, (SW - 40) / tb.w);
+    const pen = h(`<svg class="pen" viewBox="0 0 60 60"><path d="M8 52 L14 36 L44 6 L54 16 L24 46 Z" fill="#2a2a28"/><path d="M8 52 L14 36 L24 46 Z" fill="#c9c5b9"/></svg>`);
+    tb.vp.appendChild(pen);
+    const A = 1.0;
+    return lt => {
+      beats(s, lt);
+      const pin = out3(prog(lt, 0, 0.8));
+      tb.d.style.opacity = pin;
+      const z = lerp(0.94, 1, pin) + (ZMAX - 1) * (ramp(lt, 0.5, 1.3) - ramp(lt, 6.5, 7.3));
+      devCam(tb, z, path(lt, [[A - 0.3, qy(w, 0)], [A + 0.6, qy(w, 0)], [A + 1.0, qy(w, 1)], [A + 2.2, qy(w, 2)], [A + 3.5, qy(w, 3)]]));
+      writeAt(w, lt, A);
+      // the pen follows the stroke being written
+      const spans = [[A, A + 0.7, w.qs[0].cross[1]], ...[1, 2, 3].map(i => [A + 0.8 + (i - 1) * 1.25, A + 1.8 + (i - 1) * 1.25, w.qs[i].hand])];
+      const cur = spans.find(([a, b]) => lt >= a && lt <= b + 0.25);
+      if (cur && lt < A + 5.2) {
+        const [a, b, e] = cur, p = prog(lt, a, b);
+        const r = e.getBoundingClientRect(), v = tb.vp.getBoundingClientRect();
+        const k = tb.z || 1;
+        pen.style.left = (r.left - v.left + r.width * Math.min(p, 0.95)) / k - 6 + "px"; pen.style.top = (r.top - v.top + r.height * 0.6) / k - 52 + "px";
+        pen.style.opacity = 1;
+      } else pen.style.opacity = 0;
+    };
+  });
+
+  // Hand in: tap Run next round, the steps tick through.
+  t = scene(t, 6.5, 3, s => {
+    const steps = [T.s1, T.s2, T.s3, T.s4];
+    beat(s, 0, cap(chap(3), T.send_t, T.send_b, `<div class="steps">${steps.map(x => `<div class="step"><span class="dot"></span>${x}</div>`).join("")}</div>`));
+    const tw = Math.min(tabW(SH), SW * 0.5);
+    const tb = tablet(s.stage, tw, `${T.wb} r01 · ${T.page} 2`);
+    const w = wire(tb.add(questionsHTML())); written(w);
+    const ph = phone(s.stage, Math.min(tw * 0.62, (SH - 30) * 360 / 740 - 10));
+    ph.app.innerHTML = `<div class="a-top"><b>rmink</b><span>/rounds</span></div>
+      <div class="group-head">${T.head}</div>
+      <div class="card"><div style="display:flex;justify-content:space-between"><b style="font-size:16px">${T.wb}<span class="kind">${LANG === "sv" ? "arbetsbok" : "workbook"}</span></b><span class="muted" style="margin:0">r01</span></div>
+        <p class="muted meta">${T.card_meta}</p><div class="btn">${T.run}</div><div class="status"></div></div>
+      <div class="card" style="opacity:.55"><b style="font-size:15px">${LANG === "sv" ? "Grammatik åk 4" : "Grammar, year 4"}</b><p class="muted">${LANG === "sv" ? "Övning · r03 · 6 av 7 p" : "Practice · r03 · 6 of 7 p"}</p></div>`;
+    const totalW = tb.w + 50 + ph.w, x0 = (SW - totalW) / 2;
+    at(tb, x0, (SH - tb.h) / 2); at(ph, x0 + tb.w + 50, (SH - ph.h) / 2);
+    const btn = ph.app.querySelector(".btn"), status = ph.app.querySelector(".status"), meta = ph.app.querySelector(".meta");
+    const tap = tapAt(ph.app, 0, 0);
+    const stepEls = [...s.cap.querySelectorAll(".step")];
+    const TT = 1.6, ST = [2.0, 2.9, 3.9, 5.0], DONE = 6.0;
+    return lt => {
+      beats(s, lt);
+      const pin = out3(prog(lt, 0, 0.8));
+      ph.d.style.opacity = pin; ph.d.style.transform = `translateX(${(1 - pin) * 80}px)`;
+      tb.sync.textContent = lt > 0.6 ? `☁ ${T.synced}` : "";
+      tb.sync.style.color = lt > 0.6 ? "var(--ok)" : "";
+      const c = btn.offsetParent;
+      tap.style.left = c.offsetLeft + btn.offsetLeft + btn.offsetWidth / 2 + "px"; tap.style.top = c.offsetTop + btn.offsetTop + btn.offsetHeight / 2 + "px";
+      tapAnim(tap, lt, TT);
+      btn.style.transform = `scale(${lt > TT && lt < TT + 0.25 ? 0.95 : 1})`;
+      stepEls.forEach((e, i) => { e.classList.toggle("on", lt >= ST[i]); e.classList.toggle("done", lt >= (ST[i + 1] || DONE)); });
+      const cur = ST.filter(a => lt >= a).length;
+      status.innerHTML = lt < TT + 0.2 ? "" : lt < DONE ? `<span class="spin" style="transform:rotate(${lt * 400}deg)"></span>${steps[Math.max(cur - 1, 0)]}…`
+        : `<b>✓</b> <span class="score">${T.card_done}</span>`;
+      // the tablet page pulses as it is read
+      const scan = prog(lt, ST[1], ST[2]);
+      tb.vp.style.boxShadow = scan > 0 && scan < 1 ? `inset 0 ${lerp(-10, 800 * tb.s, scan)}px 0 -${800 * tb.s - 40}px rgb(43 95 217 / .18)` : "";
+    };
+  });
+
+  // Marked: handwriting becomes text, verdicts pop.
+  t = scene(t, 6, 4, s => {
+    beat(s, 0, cap(chap(4), T.graded_t, T.graded_b));
+    const tw = Math.min(tabW(SH), SW * 0.72);
+    tallStage(s);
+    const tb = tablet(s.stage, tw, `${T.wb} r02 · 4 ${LANG === "sv" ? "av" : "of"} 4 p`);
+    const w = wire(tb.add(questionsHTML())); written(w);
+    at(tb, (SW - tb.w) / 2, (s.stage.offsetHeight - tb.h) / 2);
+    const ZMAX = Math.min(1.6, (SW - 40) / tb.w);
+    return lt => {
+      beats(s, lt);
+      const pin = out3(prog(lt, 0, 0.7));
+      tb.d.style.opacity = pin;
+      gradeAt(w, lt, 0, [1.2, 2.0, 2.8, 3.6]);
+      const z = 1 + (ZMAX - 1) * (ramp(lt, 0.3, 1.0) - ramp(lt, 4.7, 5.6));
+      devCam(tb, z, path(lt, [[0.6, qy(w, 0)], [1.4, qy(w, 0)], [1.8, qy(w, 1)], [2.6, qy(w, 2)], [3.4, qy(w, 3)]]));
+    };
+  });
+
+  // Results page with the ring filling.
+  t = scene(t, 5, 5, s => {
+    beat(s, 0, cap(chap(5), T.res_t, T.res_b));
+    const tw = Math.min(tabW(SH), SW * 0.72);
+    const tb = tablet(s.stage, tw, `${T.wb} r02 · ${T.page} 5`);
+    const pg = tb.add(resultsHTML());
+    at(tb, (SW - tb.w) / 2, (SH - tb.h) / 2);
+    const arc = pg.querySelector(".arc"), pct = pg.querySelector(".pct"), rows = [...pg.querySelectorAll(".rs-row")];
+    return lt => {
+      beats(s, lt);
+      const pin = out3(prog(lt, 0, 0.7));
+      tb.d.style.opacity = pin; tb.d.style.transform = `translateX(${(1 - pin) * 60}px)`;
+      const p = out3(prog(lt, 0.8, 2.4));
+      arc.setAttribute("stroke-dashoffset", 100 - 100 * p);
+      pct.textContent = Math.round(100 * p) + " %";
+      rows.forEach((r, i) => { const q = out3(prog(lt, 1.5 + i * 0.35, 2.1 + i * 0.35)); r.style.opacity = q; r.style.transform = `translateY(${(1 - q) * 18}px)`; });
+    };
+  });
+
+  // A wrong answer, later: Fel, a comment and the key.
+  t = scene(t, 6, 6, s => {
+    beat(s, 0, cap(chap(6), T.wrong_t, T.wrong_b));
+    tallStage(s);
+    const tw = Math.min(tabW(SH), SW * 0.72);
+    const tb = tablet(s.stage, tw, `${T.wb} r02 · ${T.page} 2`);
+    const w = wire(tb.add(questionsHTML()), true); written(w); gradeAt(w, 1e3, 0);
+    at(tb, (SW - tb.w) / 2, (s.stage.offsetHeight - tb.h) / 2);
+    const ZMAX = Math.min(1.6, (SW - 40) / tb.w);
+    const x = w.qs[2], f = w.fac[2];
+    return lt => {
+      beats(s, lt);
+      tb.d.style.opacity = out3(prog(lt, 0, 0.6));
+      devCam(tb, 1 + (ZMAX - 1) * (ramp(lt, 0.2, 1.0) - ramp(lt, 5.0, 5.8)), qy(w, 2) + 20);
+      // only the wrong box changes here; the rest is marked already
+      const p = ramp(lt, 1.1, 1.6);
+      x.hand.style.opacity = 1 - p; x.typed.style.opacity = p;
+      const v = pop(lt, 1.9);
+      x.verdict.style.opacity = clamp(v * 2); x.verdict.style.transform = `scale(${lerp(0.4, 1, v)})`;
+      const c = ramp(lt, 2.6, 3.1);
+      x.comment.style.opacity = c; x.comment.style.height = 18 * c + "px";
+      f.style.clipPath = `inset(-20% ${100 - ramp(lt, 3.4, 4.4) * 100}% -20% 0)`;
+      x.q.style.boxShadow = lt > 1.9 ? `0 0 0 ${3 * ramp(lt, 1.9, 2.2)}px rgb(211 53 44 / .35)` : "";
+    };
+  });
+
+  // Facit: open the layers panel, switch on the answers.
+  t = scene(t, 5.5, 7, s => {
+    beat(s, 0, cap(chap(7), T.facit_t, T.facit_b));
+    const tw = Math.min(tabW(SH), SW * 0.72);
+    const tb = tablet(s.stage, tw, `${T.wb} r02 · ${T.page} 2`);
+    const pg = tb.add(questionsHTML());
+    const w = wire(pg); written(w); gradeAt(w, 1e3, 0);
+    tallStage(s);
+    at(tb, (SW - tb.w) / 2, (s.stage.offsetHeight - tb.h) / 2);
+    const ZMAX = Math.min(1.6, (SW - 40) / tb.w);
+    const panel = h(`<div class="layers"><h5>${T.layers}</h5><div class="row"><span>${T.layer1}</span><span class="tog on"><i style="left:19px"></i></span></div>
+      <div class="row"><span>Facit</span><span class="tog f"><i></i></span></div></div>`);
+    pg.appendChild(panel);
+    const tog = panel.querySelector(".tog.f"), knob = tog.querySelector("i");
+    const tap = tapAt(pg, 0, 0);
+    const TT = 1.2;
+    return lt => {
+      beats(s, lt);
+      tb.d.style.opacity = out3(prog(lt, 0, 0.6));
+      const pp = out3(prog(lt, 0.5, 1.0)) * (1 - ramp(lt, TT + 0.3, TT + 0.6));
+      panel.style.opacity = pp; panel.style.transform = `translateY(${(1 - pp) * -14}px)`;
+      const on = ramp(lt, TT, TT + 0.25);
+      knob.style.left = 3 + 16 * on + "px"; tog.classList.toggle("on", on > 0.5);
+      tap.style.left = panel.offsetLeft + tog.offsetLeft + 19 + "px"; tap.style.top = panel.offsetTop + tog.offsetTop + 11 + "px";
+      tapAnim(tap, lt, TT);
+      w.fac.forEach((f, i) => { const p = ramp(lt, TT + 0.7 + i * 0.6, TT + 1.3 + i * 0.6); f.style.clipPath = `inset(-20% ${100 - p * 100}% -20% 0)`; });
+      const z = 1 + (ZMAX - 1) * (ramp(lt, TT + 0.4, TT + 1.0) - ramp(lt, 4.6, 5.4));
+      devCam(tb, z, path(lt, [[TT + 0.4, qy(w, 0) + 40], [TT + 1.1, qy(w, 0) + 40], [TT + 1.8, qy(w, 1) + 40], [TT + 2.4, qy(w, 2) + 40], [TT + 3.0, qy(w, 3) + 40]]));
+    };
+  });
+
+  // End card.
+  t = scene(t, 4, -2, s => {
+    s.cap.remove(); s.stage.remove();
+    const e = h(`<div class="end"><div class="subjects"><span style="background:var(--math)">${T.math}</span><span style="background:var(--sv)">${T.sv}</span><span style="background:var(--en)">${T.en}</span></div>
+      <div class="big">${T.end_t.replace(/\n/g, "<br>")}</div><div class="url">rmink.vercel.app/rounds</div><div class="small">${T.end_s}</div></div>`);
+    s.root.appendChild(e);
+    const parts = [...e.children];
+    return lt => parts.forEach((p, i) => { const q = out3(prog(lt, 0.15 + i * 0.25, 0.9 + i * 0.25)); p.style.opacity = q; p.style.transform = `translateY(${(1 - q) * 30}px)`; });
+  });
+  return t;
+}
+
+/* Chapter rail */
+const rail = document.getElementById("rail");
+place(rail, L.rail);
+T.ch.forEach(c => rail.appendChild(h(`<div>${c}</div>`)));
+
+const FADE = 0.5;
+function seek(t) {
+  bgAt(t);
+  let chapter = -1, railOp = 0;
+  for (const s of scenes) {
+    const a = ramp(t, s.start - FADE / 2, s.start + FADE / 2), b = 1 - ramp(t, s.end - FADE / 2, s.end + FADE / 2);
+    const o = s.start === 0 ? (t < s.end ? 1 : b) : Math.min(a, b);
+    s.root.style.opacity = o;
+    s.root.style.display = o > 0 ? "" : "none";
+    if (o > 0) s.update(t - s.start);
+    if (s.chapter >= 0) railOp = Math.max(railOp, o);
+    if (t >= s.start && t < s.end) chapter = s.chapter;
+  }
+  rail.style.opacity = railOp;
+  [...rail.children].forEach((d, i) => { d.classList.toggle("on", i === chapter); d.classList.toggle("done", chapter >= 0 && i < chapter); });
+}
+
+document.fonts.load('650 40px "Caveat"').then(() => {
+  window.DURATION = build();
+  window.seek = seek;
+  seek(+(Q.get("t") || 0));
+  window.ready = true;
+});
+</script>
+</body>
+</html>

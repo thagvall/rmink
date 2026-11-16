@@ -1,0 +1,19 @@
+{
+  "voice": "alma",
+  "videos": "rmink-bastu-sv-*.mp4",
+  "say": {"rmink": "är-em-ink", "Claude": "Klåd"},
+  "lines": [
+    [0.6, "Lördag på landet. Bastun ska stå vid skogsbrynet."],
+    [4.8, "Kim gör en snabbskiss med pennan. Väggar, dörrar, kamin och lave. Två mått räcker."],
+    [13.8, "Kim ber Claude rita rent. En mening räcker."],
+    [17.3, "Claude tolkar skissen. Rätar väggar och hörn, kollar måtten och skriver frågor."],
+    [23.3, "En ren ritning, och två frågor om det som saknas."],
+    [27.3, "Kim svarar med pennan. Ved, och tolv meter till tomtgränsen."],
+    [33.8, "Revision två är klar. Svaren är inritade."],
+    [38.4, "Två veckor senare kommer snickaren förbi."],
+    [42.3, "Snickaren hittar en detalj. Bastudörren ska öppna utåt. En ring och ett ord räcker."],
+    [49.3, "Nästa varv, mitt i mötet. Claude läser ringen och vänder dörren."],
+    [54.4, "Firman bygger efter revision tre."],
+    [57.6, "Skissa du. rmink ritar rent."]
+  ]
+}

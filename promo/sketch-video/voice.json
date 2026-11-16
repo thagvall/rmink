@@ -1,0 +1,29 @@
+{
+  "voice": "alma",
+  "videos": "rmink-sketch-sv-*.mp4",
+  "say": {"rmink": "är-em-ink", "Claude": "Klåd", "Paper": "Pejper"},
+  "lines": [
+    [0.3, "Från handskiss till ren ritning. En idé för rmink, och hur långt vi har kommit."],
+    [7.6, "Ritningar diskuteras i omgångar. Någon skissar för hand. Man pratar om en del i taget. Sedan ritas allt om, igen."],
+    [17.6, "Tänk tvärtom. Skissa på plattan och få tillbaka en ren ritning. Markera den, så kommer nästa revision."],
+    [27.6, "Skissen blir data. rmink läser varje streck och delar upp dem i grupper."],
+    [34.0, "Claude tolkar. Vad är vägg, mått eller pelare? Legenden i hörnet säger vad symbolerna betyder."],
+    [43.6, "Ren ritning, revision ett. Raka linjer och hörn, måttlinjer med pilar, symboler och legend. Som riktiga pennstreck på plattan."],
+    [55.6, "Med och utan färg. Paper Pro visar kategorierna i färg. Andra plattor använder linjetyp och tjocklek."],
+    [63.6, "Markera med pennan. Ring in pelaren, och kryssa över brunnen."],
+    [69.6, "Bara det nya läses. rmink känner igen sina egna streck."],
+    [75.0, "Revision två. Brunnen är borta, och frågan har blivit en anmärkning."],
+    [80.6, "Som koncept: två förslag sida vid sida. Bärlina längs eller tvärs?"],
+    [86.6, "Varianterna är data, så de går att räkna på."],
+    [91.0, "Välj med pennan. Kryss på A, bock på B."],
+    [96.6, "Zooma in på ett hörn. Ring in det och skriv detalj."],
+    [101.6, "En detaljsida i skala ett till fem, i riktiga mått."],
+    [107.0, "Fortsätt i detaljen. Skissa ett vinkelbeslag, så ritas det rent."],
+    [112.6, "Ingen platta med? Fota pappersskissen med mobilen."],
+    [117.6, "Fotot blir bläck. Bordet och papperskanten följer inte med."],
+    [123.0, "Ren ritning på plattan. Fotot tolkas som en skiss."],
+    [128.6, "Dela utan platta. Alla format ritas ur samma modell, så nästa revision följer med överallt. SVG finns i dag. PDF och DXF är nästa steg."],
+    [142.6, "Var står vi? Läsning, renritning, granskning och revisioner finns. Nästa steg är att testa på en riktig platta, med riktiga skisser från dig."],
+    [154.6, "Skissa du. Vi ritar rent."]
+  ]
+}

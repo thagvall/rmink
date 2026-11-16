@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<title>rmink: ritningen på bygget</title>
+<style>
+:root { --warm: #ffd089; --ops: #f0a03c; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { overflow: hidden; background: #191714; }
+body { position: relative; font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif; -webkit-font-smoothing: antialiased; }
+svg { position: absolute; inset: 0; }
+svg text { font-family: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif; }
+#cap { position: absolute; color: #fff; }
+.beat { position: absolute; left: 0; width: 100%; opacity: 0; will-change: transform; }
+.chapter { font: 600 var(--fs-chapter)/1 "SF Mono", Menlo, monospace; color: var(--warm); letter-spacing: .04em; margin-bottom: .55em; }
+.title { font-size: var(--fs-title); font-weight: 800; letter-spacing: -.028em; line-height: 1.02; white-space: pre-line; }
+.body { font-size: var(--fs-body); line-height: 1.3; color: #d9d4c9; margin-top: .6em; white-space: pre-line; }
+.body b { color: #fff; font-weight: 700; }
+#rail { position: absolute; display: flex; gap: 6px; justify-content: center; left: 50%; transform: translateX(-50%); padding: 6px 10px; border-radius: 999px; background: rgb(12 10 8 / .72); }
+#rail div { font: 600 var(--fs-rail) "SF Mono", Menlo, monospace; color: rgb(255 255 255 / .42); padding: .32em .7em; border-radius: 999px; white-space: nowrap; }
+#rail .done { color: rgb(255 255 255 / .82); }
+#rail .on { color: #17140f; background: var(--warm); }
+#tag { position: absolute; padding: .45em .8em; border-radius: 12px; background: rgb(12 10 8 / .78); color: #d9d4c9; font: 600 var(--fs-tag) "SF Mono", Menlo, monospace; opacity: 0; white-space: nowrap; transform: translateX(-50%); }
+#end { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 26px; background: #f4f2ec; color: #1d1d1b; opacity: 0; padding: 0 60px; }
+#end .big { font-size: calc(var(--fs-title) * 1.25); font-weight: 830; letter-spacing: -.035em; line-height: 1.04; }
+#end .big span { color: #2b5fd9; display: block; white-space: nowrap; }
+#end .url { font: 650 var(--fs-body) "SF Mono", Menlo, monospace; color: #2b5fd9; }
+#end .small { font-size: calc(var(--fs-body) * .82); color: #6b6a65; line-height: 1.4; }
+</style>
+</head>
+<body>
+<svg id="s" xmlns="http://www.w3.org/2000/svg"></svg>
+<div id="cap"></div>
+<div id="tag"></div>
+<div id="rail"></div>
+<div id="end"><div class="big">Rita på plattan.<span>Mät i Open PDF Studio.</span></div><div class="url">rmink.vercel.app/bygg</div><div class="small">rmink är gratis och öppen källkod.<br>Open PDF Studio är fri programvara från OpenAEC.</div></div>
+<script>
+const Q = new URLSearchParams(location.search);
+const W = +(Q.get("w") || 1920), H = +(Q.get("h") || 1080), LAND = W > H, PHONE = H / W > 1.5;
+Object.assign(document.body.style, { width: W + "px", height: H + "px" });
+const SVGNS = "http://www.w3.org/2000/svg", XLINK = "http://www.w3.org/1999/xlink";
+const s = document.getElementById("s");
+s.setAttribute("viewBox", `0 0 ${W} ${H}`); s.setAttribute("width", W); s.setAttribute("height", H);
+
+// Layout: the caption and a stage box where everything is shown.
+const L = LAND
+  ? { cap: [90, 150, 560], stage: [700, 70, 1150, 900], fs: { chapter: 25, title: 70, body: 32, rail: 19, tag: 22 }, railY: 1006 }
+  : PHONE
+  ? { cap: [64, 120, 952], stage: [24, 560, 1032, 1150], fs: { chapter: 28, title: 76, body: 37, rail: 17, tag: 24 }, railY: H - 150 }
+  : { cap: [64, 60, 952], stage: [24, 400, 1032, 840], fs: { chapter: 23, title: 60, body: 30, rail: 15, tag: 19 }, railY: 1290 };
+const rs = document.documentElement.style;
+for (const [k, v] of Object.entries(L.fs)) rs.setProperty(`--fs-${k}`, v + "px");
+const cap = document.getElementById("cap");
+Object.assign(cap.style, { left: L.cap[0] + "px", top: L.cap[1] + "px", width: L.cap[2] + "px" });
+document.getElementById("rail").style.top = L.railY + "px";
+document.querySelector("#end .big").style.fontSize = (LAND ? 88 : 78) + "px";
+const [SX, SY, SW, SH] = L.stage, SCX = SX + SW / 2, SCY = SY + SH / 2;
+
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const P = (t, a, b) => clamp((t - a) / (b - a));
+const eOut = (x) => 1 - Math.pow(1 - x, 3);
+const eIO = (x) => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const mix = (a, b, x) => a + (b - a) * x;
+const fade = (t, a, b, f = .4) => Math.min(P(t, a, a + f), 1 - P(t, b - f, b));
+const el = (tag, attrs = {}, parent = s) => {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs)) { if (k === "text") e.textContent = v; else e.setAttribute(k, v); }
+  parent.appendChild(e);
+  return e;
+};
+const set = (e, attrs) => { for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); };
+const image = (href, w, h, parent) => { const i = el("image", { width: w, height: h, preserveAspectRatio: "none" }, parent); i.setAttributeNS(XLINK, "href", href); i.setAttribute("href", href); return i; };
+const A = "../out/ops/";
+
+// ------------------------------------------------------------- timeline
+const T = { sheet: 4.6, tab: 11.6, tap: 16.4, pen: 19.4, pull: 31.6, ops: 36, layer: 40.2, meas: 46.6, end: 54.4 };
+window.DURATION = 60;
+const STEPS = [["Ritningen", T.sheet], ["Till plattan", T.tab], ["Pennan", T.pen], ["Tillbaka", T.pull], ["Lager", T.ops], ["Mätt", T.meas]];
+const rail = document.getElementById("rail");
+const railEls = STEPS.map(([n]) => { const d = document.createElement("div"); d.textContent = n; rail.appendChild(d); return d; });
+
+const BEATS = [
+  [.4, T.sheet, "rmink · bygg", "Ritningen\nut på bygget.", "Pennan på plattan, mätningen i Open PDF Studio. Riktiga sidor och riktigt bläck."],
+  [T.sheet + .2, T.tab, "1 · Ritningen", "Garaget, A3\ni skala 1:25.", "En vanlig PDF med lager: bärande, text, mått och alternativ A–D för plattan."],
+  [T.tab + .2, T.pen - .2, "2 · Till plattan", "Arket läggs\npå plattan.", "Liggande, som på papper. Översikten har knappar, tryck på en ruta för att gå närmare."],
+  [T.pen, T.pull, "3 · Pennan", "Skriv direkt\npå ritningen.", "Ett streck längs väggen, ett kryss och en rad till den som ritar."],
+  [T.pull + .2, T.ops, "4 · Tillbaka", "rmink hämtar\nbläcket.", "Varje streck läggs i PDF:en där det skrevs, i millimeter på arket."],
+  [T.ops + .2, T.meas, "5 · Lager", "Eget lager\nför bläcket.", "Öppna PDF:en i Open PDF Studio. Tänd och släck pennan, mängderna ligger kvar."],
+  [T.meas + .2, T.end, "6 · Mätt", "Strecket blev\nen mätning.", "<b>2 607 mm</b> i skala 1:25, Längd 1 på lagret Mängder. Krysset räknas som 1 st."],
+];
+const beatEls = BEATS.map(([, , c, t, b]) => {
+  const d = document.createElement("div"); d.className = "beat";
+  d.innerHTML = `<div class="chapter"></div><div class="title"></div><div class="body"></div>`;
+  d.children[0].textContent = c; d.children[1].textContent = t; d.children[2].innerHTML = b;
+  cap.appendChild(d); return d;
+});
+
+// ------------------------------------------------------------- scene
+const defs = el("defs");
+const shadow = el("filter", { id: "drop", x: "-20%", y: "-20%", width: "140%", height: "150%" }, defs);
+el("feDropShadow", { dx: 0, dy: 22, stdDeviation: 26, "flood-color": "#000", "flood-opacity": .55 }, shadow);
+const pool = el("radialGradient", { id: "pool" }, defs);
+el("stop", { offset: 0, "stop-color": "#3a3128" }, pool); el("stop", { offset: 1, "stop-color": "#191714" }, pool);
+el("rect", { width: W, height: H, fill: "#191714" });
+el("ellipse", { cx: SCX, cy: SCY, rx: SW * .75, ry: SH * .7, fill: "url(#pool)" });
+
+// 1. The sheet as a sheet of paper (A3, 420 x 297)
+const sheetG = el("g");
+const SHW = 2480, SHH = 1754;  // sheet.png at 150 dpi
+el("rect", { width: SHW, height: SHH, fill: "#fff", filter: "url(#drop)" }, sheetG);
+image(A + "sheet.png", SHW, SHH, sheetG);
+const backG = el("g");
+el("rect", { width: SHW, height: SHH, fill: "#fff", filter: "url(#drop)" }, backG);
+image(A + "sheet-ink.png", SHW, SHH, backG);
+
+// 2. The tablet, reMarkable 2 turned to landscape: the metal spine on top.
+const TW = 1872, TH = 1404, FR = 70;
+const tab = el("g");
+el("rect", { x: -FR, y: -FR - 26, width: TW + 2 * FR, height: TH + 2 * FR + 26, rx: 64, fill: "#e7e5df", filter: "url(#drop)" }, tab);
+el("rect", { x: -FR, y: -FR - 26, width: TW + 2 * FR, height: 74, rx: 30, fill: "#5d5f63" }, tab);
+el("rect", { x: -FR, y: -FR + 20, width: TW + 2 * FR, height: 28, fill: "#e7e5df" }, tab);
+el("rect", { x: -6, y: -6, width: TW + 12, height: TH + 12, rx: 8, fill: "#cfccc4" }, tab);
+const scr = el("g", {}, tab);
+const tp1 = image(A + "tab-p01.png", TW, TH, scr);
+const tp3 = image(A + "tab-p03.png", TW, TH, scr);
+el("rect", { width: TW, height: TH, fill: "#e9e7e1", opacity: .32, style: "mix-blend-mode: multiply" }, scr);
+const inkG = el("g", { fill: "none", stroke: "#1b1b1b", "stroke-linecap": "round", "stroke-linejoin": "round" }, scr);
+const tapRing = el("circle", { r: 60, fill: "none", stroke: "#111", "stroke-width": 9, opacity: 0 }, tab);
+const wallRing = el("rect", { x: 1010, y: 300, width: 130, height: 920, rx: 60, fill: "none", stroke: "#111", "stroke-width": 9, opacity: 0 }, tab);
+const pen = el("g", { opacity: 0 }, tab);
+el("path", { d: "M0 0 L22 -30 L470 -340 L486 -318 L38 -8 Z", fill: "#3a3a3c" }, pen);
+el("path", { d: "M0 0 L22 -30 L38 -8 Z", fill: "#9a9a9f" }, pen);
+let strokes = [], lens = [], total = 0;
+
+// 3. Open PDF Studio, real screenshots. Image px are 2x the window.
+const opsG = el("g");
+const OPS = {
+  on: { href: A + "ops-layers.png", w: 2337, h: 1664 },
+  off: { href: A + "ops-layers-off.png", w: 2337, h: 1664 },
+  meas: { href: A + "ops-measure.png", w: 2940, h: 1664 },
+};
+const opsClip = el("clipPath", { id: "opsclip" }, defs);
+const opsClipR = el("rect", { rx: 18 }, opsClip);
+const opsFrame = el("rect", { rx: 18, fill: "#2b2b2b", filter: "url(#drop)" }, opsG);
+const opsIn = el("g", { "clip-path": "url(#opsclip)" }, opsG);
+const opsCam = el("g", {}, opsIn);
+const imOn = image(OPS.on.href, OPS.on.w, OPS.on.h, opsCam);
+const imOff = image(OPS.off.href, OPS.off.w, OPS.off.h, opsCam);
+const imMeas = image(OPS.meas.href, OPS.meas.w, OPS.meas.h, opsCam);
+const opsMarks = el("g", { fill: "none", stroke: "var(--ops)", "stroke-width": 7 }, opsCam);
+const ringLayer = el("rect", { x: 80, y: 1015, width: 330, height: 70, rx: 18 }, opsMarks);
+const ringInk = el("ellipse", { cx: 1700, cy: 790, rx: 210, ry: 160 }, opsMarks);
+const ringMeas = el("rect", { x: 1860, y: 540, width: 70, height: 490, rx: 30 }, opsMarks);
+const ringProps = el("rect", { x: 2350, y: 575, width: 590, height: 400, rx: 18 }, opsMarks);
+const ringCount = el("circle", { cx: 1665, cy: 690, r: 52 }, opsMarks);
+const cursor = el("path", { d: "M0 0 L0 46 L12 35 L21 56 L30 52 L21 32 L37 32 Z", fill: "#fff", stroke: "#000", "stroke-width": 3, opacity: 0 }, opsCam);
+
+// Crops of the OPS images (image px) per format, as [x, y, w, h].
+const CROP = PHONE || !LAND ? {
+  whole: [0, 330, 2337, 1300], panel: [60, 360, 760, 800], ink: [1250, 470, 900, 1000],
+  meas: [1450, 450, 700, 800], measZoom: [2330, 540, 610, 520],
+} : {
+  whole: [0, 0, 2337, 1664], panel: [0, 330, 1300, 950], ink: [700, 380, 1500, 1100],
+  meas: [700, 330, 2240, 1334], measZoom: [1450, 420, 1490, 990],
+};
+const mixBox = (a, b, x) => a.map((v, i) => mix(v, b[i], x));
+
+// The stage box in which a crop is shown: as large as fits, centred.
+function fitBox(cw, ch) {
+  const k = Math.min(SW / cw, SH / ch);
+  return [SCX - cw * k / 2, SCY - ch * k / 2, cw * k, ch * k, k];
+}
+
+// ------------------------------------------------------------- frame
+function seek(t) {
+  // Sheet: lies on the table, then shrinks away as it goes to the tablet.
+  const sk = Math.min(SW / SHW, SH / SHH) * .98;
+  const sIn = eOut(P(t, .2, 1.4)), sOut = eIO(P(t, T.tab - .4, T.tab + .9));
+  const sScale = sk * mix(.92, 1, sIn) * mix(1, .3, sOut);
+  set(sheetG, { transform: `translate(${SCX} ${SCY + (1 - sIn) * 60 + sOut * (PHONE ? -320 : -260)}) rotate(${mix(-2, 0, sIn) + sOut * -6}) scale(${sScale}) translate(${-SHW / 2} ${-SHH / 2})`,
+    opacity: Math.min(sIn, 1 - P(t, T.tab + .4, T.tab + 1)), display: t < T.tab + 1 ? "inline" : "none" });
+
+  // The sheet back, with the ink in it
+  const bIn = eOut(P(t, T.pull + 1.2, T.pull + 2.4)), bOut = eIO(P(t, T.ops - 1.7, T.ops - .9));
+  set(backG, { transform: `translate(${SCX} ${SCY + (1 - bIn) * 80}) scale(${sk * mix(.9, 1, bIn) * mix(1, .8, bOut)}) translate(${-SHW / 2} ${-SHH / 2})`,
+    opacity: Math.min(bIn, 1 - bOut), display: t > T.pull + 1.1 && t < T.ops ? "inline" : "none" });
+
+  // Tablet
+  const tk = Math.min(SW / (TW + 2 * FR), SH / (TH + 2 * FR + 26)) * .97;
+  const tIn = eOut(P(t, T.tab - .1, T.tab + 1.1));
+  const tOut = eIO(P(t, T.pull + .6, T.pull + 2.2));
+  const zoomOn = eIO(P(t, T.pen + 1, T.pen + 2.2)) * (1 - eIO(P(t, T.pen + 9.2, T.pen + 10.6)));
+  const zk = tk * mix(1, LAND ? 1 : 1.45, zoomOn);
+  const fx = mix(TW / 2, 900, zoomOn), fy = mix(TH / 2, 760, zoomOn);
+  set(tab, { transform: `translate(${SCX + tOut * (LAND ? -900 : 0)} ${SCY + (1 - tIn) * H * .6 + tOut * (LAND ? 0 : -900)}) scale(${zk * mix(1, .5, tOut)}) translate(${-fx} ${-fy})`,
+    opacity: Math.min(tIn, 1 - P(t, T.pull + 1.6, T.pull + 2.2)), display: t > T.tab - .2 && t < T.pull + 2.3 ? "inline" : "none" });
+  const flip = P(t, T.tap + .5, T.tap + .9);
+  set(tp1, { opacity: 1 - flip }); set(tp3, { opacity: flip });
+  set(tapRing, { cx: 848, cy: 70, opacity: fade(t, T.tap - 1.2, T.tap + .7, .3), r: 60 + 8 * Math.sin(t * 6) });
+
+  // Ink, written again in the order it was written.
+  const a = T.pen + 2.2, b = T.pull - .8;
+  let done = P(t, a, b) * total;
+  strokes.forEach((p, i) => {
+    const l = lens[i], on = clamp(done / l);
+    done -= l;
+    set(p, { "stroke-dashoffset": l * (1 - on), opacity: t >= a ? 1 : 0, display: flip > 0 ? "inline" : "none" });
+  });
+  let tip = null;
+  { let d2 = P(t, a, b) * total;
+    for (let i = 0; i < strokes.length; i++) { if (d2 <= lens[i]) { tip = strokes[i].getPointAtLength(Math.max(0, d2)); break; } d2 -= lens[i]; } }
+  const penOn = t > a - .5 && t < b + .5 && tip;
+  if (tip) set(pen, { transform: `translate(${tip.x} ${tip.y})` });
+  set(pen, { opacity: penOn ? fade(t, a - .5, b + .5, .4) : 0 });
+  set(wallRing, { opacity: fade(t, a + 1.6, a + 3.6, .3) });
+
+  // Open PDF Studio window
+  const oIn = eOut(P(t, T.ops - .9, T.ops + .2));
+  const useMeas = t >= T.meas - .2;
+  let crop;
+  if (!useMeas) {
+    const c1 = eIO(P(t, T.layer - 1.6, T.layer - .2)), c2 = eIO(P(t, T.layer + 2.4, T.layer + 3.6));
+    crop = mixBox(mixBox(CROP.whole, CROP.panel, c1), CROP.ink, c2);
+  } else {
+    crop = mixBox(CROP.meas, CROP.measZoom, eIO(P(t, T.meas + 2.6, T.meas + 4)));
+  }
+  const [bx, by, bw, bh, k] = fitBox(crop[2], crop[3]);
+  const lift = (1 - oIn) * 80;
+  set(opsFrame, { x: bx - 6, y: by - 6 + lift, width: bw + 12, height: bh + 12 });
+  set(opsClipR, { x: bx, y: by + lift, width: bw, height: bh });
+  set(opsCam, { transform: `translate(${bx} ${by + lift}) scale(${k}) translate(${-crop[0]} ${-crop[1]})` });
+  set(opsG, { opacity: Math.min(oIn, 1 - P(t, T.end - .2, T.end + .3)), display: t > T.ops - 1.3 ? "inline" : "none" });
+  // Layer switched off at layer + 1.2, on again at layer + 4.6
+  const off = t >= T.layer + 1.2 && t < T.layer + 4.6;
+  set(imOn, { opacity: !useMeas && !off ? 1 : 0 }); set(imOff, { opacity: !useMeas && off ? 1 : 0 });
+  set(imMeas, { opacity: useMeas ? 1 : 0 });
+  set(ringLayer, { opacity: !useMeas ? fade(t, T.layer - .3, T.layer + 2.6, .3) : 0 });
+  set(ringInk, { opacity: !useMeas ? fade(t, T.layer + 3.6, T.meas - .4, .3) : 0 });
+  set(ringMeas, { opacity: useMeas ? fade(t, T.meas + .4, T.meas + 2.8, .3) : 0 });
+  set(ringProps, { opacity: useMeas ? fade(t, T.meas + 4.2, T.end, .3) : 0 });
+  set(ringCount, { opacity: useMeas ? fade(t, T.meas + 1.4, T.meas + 2.8, .3) : 0 });
+  // Cursor clicks the Bläck checkbox twice (image px of the checkbox: 110, 1035)
+  const click = (c) => Math.exp(-Math.pow((t - c) * 8, 2));
+  const curOn = useMeas ? 0 : fade(t, T.layer + .3, T.layer + 5.2, .3);
+  const toInk = eIO(P(t, T.layer + 2.4, T.layer + 3.6));
+  set(cursor, { opacity: curOn, transform: `translate(${mix(110, 1450, toInk)} ${mix(1035, 1300, toInk)}) scale(${(1 - .12 * (click(T.layer + 1.2) + click(T.layer + 4.6))) * 1.6})` });
+
+  // Tag under the stage
+  const tagEl = document.getElementById("tag");
+  const tagText = t < T.tab + .5 ? "Garage A3 liggande.pdf" : t < T.pull + 1.2 ? "Garage A3 liggande · rm2 · sida " + (flip > .5 ? 3 : 1) : t < T.ops - .6 ? "Garage A3 liggande med bläck.pdf" : "Open PDF Studio 2026.45";
+  tagEl.textContent = tagText;
+  Object.assign(tagEl.style, { left: SCX + "px", top: (PHONE ? SY + SH + 10 : LAND ? SY + SH - 10 : SY + SH + 6) + "px",
+    opacity: Math.max(fade(t, T.sheet, T.tab), fade(t, T.tab + 1, T.pull + 1.2), fade(t, T.pull + 1.4, T.ops - .7), fade(t, T.ops + .4, T.end - .2)) });
+
+  // Captions and rail
+  BEATS.forEach(([a, b], i) => {
+    beatEls[i].style.opacity = fade(t, a, b, .35);
+    beatEls[i].style.transform = `translateY(${(1 - eOut(P(t, a, a + .5))) * 26}px)`;
+  });
+  STEPS.forEach(([, a], i) => {
+    const next = i < STEPS.length - 1 ? STEPS[i + 1][1] : T.end;
+    railEls[i].className = t >= a && t < next ? "on" : t >= next ? "done" : "";
+  });
+  rail.style.opacity = P(t, T.sheet, T.sheet + .5) * (1 - P(t, T.end - .1, T.end + .3));
+
+  const end = P(t, T.end, T.end + .55);
+  const e = document.getElementById("end");
+  e.style.opacity = end;
+  e.style.transform = `scale(${mix(1.04, 1, eOut(end))})`;
+}
+window.seek = seek;
+
+fetch(A + "tab-p03-ink.json").then((r) => r.json()).then((paths) => {
+  strokes = paths.map((p) => el("path", { d: p.d, "stroke-width": 5.5 }, inkG));
+  lens = strokes.map((p) => p.getTotalLength());
+  total = lens.reduce((x, y) => x + y, 0);
+  strokes.forEach((p, i) => set(p, { "stroke-dasharray": `${lens[i]} ${lens[i]}` }));
+  const imgs = [...document.querySelectorAll("image")].map((i) => new Promise((ok) => { const im = new Image(); im.onload = ok; im.onerror = ok; im.src = i.getAttribute("href"); }));
+  return Promise.all(imgs);
+}).then(() => { seek(0); window.ready = true; });
+</script>
+</body>
+</html>

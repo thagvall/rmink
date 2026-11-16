@@ -1,0 +1,16 @@
+{
+  "voice": "alma",
+  "videos": "rmink-skola-real-sv-*.mp4",
+  "say": {"rmink": "är-em-ink", "Claude": "Klåd", "reMarkable": "rimarkabel"},
+  "lines": [
+    [0.4, "En arbetsbok i matte på en reMarkable. På riktigt."],
+    [4.9, "Allt ligger i sin mapp. Senaste revisionen har poängen i namnet."],
+    [11.3, "Claude har skrivit en blandad arbetsbok. Resultatet ligger sist."],
+    [16.9, "Eleven svarar med pennan. Tiokamrater skrivs i rutan, och hundrakamrater kryssas i."],
+    [24.3, "Plattan synkar. Be Claude köra nästa varv."],
+    [30.3, "Handstilen har blivit text, kryssen är lästa, och varje fråga har fått poäng."],
+    [36.9, "Tänd facit. Det ligger i ett dolt lager under varje ruta."],
+    [42.3, "Sist i provet står resultatet. Varje fråga med svar och poäng."],
+    [48.3, "Skriv för hand. rmink rättar."]
+  ]
+}
