@@ -2,7 +2,7 @@
 
 ## 2.26.1 — 2026-11-16
 
-- Fix: on Windows the map of Sweden was read in the system's encoding, so landskap and lakes with å, ä or ö in their names were not found. 2.26.0 was tagged but never published; this is the first release with what is listed under it.
+- Fix: on Windows the map of Sweden was read in the system's encoding, so landskap and lakes with å, ä or ö in their names were not found. 2.26.0 has the fault; on macOS and Linux it works.
 
 ## 2.26.0 — 2026-11-16
 
