@@ -165,15 +165,18 @@ The PDF stays an ordinary PDF. Ink, layers, comments, status, measurements and c
 ## Without reMarkable Cloud, and plugins
 
 The rounds above (drawings, workbooks, sheets) need somewhere to leave a notebook and
-find it again. That is the reMarkable Cloud by default, and can be a folder on your
-computer instead:
+find it again. That is the reMarkable Cloud by default. Without a subscription it can be
+the tablet itself over the USB cable, or a folder on your computer:
 
 ```bash
+rmink transport use usb                          # the tablet's USB web interface, plugged in
 rmink transport use folder:~/Documents/rmink     # or, for one command: rmink --via folder:PATH ...
 rmink sheet send ritning.pdf --send              # lands in ~/Documents/rmink/rmink/Ark/
 ```
 
-The folder is the handover point: you carry the `.rmdoc` files between it and the tablet
+Over USB rmink reads and writes on the tablet directly, but the interface cannot make or
+move folders: you make `rmink/Ark` and each drawing's folder on the tablet by hand, and
+earlier revisions stay where they are. A folder is only a handover point: you carry the `.rmdoc` files between it and the tablet
 yourself (USB web interface, a sync tool, a server of your own), or install a transport
 that does.
 

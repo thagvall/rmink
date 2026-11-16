@@ -22,6 +22,7 @@ A transport is where rmink leaves notebooks and fetches them: a tree of folders 
 | Transport | Spec | What it is |
 |---|---|---|
 | reMarkable Cloud | `cloud` | The default once `rmink cloud connect` has run. Needs [rmapi](https://github.com/ddvk/rmapi). |
+| The cable | `usb` | The tablet's USB web interface at 10.11.99.1. No subscription. It cannot make or move folders; see below. |
 | A folder | `folder:PATH` | `/rmink/Bygg/Altan/Altan r02` is `PATH/rmink/Bygg/Altan/Altan r02.rmdoc`. |
 | From a plugin | `NAME:ARG` | Whatever the plugin brings. |
 
@@ -37,9 +38,25 @@ rmink transport ls /rmink
 
 `--via` goes before the command. The order is `--via` or `$RMINK_TRANSPORT`, then the saved choice, then the cloud when connected.
 
-**The folder is a handover point, not a connection to the tablet.** rmink puts `Altan r02.rmdoc` in the folder and expects to find the notebook you wrote on there again under the same name. What carries files between the folder and the tablet is up to you: the USB web interface (<http://10.11.99.1>), a sync tool, a server of your own, or a transport plugin written for it.
+**The folder is a handover point, not a connection to the tablet.** rmink puts `Altan r02.rmdoc` in the folder and expects to find the notebook you wrote on there again under the same name. What carries files between the folder and the tablet is up to you: a sync tool, a server of your own, or dragging them into the USB web interface. To have rmink talk to the tablet itself without the cloud, use `usb`.
 
-[`plugins/rmink-usb`](../plugins/rmink-usb) is such a plugin for the USB web interface (`--via usb`). The interface cannot make or move folders, so the rmink folders are made on the tablet by hand; see its README. Listing, fetching and uploading are tried on an rm2; a full round over USB is not.
+### Over the cable: `usb`
+
+Plug the tablet in, wake it, and turn on *Settings → Storage → USB web interface* (called *USB connection* on newer system software). Then:
+
+```bash
+rmink --via usb transport check     # does it answer, and can it hand out notebooks?
+rmink transport use usb             # use it for everything; usb:HOST for another address
+```
+
+The interface lists folders, hands out a notebook as `.rmdoc` (system software 3.9 and later) and takes an upload into a folder. It has no way to make, move, rename or remove anything, so:
+
+- **Make the folders on the tablet yourself.** When one is missing, rmink stops and names it (`Make the folder "/rmink/Ark" on the tablet`). A drawing needs `rmink/Bygg/<name>`, a sheet `rmink/Ark`.
+- **Nothing moves to `Tidigare`.** After a round the notebook that was read stays beside the new revision, and rmink logs that it could not move it.
+- **Two notebooks can have one name** on the tablet; rmink reads the one changed last.
+- Files over 100 MB are refused, as the interface does.
+
+Measured on an rm2: an upload lands in the folder listed last, and the tablet names it after the name inside the archive, which rmink sets. The interface is documented by its users, not by reMarkable, and may change with the tablet's software.
 
 The hosted web app only sends through the cloud. Transports are for the CLI and the MCP server, which run on your own computer.
 
@@ -163,7 +180,7 @@ exempel = "rmink_exempel:register"     # register(server) adds tools with @serve
 
 ## Rules for all plugins
 
-- **Built-in names stay.** A plugin cannot replace `cloud` or `folder`, `.pdf`, the `pdf` export or `rmink convert`. Pack data is the exception: the same `id` replaces on purpose.
+- **Built-in names stay.** A plugin cannot replace `cloud`, `folder` or `usb`, `.pdf`, the `pdf` export or `rmink convert`. Pack data is the exception: the same `id` replaces on purpose.
 - **Nothing is imported until it is used.** `rmink convert` does not import your transport. Keep imports of heavy libraries inside the functions that need them.
 - **A plugin that fails is skipped** with a warning; `rmink plugins` says why.
 - **`rmink.plugins.API_VERSION` is 1.** The entry point groups, the `Transport` methods, the pack layout and the importer and exporter signatures above are what it covers. They will not change without the number changing; a pack says which it was written for with `api = 1`. Everything else in `rmink.*` is internal and may change between releases.

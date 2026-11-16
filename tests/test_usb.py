@@ -1,4 +1,4 @@
-"""The rmink-usb plugin (plugins/rmink-usb) against a stand-in for the tablet's
+"""The USB transport (rmink.transport.usb) against a stand-in for the tablet's
 USB web interface: list with POST /documents/<id>, fetch with
 GET /download/<id>/rmdoc, upload to the folder listed last with POST /upload."""
 
@@ -8,15 +8,11 @@ import re
 import threading
 import zipfile
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from importlib import metadata
-from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
 
-from rmink import cli, packs, plugins, transport
-
-PLUGIN = Path(__file__).parents[1] / "plugins" / "rmink-usb"
+from rmink import cli, transport
 
 
 class Tablet:
@@ -104,21 +100,6 @@ def tablet():
     server.server_close()
 
 
-@pytest.fixture
-def installed(monkeypatch, tmp_path):
-    eps = {
-        "rmink.transports": (metadata.EntryPoint("usb", "rmink_usb:open_usb", "rmink.transports"),),
-        "rmink.commands": (metadata.EntryPoint("usb", "rmink_usb:app", "rmink.commands"),),
-    }
-    monkeypatch.syspath_prepend(str(PLUGIN / "src"))
-    monkeypatch.delenv("RMINK_NO_PLUGINS")
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.setattr(plugins, "_entry_points", lambda group: eps.get(group, ()))
-    packs.reset()
-    yield
-    packs.reset()
-
-
 def _rmdoc(path, text="{}"):
     with zipfile.ZipFile(path, "w") as zf:
         zf.writestr("a.content", text)
@@ -132,17 +113,7 @@ def _files(data):
         return {n: zf.read(n) for n in zf.namelist()}
 
 
-def test_the_pyproject_declares_what_the_tests_install():
-    import tomllib
-
-    table = tomllib.loads((PLUGIN / "pyproject.toml").read_text(encoding="utf-8"))
-    assert table["project"]["entry-points"] == {
-        "rmink.transports": {"usb": "rmink_usb:open_usb"},
-        "rmink.commands": {"usb": "rmink_usb:app"},
-    }
-
-
-def test_list_fetch_and_upload_over_the_cable(installed, tablet, tmp_path):
+def test_list_fetch_and_upload_over_the_cable(tablet, tmp_path):
     rmink = tablet.add("rmink")
     ark = tablet.add("Ark", rmink)
     doc = _rmdoc(tmp_path / "x.rmdoc", "ny")
@@ -176,13 +147,13 @@ def test_list_fetch_and_upload_over_the_cable(installed, tablet, tmp_path):
         t.put(doc, folder="/rmink/Bygg")
 
 
-def test_of_two_notebooks_with_one_name_the_newest_is_read(installed, tablet, tmp_path):
+def test_of_two_notebooks_with_one_name_the_newest_is_read(tablet, tmp_path):
     tablet.add("Altan", "", b"PK-old")
     tablet.add("Altan", "", b"PK-new")
     assert transport.open(f"usb:{tablet.host}").get("/Altan") == b"PK-new"
 
 
-def test_what_the_interface_cannot_do_is_said_plainly(installed, tablet, tmp_path):
+def test_what_the_interface_cannot_do_is_said_plainly(tablet, tmp_path):
     tablet.add("rmink")
     t = transport.open(f"usb:{tablet.host}")
     t.mkdir("/rmink")  # there already: fine
@@ -201,14 +172,14 @@ def test_what_the_interface_cannot_do_is_said_plainly(installed, tablet, tmp_pat
         t.get("/Gammal")
 
 
-def test_a_tablet_that_is_not_plugged_in(installed):
+def test_a_tablet_that_is_not_plugged_in():
     t = transport.open("usb:127.0.0.1:9")
     t.timeout = 2
     with pytest.raises(transport.TransportError, match="does not answer.*USB web interface"):
         t.ls("/")
 
 
-def test_a_sheet_goes_out_and_comes_back_over_usb(installed, tablet, examples, tmp_path):
+def test_a_sheet_goes_out_and_comes_back_over_usb(tablet, examples, tmp_path):
     runner, via = CliRunner(), ["--via", f"usb:{tablet.host}"]
     send = [*via, "sheet", "send", str(examples["pdf"]), "-o", str(tmp_path / "a.rmdoc"), "--send"]
     refused = runner.invoke(cli.app, send)
@@ -229,12 +200,21 @@ def test_a_sheet_goes_out_and_comes_back_over_usb(installed, tablet, examples, t
     assert pdf.is_file()
 
 
-def test_the_check_command(installed, tablet, tmp_path):
-    cli._plugin_commands()
+def test_the_check_command(tablet, tmp_path):
     tablet.add("rmink")
     tablet.add("Skiss", "", _rmdoc(tmp_path / "s.rmdoc").read_bytes())
-    result = CliRunner().invoke(cli.app, ["usb", "--host", tablet.host])
+    result = CliRunner().invoke(cli.app, ["--via", f"usb:{tablet.host}", "transport", "check"])
     assert result.exit_code == 0, result.output
     assert "1 folders, 1 notebooks" in result.output and "hands out notebooks" in result.output
-    down = CliRunner().invoke(cli.app, ["usb", "--host", "127.0.0.1:9"])
-    assert down.exit_code == 1
+    down = CliRunner().invoke(cli.app, ["--via", "usb:127.0.0.1:9", "transport", "check"])
+    assert down.exit_code == 1 and "does not answer" in down.output
+
+
+def test_usb_is_built_in_and_opens_without_touching_the_tablet(tmp_path, monkeypatch):
+    from rmink.transport.usb import UsbTransport
+
+    monkeypatch.setattr(transport, "config_path", lambda: tmp_path / "config.toml")
+    assert "usb" in transport.BUILTIN
+    assert repr(transport.open("usb")) == "usb:10.11.99.1"
+    transport.use("usb")  # saving the choice needs no tablet
+    assert isinstance(transport.default(), UsbTransport)

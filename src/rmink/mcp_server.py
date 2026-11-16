@@ -63,7 +63,9 @@ server = MCPServer(
         "'Bråk och division' with topics and briefs; pass the group to `create_workbook`."
         "\n\n"
         "Without reMarkable Cloud: the user picks another transport with `rmink transport "
-        "use folder:PATH` (or one from a plugin). Sending and reading then use that tree "
+        "use usb` (the tablet on its cable; it cannot make folders, so the user makes the one "
+        "an error names on the tablet) or `rmink transport use folder:PATH` (or one from a "
+        "plugin). Sending and reading then use that tree "
         "instead, with the same rmink/... paths; `files_list` shows it."
     ),
 )

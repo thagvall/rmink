@@ -69,7 +69,7 @@ def test_plugins_can_be_turned_off(installed, monkeypatch):
     packs.reset()
     assert plugins.found("rmink.transports") == {} and packs.all_packs() == ()
     assert "sauna_heater" not in symbols.symbols()
-    assert transport.names() == ["cloud", "folder"]
+    assert transport.names() == ["cloud", "folder", "usb"]
 
 
 def test_built_in_names_stay(installed, tmp_path):
@@ -83,7 +83,7 @@ def test_built_in_names_stay(installed, tmp_path):
         metadata.EntryPoint("svg", "rmink_exempel:export_geojson", "rmink.exporters")
     )
     assert isinstance(transport.open(f"folder:{tmp_path}"), transport.FolderTransport)
-    assert transport.names() == ["cloud", "folder", "zip"]
+    assert transport.names() == ["cloud", "folder", "usb", "zip"]
     assert ingest.plugin_suffixes() == {".geojson"}
     assert formats() == ["pdf", "svg", "geojson"]
     assert export(Drawing.model_validate(DRAWING), "svg").startswith(b"<svg")

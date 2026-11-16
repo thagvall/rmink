@@ -1,8 +1,9 @@
 """How notebooks get to the tablet and back.
 
 A transport is a tree of folders and notebooks, each notebook a ``.rmdoc``:
-the reMarkable Cloud (``cloud``), a folder on this computer (``folder:PATH``),
-or one a plugin brings (``NAME:ARG``, entry point group ``rmink.transports``).
+the reMarkable Cloud (``cloud``), the tablet's USB web interface (``usb``), a
+folder on this computer (``folder:PATH``), or one a plugin brings (``NAME:ARG``,
+entry point group ``rmink.transports``).
 The workflows only use the six calls of :class:`Transport`, so drawings,
 workbooks and sheets go their rounds the same way over any of them.
 
@@ -29,7 +30,7 @@ __all__ = [
 ]  # fmt: skip
 
 ENV = "RMINK_TRANSPORT"
-BUILTIN = ("cloud", "folder")
+BUILTIN = ("cloud", "folder", "usb")
 
 
 @dataclass(frozen=True)
@@ -151,7 +152,7 @@ def names() -> list[str]:
 
 
 def open(value: str) -> Transport:  # noqa: A001 - transport.open reads well
-    """The transport ``value`` names: "cloud", "folder:PATH" or "PLUGIN:ARG"."""
+    """The transport ``value`` names: "cloud", "usb", "folder:PATH" or "PLUGIN:ARG"."""
     from rmink import plugins
 
     name, _, arg = value.strip().partition(":")
@@ -170,6 +171,10 @@ def open(value: str) -> Transport:  # noqa: A001 - transport.open reads well
         if not arg:
             raise TransportError('Give the folder: "folder:~/Documents/rmink"')
         return FolderTransport(arg)
+    if name == "usb":
+        from rmink.transport.usb import HOST, UsbTransport
+
+        return UsbTransport(arg or _config().get("usb", {}).get("host", "") or HOST)
     factory = plugins.load("rmink.transports", name)
     if factory is None:
         raise TransportError(

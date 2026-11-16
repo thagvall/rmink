@@ -31,7 +31,7 @@ def _root(
         str | None,
         typer.Option(
             "--via",
-            help="Where notebooks are left and fetched: cloud, folder:PATH or a plugin's "
+            help="Where notebooks are left and fetched: cloud, usb, folder:PATH or a plugin's "
             "NAME:ARG (default: what `rmink transport use` saved, else the cloud)",
         ),
     ] = None,
@@ -914,7 +914,7 @@ def transport_list() -> None:
 
 @transport_app.command("use")
 def transport_use(
-    spec: Annotated[str, typer.Argument(help="cloud, folder:PATH or a plugin's NAME:ARG")],
+    spec: Annotated[str, typer.Argument(help="cloud, usb, folder:PATH or a plugin's NAME:ARG")],
 ) -> None:
     """Choose the transport rounds, workbooks and sheets are sent and fetched with."""
     from rmink import transport
@@ -924,6 +924,22 @@ def transport_use(
     except transport.TransportError as e:
         typer.secho(f"error: {e}", fg="red", err=True)
         raise typer.Exit(1) from e
+
+
+@transport_app.command("check")
+def transport_check() -> None:
+    """Try the transport in use: is it there, and what can it do?"""
+    from rmink import transport
+
+    via = _via()
+    try:
+        lines = via.check() if hasattr(via, "check") else [f"{len(via.ls('/'))} entries in /"]
+    except transport.TransportError as e:
+        typer.secho(f"error: {e}", fg="red", err=True)
+        raise typer.Exit(1) from e
+    typer.echo(f"{via!r}")
+    for line in lines:
+        typer.echo(line)
 
 
 @transport_app.command("ls")

@@ -2193,7 +2193,7 @@ def d20_plugins() -> Diagram:
         d, 40, rules_y, 640,
         "Regler för alla plugin",
         [
-            "Inbyggda namn står kvar: ett plugin kan inte ersätta cloud, folder, .pdf, exporten pdf eller rmink convert.",
+            "Inbyggda namn står kvar: ett plugin kan inte ersätta cloud, usb, folder, .pdf, exporten pdf eller rmink convert.",
             "Undantaget är paketdata: där ersätter samma id med flit.",
             f"API_VERSION {plugins.API_VERSION} täcker grupperna, de sex transportanropen, paketmappens upplägg och signaturerna för format in och ut.",
             "Allt annat i rmink.* är internt och kan ändras mellan versioner.",
@@ -2219,7 +2219,7 @@ def d20_plugins() -> Diagram:
     d.text(40, by, 900, 24, "<b>B. Transporter: var anteckningsböcker lämnas och hämtas</b>", size=15)
     by += 40
     row_h, row_gap = 92, 26
-    my = by + (3 * row_h + 2 * row_gap - 150) / 2  # centred on the three transports
+    my = by + (4 * row_h + 3 * row_gap - 150) / 2  # centred on the transports
     callers = d.box(
         40, my, 270, 150,
         label(
@@ -2263,6 +2263,11 @@ def d20_plugins() -> Diagram:
             "synk", False,
         ),
         (
+            "core", "usb: UsbTransport", ["inbyggd, ingen prenumeration", "plattans USB-gränssnitt, 10.11.99.1", "kan inte göra eller flytta mappar"],
+            "device", "Kabeln till plattan", ["lista, hämta .rmdoc, ladda upp", "mapparna görs för hand på plattan"],
+            "direkt", False,
+        ),
+        (
             "core", "folder:MAPP: FolderTransport", ["inbyggd, ingen prenumeration", "/rmink/Bygg/Altan/Altan r02 =", "MAPP/rmink/Bygg/Altan/Altan r02.rmdoc"],
             "data", "En mapp på datorn", ["överlämningspunkt: rmink når inte plattan", "användaren bär filerna: USB, synk, egen server"],
             "bärs för hand", True,
@@ -2276,7 +2281,7 @@ def d20_plugins() -> Diagram:
     device_ids = []
     ry = by
     tablet = d.box(
-        tx, ry + row_h + row_gap, 190, row_h,
+        tx, ry + 1.5 * (row_h + row_gap), 190, row_h,
         label("reMarkable-plattan", ["skriv, rita, kryssa", "lägg tillbaka samma namn"]),
         "device",
     )
@@ -2306,11 +2311,11 @@ def d20_plugins() -> Diagram:
     cy += 40
     flows = [
         (
-            "1. Utan moln: ett ark ut och tillbaka genom en mapp",
+            "1. Utan moln: ett ark ut och tillbaka över kabeln",
             [
-                ("Välj mappen", ["rmink transport use folder:~/rmink"], "interface"),
-                ("Skicka arket", ["rmink sheet send ritning.pdf --send", "→ ~/rmink/rmink/Ark/ritning.rmdoc"], "core"),
-                ("Bär över och skriv", ["USB (10.11.99.1) eller synk", "skriv på plattan", "lägg filen tillbaka i mappen"], "device"),
+                ("Välj kabeln", ["rmink transport use usb", "gör mappen rmink/Ark på plattan"], "interface"),
+                ("Skicka arket", ["rmink sheet send ritning.pdf --send", "→ rmink/Ark/ritning på plattan"], "core"),
+                ("Skriv på plattan", ["mät, kryssa, anteckna", "låt kabeln sitta i"], "device"),
                 ("Hämta bläcket", ["rmink sheet pull /rmink/Ark/ritning ritning.pdf"], "core"),
                 ("PDF med bläck", ["varje streck en PDF-anteckning", "öppnas i Open PDF Studio"], "data"),
             ],

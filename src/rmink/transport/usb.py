@@ -1,4 +1,5 @@
-"""rmink over the cable: the reMarkable USB web interface as a transport.
+"""The reMarkable USB web interface as a transport: rounds over the cable,
+without a reMarkable Cloud subscription.
 
 The tablet serves its files at http://10.11.99.1 while it is plugged in and
 *Settings → Storage → USB web interface* ("USB connection" on newer software)
@@ -11,9 +12,11 @@ last. It cannot make, move, rename or remove anything, so:
 - ``mv`` and ``rmdir`` fail with a message, and rmink then leaves the notebook
   a round read where it is instead of moving it to ``Tidigare``.
 
-    rmink --via usb sheet send ritning.pdf --send
-    rmink transport use usb          # or usb:HOST for another address
-    rmink usb                        # is the tablet there, and what can it do?
+Measured on an rm2 (2026-11-16): an upload lands in the folder listed last,
+and the tablet names it after ``visibleName`` inside the archive, not after
+the file. The interface is documented by its users, not by reMarkable
+(remarkable.guide/tech/usb-web-interface.html), and may change with the
+tablet's software.
 """
 
 from __future__ import annotations
@@ -27,9 +30,7 @@ import uuid
 import zipfile
 from pathlib import Path
 
-import typer
-
-from rmink.transport import Entry, ExistsError, NotFoundError, TransportError
+from rmink.transport.errors import ExistsError, NotFoundError, TransportError
 
 HOST = "10.11.99.1"
 TIMEOUT_S = 20
@@ -119,7 +120,9 @@ class UsbTransport:
 
     # --- the six calls
 
-    def ls(self, path: str = "/") -> list[Entry]:
+    def ls(self, path: str = "/") -> list:
+        from rmink.transport import Entry
+
         _, entries = self._folder(path)
         return [Entry(self._name(e), self._is_folder(e)) for e in entries if self._name(e)]
 
@@ -193,6 +196,24 @@ class UsbTransport:
     def rmdir(self, path: str) -> None:
         raise TransportError(f'The USB interface cannot remove "{path}"; do it on the tablet.')
 
+    def check(self) -> list[str]:
+        """What the tablet can do over the cable, for ``rmink transport check``."""
+        entries = self._list()
+        folders = sum(self._is_folder(e) for e in entries)
+        lines = [f"The tablet answers: {folders} folders, {len(entries) - folders} notebooks."]
+        notebook = next((e for e in entries if e.get("fileType", "notebook") == "notebook"
+                         and not self._is_folder(e)), None)  # fmt: skip
+        if notebook is not None:
+            try:
+                self.get("/" + self._name(notebook))
+                lines.append("It hands out notebooks as .rmdoc, so rounds can read what you write.")
+            except TransportError as e:
+                lines.append(f"Fetching a notebook failed: {e}")
+        lines.append(
+            "It cannot make or move folders: make the rmink folders on the tablet by hand."
+        )
+        return lines
+
 
 def _named(file: Path, name: str) -> bytes:
     """The .rmdoc ``file`` with ``name`` as its notebook name. The tablet names
@@ -211,36 +232,3 @@ def _named(file: Path, name: str) -> bytes:
     except (zipfile.BadZipFile, ValueError) as e:
         raise TransportError(f"{file.name} is not a notebook file: {e}") from e
     return out.getvalue()
-
-
-def open_usb(arg: str) -> UsbTransport:
-    """``usb`` or ``usb:HOST`` (default 10.11.99.1)."""
-    return UsbTransport(arg or HOST)
-
-
-app = typer.Typer(
-    help="The reMarkable USB web interface as a transport.", invoke_without_command=True
-)
-
-
-@app.callback()
-def check(host: str = HOST) -> None:
-    """Say whether the tablet answers over the cable and what it can do."""
-    t = UsbTransport(host, timeout=5)
-    try:
-        entries = t._list()
-    except TransportError as e:
-        typer.secho(str(e), fg="red", err=True)
-        raise typer.Exit(1) from e
-    folders = sum(t._is_folder(e) for e in entries)
-    typer.echo(
-        f"The tablet answers at {t.base}: {folders} folders, {len(entries) - folders} notebooks."
-    )
-    notebook = next((e for e in entries if not t._is_folder(e)), None)
-    if notebook is not None:
-        try:
-            t.get("/" + t._name(notebook))
-            typer.echo("It hands out notebooks as .rmdoc, so rounds can read what you write.")
-        except TransportError as e:
-            typer.secho(f"Fetching a notebook failed: {e}", fg="yellow", err=True)
-    typer.echo("It cannot make or move folders: make the rmink folders on the tablet by hand.")

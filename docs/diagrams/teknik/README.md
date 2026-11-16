@@ -62,7 +62,7 @@ Klassdiagram över `Drawing` och dess delar, linjekategorierna och ritningshuvud
 ![Ritningsmodellen](08-ritningsmodellen.svg)
 
 ### 20. Plugin, innehållspaket och transporter
-Delarna ett plugin kan ta med sig, var rmink frågar efter dem och var användaren möter dem. Visar också lagren av innehållspaket, hur en transport väljs (moln, mapp eller från ett plugin) och tre exempel: ett ark genom en mapp utan moln, en symbol från ett paket och GeoJSON in och ut. Gränssnitten beskrivs i [docs/plugins.md](../../plugins.md).
+Delarna ett plugin kan ta med sig, var rmink frågar efter dem och var användaren möter dem. Visar också lagren av innehållspaket, hur en transport väljs (moln, kabel, mapp eller från ett plugin) och tre exempel: ett ark över kabeln utan moln, en symbol från ett paket och GeoJSON in och ut. Gränssnitten beskrivs i [docs/plugins.md](../../plugins.md).
 
 ![Plugin och transporter](20-plugin-och-transporter.svg)
 

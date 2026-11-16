@@ -122,7 +122,9 @@ with dashed, dotted and dash-dot lines and different widths.
 - Text in vector PDFs becomes outlined, hatched glyphs (not typed text).
 - Never claim the file is on the tablet unless `send`/`cloud put` reported it
   as sent; otherwise rmink only writes the file.
-- Without reMarkable Cloud the user can run `rmink transport use folder:PATH`:
+- Without reMarkable Cloud the user can run `rmink transport use usb` (tablet plugged in,
+  USB web interface on; folders must be made on the tablet by hand) or
+  `rmink transport use folder:PATH`:
   sending and reading then use that folder with the same `rmink/...` paths, and
   `files_list` shows it. A file "sent" to a folder is in the folder, not on the
   tablet; the user carries it over.
